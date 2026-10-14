@@ -1,0 +1,56 @@
+# 코드와 데이터 구조
+
+[첫 화면](../README.md) · [개발·빌드](development-guide.md) · [자료실](README.md)
+
+현재 게임은 **Unity 6.3 LTS / C# / uGUI**로 구성됩니다. 화면은 C#에서 만들고, 경제 규칙과 저장 처리는 `Core`에 모았습니다.
+
+## 플레이 데이터 흐름
+
+```mermaid
+flowchart LR
+    Input[플레이어 입력] --> UI[GameScreen과 화면별 partial 클래스]
+    UI --> Rules[Market · Intelligence · 거래 견적]
+    Rules --> Candidate[검증된 다음 상태]
+    Candidate --> Store[GameStore 저장]
+    Store --> Display[상태 반영과 화면 갱신]
+    Display --> Input
+```
+
+UI의 행동 처리는 새 상태를 계산하고 저장이 성공한 뒤 반영합니다. 저장 실패 시 잔액이나 날짜를 먼저 바꾸지 않습니다. 돈과 수량은 정수로 계산하며 거래 한도·잔액·보유량·수수료를 검사합니다.
+
+| 바꾸려는 부분 | 시작할 파일 |
+| --- | --- |
+| 거래소·자산·주문 영역 | [`GameScreen.cs`](../unity/Assets/Scripts/GameScreen.cs) |
+| 자동 갱신·날짜·결산 화면 | [`DayScreen.cs`](../unity/Assets/Scripts/DayScreen.cs) |
+| 정보 가판대와 기사 지면 | [`InformationScreen.cs`](../unity/Assets/Scripts/InformationScreen.cs) |
+| 물류센터 알바와 애니메이션 | [`WorkScreen.cs`](../unity/Assets/Scripts/WorkScreen.cs) |
+| 차트·아이콘·종이 표현 | [`PriceChart.cs`](../unity/Assets/Scripts/PriceChart.cs), [`MarketIcon.cs`](../unity/Assets/Scripts/MarketIcon.cs), [`PaperSheet.cs`](../unity/Assets/Scripts/PaperSheet.cs) |
+| 거래·가격·날짜 규칙 | [`Core/Market.cs`](../unity/Assets/Scripts/Core/Market.cs), [`Core/TradingDay.cs`](../unity/Assets/Scripts/Core/TradingDay.cs) |
+| 주문 가능 여부와 최대 매수 | [`Core/OrderGuidance.cs`](../unity/Assets/Scripts/Core/OrderGuidance.cs) |
+| 정보 생성·구매·본문 | [`Core/Intelligence.cs`](../unity/Assets/Scripts/Core/Intelligence.cs), [`Core/InfoMarket.cs`](../unity/Assets/Scripts/Core/InfoMarket.cs), [`Core/ClueContent.cs`](../unity/Assets/Scripts/Core/ClueContent.cs) |
+| 저장과 백업 | [`Core/GameStore.cs`](../unity/Assets/Scripts/Core/GameStore.cs) |
+| 자동 UI 검사와 촬영 | [`VerificationScreen.cs`](../unity/Assets/Scripts/VerificationScreen.cs) |
+
+## 정보 콘텐츠 흐름
+
+```mermaid
+flowchart TD
+    Sources[content의 사건·취재·대화 원안] --> Generator[build_information_catalog.py]
+    Generator --> Runtime[Unity Resources의 게임 카탈로그]
+    Generator --> Docs[등급별 Markdown과 CSV]
+    Runtime --> Reader[InformationCatalog와 ClueContent]
+    Reader --> Paper[정보 가판대와 기사 화면]
+    Sources --> Checks[test_information_catalog.py]
+    Runtime --> Checks
+    Docs --> Checks
+```
+
+300개 사건 원안을 10등급의 취재 깊이로 구성해 3,000개 정보 상품을 제공합니다. 이전에 산 자료의 문구가 바뀌지 않도록 과거 카탈로그 판본도 보존합니다. 콘텐츠 수정 절차는 [개발 가이드](development-guide.md#정보-콘텐츠-수정)를 참고하세요.
+
+## 진행 보호와 검증
+
+- 저장은 체크섬·임시 파일 교체·백업을 사용합니다. 현재 내부 저장 형식은 9입니다.
+- 미확인 결산을 저장하므로 앱을 다시 열어도 결산 확인부터 이어갑니다.
+- `GameRuntime.Verifying`은 검증 전용 데이터 경로와 별도 설정을 사용합니다. 검증 앱은 본게임 저장을 건드리지 않습니다.
+- 코어 검사는 Unity와 .NET에서 같은 C# 규칙을 사용합니다. UI 검사는 별도 Unity Player에서 실제 콜백과 렌더링을 확인합니다.
+- `android/`와 `prototype/`은 이전 구현 보관용이며 현재 주 개발 대상은 `unity/`입니다.

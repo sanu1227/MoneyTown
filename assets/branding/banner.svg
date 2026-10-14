@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="title desc">
+  <title id="title">MoneyTown — 정보를 읽고, 당신의 판단으로 투자하세요</title>
+  <desc id="desc">남색과 민트색의 소개 배너. 차트와 신문을 상징하는 벡터 일러스트이며 게임 실행 화면이 아닙니다.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1"><stop stop-color="#0B1728"/><stop offset="1" stop-color="#17364A"/></linearGradient>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#56DDB9" stop-opacity=".28"/><stop offset="1" stop-color="#56DDB9" stop-opacity="0"/></linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#355268" stroke-opacity=".22"/></pattern>
+  </defs>
+  <rect width="1280" height="400" rx="24" fill="url(#background)"/>
+  <rect width="1280" height="400" rx="24" fill="url(#grid)"/>
+  <g font-family="Segoe UI, Malgun Gothic, Noto Sans KR, sans-serif">
+    <rect x="58" y="49" width="184" height="28" rx="14" fill="#24473F"/>
+    <circle cx="76" cy="63" r="4" fill="#56DDB9"/>
+    <text x="89" y="68" font-size="12" font-weight="700" letter-spacing="1.2" fill="#8EF0D4">INVESTMENT GAME</text>
+    <text x="54" y="164" font-size="83" font-weight="800" letter-spacing="-3" fill="#F0F7FC">MONEY<tspan fill="#56DDB9">TOWN</tspan></text>
+    <text x="58" y="213" font-size="25" fill="#C6D7E2">정보를 읽고, 당신의 판단으로 투자하세요.</text>
+    <text x="58" y="251" font-size="17" fill="#90AABC">단서 수집 · 주식 거래 · 자산 성장</text>
+    <g transform="translate(58 305)">
+      <rect width="113" height="38" rx="8" fill="#1C3449" stroke="#335269"/>
+      <text x="56" y="25" text-anchor="middle" font-size="15" fill="#DAE7F1">Unity / C#</text>
+      <rect x="125" width="173" height="38" rx="8" fill="#1C3449" stroke="#335269"/>
+      <text x="211" y="25" text-anchor="middle" font-size="15" fill="#DAE7F1">Android · Windows</text>
+      <rect x="310" width="96" height="38" rx="8" fill="#24473F"/>
+      <text x="358" y="25" text-anchor="middle" font-size="15" font-weight="700" fill="#8EF0D4">v0.18.2</text>
+    </g>
+  </g>
+  <g transform="translate(774 49)">
+    <rect width="442" height="286" rx="18" fill="#132A3C" stroke="#36566B"/>
+    <g fill="#56DDB9"><rect x="24" y="32" width="7" height="12"/><rect x="36" y="23" width="7" height="21"/><rect x="48" y="15" width="7" height="29"/></g>
+    <text x="70" y="37" font-family="Segoe UI,sans-serif" font-size="14" letter-spacing="2" fill="#96AEBE">FOLLOW THE SIGNAL</text>
+    <path d="M24 97H418M24 145H418M24 193H418M24 241H418" stroke="#28475C"/>
+    <path d="M24 215L64 195L101 209L141 153L181 173L223 140L265 150L307 103L350 120L400 76V254H24Z" fill="url(#area)"/>
+    <path d="M24 215L64 195L101 209L141 153L181 173L223 140L265 150L307 103L350 120L400 76" fill="none" stroke="#56DDB9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="400" cy="76" r="10" fill="#56DDB9" fill-opacity=".16"/><circle cx="400" cy="76" r="4" fill="#8EF0D4"/>
+  </g>
+  <g transform="translate(1050 248) rotate(7)">
+    <rect width="132" height="112" rx="8" fill="#E7EFF4"/>
+    <path d="M104 0V26H132" fill="#C3D3DE"/>
+    <text x="16" y="31" font-family="Segoe UI,sans-serif" font-weight="800" font-size="17" fill="#264D65">NEWS</text>
+    <path d="M16 44H116" stroke="#264D65" stroke-width="3"/>
+    <rect x="16" y="55" width="29" height="37" rx="3" fill="#9DC8C5"/>
+    <path d="M55 58H116M55 69H116M55 80H105M55 91H116" stroke="#8EA7B7" stroke-width="3"/>
+  </g>
+  <circle cx="798" cy="324" r="32" fill="#F3C366" stroke="#D6A24A" stroke-width="4"/>
+  <text x="798" y="336" text-anchor="middle" font-family="Segoe UI,sans-serif" font-weight="800" font-size="34" fill="#705122">₩</text>
+</svg>
