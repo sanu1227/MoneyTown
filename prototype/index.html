@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MoneyTown 투자 게임</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="market.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<main>
+  <header><span class="eyebrow">가상 시장 · 프로토타입 0.1</span><h1>MoneyTown</h1><p>뉴스를 읽고, 나만의 투자 흐름을 만드세요.</p></header>
+  <section class="assets" aria-label="자산 요약"><div><small>보유 현금</small><strong id="cash"></strong></div><div><small>총자산</small><strong id="total"></strong></div></section>
+  <div class="daybar"><strong id="day"></strong><button id="next">다음 날 진행</button></div>
+  <p id="message" role="status" aria-live="polite">종목과 뉴스를 확인하고 수량을 입력하세요.</p>
+  <section class="panel">
+    <h2>주식 거래</h2><div id="companies" class="companies" aria-label="종목 선택"></div>
+    <div class="quote"><div><h3 id="name"></h3><small id="sector"></small></div><div><strong id="price"></strong><span id="change"></span></div></div>
+    <svg id="chart" viewBox="0 0 360 160" role="img" aria-label="최근 30개 거래일 주가"></svg>
+    <p class="caption">최근 최대 30개 거래일 · 하루 단위 가격</p>
+    <p id="holding"></p><p id="profit"></p>
+    <label for="quantity">거래 수량</label><input id="quantity" type="number" inputmode="numeric" min="1" step="1" value="1">
+    <p id="estimate" class="caption"></p>
+    <div class="actions"><button id="sell" class="sell">매도</button><button id="buy" class="buy">매수</button></div>
+  </section>
+  <section class="panel"><h2>오늘의 시장 뉴스</h2><p id="news"></p><small>가상 경제신문 · 공개 기업 뉴스<br>현재 뉴스는 다음 날 가격에 영향을 줍니다. 다른 변동도 함께 반영됩니다.</small></section>
+  <section class="panel"><h2>기업 분석 보고서</h2><p id="report"></p><button id="report-buy">보고서 구매 · 2,000원</button><small>3개 거래일 유효 · 미래 가격을 보장하지 않습니다.</small></section>
+  <section class="panel"><h2>다른 투자처</h2><p id="deposit"></p><button id="deposit-buy">예금 가입 · 100,000원</button><small>3일 후 원금 + 500원 지급 · 중도 해지 불가<br>게임 밸런스용 수익이며 실제 예금 수익률과 무관합니다.</small></section>
+  <footer><p>모든 가격과 뉴스는 가상입니다. 한 탭에서 플레이하세요.</p><button id="reset">진행 초기화</button></footer>
+</main>
+</body>
+</html>

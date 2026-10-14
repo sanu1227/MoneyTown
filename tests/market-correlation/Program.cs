@@ -1,0 +1,23 @@
+using System;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using MoneyTown;
+
+CultureInfo.CurrentCulture=CultureInfo.InvariantCulture;
+int seeds=args.Length>0?int.Parse(args[0]):2000,days=args.Length>1?int.Parse(args[1]):1;
+using var current=new StreamReader(typeof(Market).Assembly.GetManifestResourceStream("information-catalog"));
+using var first=new StreamReader(typeof(Market).Assembly.GetManifestResourceStream("information-catalog-v1"));
+using var second=new StreamReader(typeof(Market).Assembly.GetManifestResourceStream("information-catalog-v2"));
+InformationCatalog.Load(current.ReadToEnd(),first.ReadToEnd(),second.ReadToEnd());
+var m=CorrelationChecks.Measure(seeds,days);
+Console.WriteLine($"# Seeds 1..{seeds}; {days} consecutive days per seed; 12 companies; no purchases, trades or intraday ticks.");
+Console.WriteLine("# New openings use production NextDay; frozen old formula uses identical close, event and RNG draw for each paired case.");
+Console.WriteLine("# Grades sample the nine actual sealed offers/day; factual reliability differs from price-direction accuracy. Not net returns or a profit guarantee.");
+Console.WriteLine("group,name,samples,old_event_matches,new_event_matches,old_event_pct,new_event_pct,true_claims,claim_price_matches,claim_truth_pct,claim_price_pct");
+for(int c=0;c<12;c++)Company(Market.Companies[c].Name,m.Samples[c],m.OldMatches[c],m.NewMatches[c]);
+Company("ALL",m.Samples.Sum(),m.OldMatches.Sum(),m.NewMatches.Sum());
+for(int g=0;g<10;g++)Console.WriteLine($"grade,{g+1},{m.GradeSamples[g]},,,,,{m.TrueClaims[g]},{m.PriceMatches[g]},{Percent(m.TrueClaims[g],m.GradeSamples[g])},{Percent(m.PriceMatches[g],m.GradeSamples[g])}");
+Console.WriteLine($"# New positive-event falls={m.PositiveFalls}; negative-event rises={m.NegativeRises}");
+static string Percent(int matches,int samples)=>(100.0*matches/samples).ToString("0.0000",CultureInfo.InvariantCulture);
+static void Company(string name,int count,int old,int current)=>Console.WriteLine($"company,{name},{count},{old},{current},{Percent(old,count)},{Percent(current,count)},,,,");

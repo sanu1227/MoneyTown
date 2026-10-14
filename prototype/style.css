@@ -1,0 +1,38 @@
+:root { color-scheme: dark; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #0b1420; color: #e5edf7; }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(ellipse at top, #173345, #0b1420 65%); }
+main { width: min(100%, 480px); margin: auto; padding: 24px 16px; }
+header { margin-bottom: 24px; }
+h1 { margin: 8px 0; font-size: 34px; letter-spacing: -1px; }
+h2 { font-size: 17px; margin: 0 0 16px; }
+h3 { font-size: 18px; margin: 0 0 4px; }
+p { line-height: 1.65; }
+header p, small, .caption, footer { color: #a5b7ca; }
+.eyebrow { color: #5bdccb; font-size: 12px; }
+.assets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.assets div { background: #172b3b; border: 1px solid #2d4355; border-radius: 14px; padding: 16px 12px; }
+.assets strong { display: block; margin-top: 8px; font-size: clamp(16px, 4.5vw, 22px); }
+.daybar, .quote { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 20px 0; }
+.quote > div:last-child { text-align: right; }
+.quote strong { display: block; font-size: 24px; }
+#change { display: block; margin-top: 5px; font-size: 13px; }
+.panel { background: #122331; border: 1px solid #294154; padding: 18px; border-radius: 16px; margin: 16px 0; }
+.companies { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+button, input { font: inherit; border: 1px solid #38556a; border-radius: 10px; min-height: 44px; }
+button { background: #203748; color: #e5edf7; padding: 10px 12px; cursor: pointer; }
+button:hover { filter: brightness(1.15); }
+button:disabled { opacity: 0.5; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 3px solid #f1d788; outline-offset: 2px; }
+.companies button { font-size: 12px; padding: 9px 3px; }
+.companies button[aria-pressed="true"] { border-color: #5bdccb; color: #5bdccb; background: #17413f; }
+input { width: 100%; background: #0b1924; color: #e5edf7; padding: 12px; margin-top: 8px; }
+.actions { display: flex; gap: 10px; }
+.actions button { flex: 1; font-weight: bold; }
+.buy { background: #187a69; }.sell { background: #94434d; }
+.up { color: #ffb0b7; }.down { color: #9bc8ff; }
+#chart { display: block; width: 100%; background: #0c1a25; border-radius: 10px; }
+.caption { font-size: 12px; }
+.panel > small { display: block; line-height: 1.7; margin-top: 12px; }
+#message { font-size: 13px; border-left: 3px solid #5bdccb; padding-left: 10px; min-height: 42px; }
+footer { text-align: center; font-size: 12px; }
+@media (max-width: 370px) { main { padding: 16px 12px; } .panel { padding: 14px; } }
