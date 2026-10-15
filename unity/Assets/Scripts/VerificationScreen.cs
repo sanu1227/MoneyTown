@@ -123,19 +123,28 @@ namespace MoneyTown
             clockSettings.onClick.Invoke();UiButton("30초").onClick.Invoke();UiButton("설정 완료 · 게임으로 돌아가기").onClick.Invoke();
             flashUntil=0;UpdateStatus();
             yield return new WaitForEndOfFrame();UiCapture("21-clean-exchange");
-            UiButton("10주").onClick.Invoke();
-            UiCheck(Quantity()==10&&state.Cash==1000000&&state.Stocks[0].Quantity==0&&buy.interactable&&buyLabel.text.Contains("100,100원"),
-                "ten-share preset selects ten with a fee-inclusive estimate before buying");
+            UiButton("+10주").onClick.Invoke();
+            UiCheck(Quantity()==11&&state.Cash==1000000&&state.Stocks[0].Quantity==0&&buy.interactable&&buyLabel.text.Contains("110,110원"),
+                "ten-share increment adds ten to the initial one without buying");
+            UiButton("+10주").onClick.Invoke();
+            UiCheck(Quantity()==21&&state.Cash==1000000&&state.Stocks[0].Quantity==0&&buy.interactable&&buyLabel.text.Contains("210,210원"),
+                "repeated ten-share increments accumulate and update the fee-inclusive estimate");
             yield return new WaitForEndOfFrame();
-            UiCheck(UiOnScreen((RectTransform)UiButton("10주").transform)&&UiOnScreen(quantity.GetComponent<RectTransform>())&&
+            UiCheck(UiOnScreen((RectTransform)UiButton("+10주").transform)&&UiOnScreen(quantity.GetComponent<RectTransform>())&&
                 quantity.textComponent.cachedTextGenerator.characterCountVisible>=quantityText.Length,
-                "ten-share preset and quantity remain readable inside the fixed order row");
+                "ten-share increment and quantity remain readable inside the fixed order row");
             UiCapture("24-ten-shares");
             buy.onClick.Invoke();buy.onClick.Invoke();
-            UiCheck(Quantity()==10&&state.Stocks[0].Quantity==20&&state.Cash==799800&&state.Trades.Length==2,
-                "repeated buys add ten shares each and charge both fees");
+            UiCheck(Quantity()==21&&state.Stocks[0].Quantity==42&&state.Cash==579580&&state.Trades.Length==2,
+                "repeated buys use the accumulated quantity and charge both fees");
+            quantity.text="";UiButton("+10주").onClick.Invoke();
+            UiCheck(Quantity()==10,"ten-share increment starts empty input at ten");
+            SetQuantity(Market.Limit-5);UiButton("+10주").onClick.Invoke();UiButton("+10주").onClick.Invoke();
+            UiCheck(Quantity()==Market.Limit,"ten-share increment caps near and at the quantity limit");
+            SetQuantity(Market.Limit+100);UiButton("+10주").onClick.Invoke();
+            UiCheck(Quantity()==Market.Limit,"ten-share increment clamps an over-limit input");
             var limitedCash=Market.Create();limitedCash.Cash=limitedCash.DayStartAssets=100000;
-            UiFixture(limitedCash);UiButton("10주").onClick.Invoke();
+            UiFixture(limitedCash);SetQuantity(0);UiButton("+10주").onClick.Invoke();
             UiCheck(Quantity()==10&&!buy.interactable&&!sell.interactable&&buyLabel.text.Contains("현금")&&state.Cash==100000&&state.Trades.Length==0,
                 "ten-share order stays uncommitted when cash cannot cover the fee or holdings cannot cover a sale");
             UiFixture(Market.Create());

@@ -291,7 +291,7 @@ namespace MoneyTown
             quantity.textComponent=text;quantity.contentType=InputField.ContentType.IntegerNumber;quantity.characterLimit=16;quantity.text=quantityText;
             quantity.onValueChanged.AddListener(value=>{quantityText=value;Estimate();});
             var plus=Button(row,"+",()=>SetQuantity(Quantity()>=Market.Limit?Market.Limit:Math.Max(1,Quantity()+1)),Raised,74);Width((RectTransform)plus.transform,74);
-            var ten=Button(row,"10주",()=>SetQuantity(10),Raised,74);Width((RectTransform)ten.transform,74);
+            var ten=Button(row,"+10주",()=>SetQuantity(Math.Min(Math.Max(0,Quantity()),Market.Limit-10)+10),Raised,74);Width((RectTransform)ten.transform,74);
             var maximum=Button(row,"최대\n매수",()=>{long value=OrderGuidance.MaximumBuy(state,selected);if(value>0)SetQuantity(value);else Feedback("현재 현금과 거래 한도로 매수할 수 있는 수량이 없습니다.",true);},Raised,74);Width((RectTransform)maximum.transform,78);
             var all=Button(row,"보유",()=>{if(state.Stocks[selected].Quantity>0)SetQuantity(state.Stocks[selected].Quantity);else Feedback("보유한 주식이 없습니다.",true);},Raised,74);Width((RectTransform)all.transform,78);
             estimate=Label(tradeDock,"",17,Muted,24,TextAnchor.MiddleCenter);
