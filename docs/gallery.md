@@ -2,14 +2,14 @@
 
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
-**v0.18.3 / 2026-10-16 촬영.** 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+**v0.19.0 / 2026-10-16 촬영.** 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
 
 <details open>
 <summary><strong>거래소 — 차트와 주문</strong></summary>
 
 최근 주가·다음 갱신까지 남은 시간·내 보유 주식·주문 영역을 한 화면에서 봅니다.
 
-<img src="../assets/screenshots/v0.18.3/exchange.png" width="480" alt="거래소 전체 화면" />
+<img src="../assets/screenshots/v0.19.0/exchange.png" width="480" alt="거래소 전체 화면" />
 
 </details>
 
@@ -18,7 +18,7 @@
 
 기업과 사건을 알기 전에 등급·신뢰도·가격·정보의 특징으로 판단합니다.
 
-<img src="../assets/screenshots/v0.18.3/information.png" width="480" alt="봉인 정보 카드 목록" />
+<img src="../assets/screenshots/v0.19.0/information.png" width="480" alt="봉인 정보 카드 목록" />
 
 </details>
 
@@ -27,7 +27,7 @@
 
 거래·결산 기록, 물류센터 알바, 정기 예금을 확인합니다.
 
-<img src="../assets/screenshots/v0.18.3/portfolio.png" width="480" alt="내 자산 전체 화면" />
+<img src="../assets/screenshots/v0.19.0/portfolio.png" width="480" alt="내 자산 전체 화면" />
 
 </details>
 
@@ -36,7 +36,7 @@
 
 매체를 닮은 지면에서 요약·현장 기록·사업 현황·검증 자료를 읽습니다. 아래는 스크롤 기사 상단입니다.
 
-<img src="../assets/screenshots/v0.18.3/company-report.png" width="480" alt="기업 지정 분석서 상단" />
+<img src="../assets/screenshots/v0.19.0/company-report.png" width="480" alt="기업 지정 분석서 상단" />
 
 </details>
 
@@ -45,7 +45,7 @@
 
 결산과 새날 개장 상황, 주요 변동 원인을 전체 화면 창으로 보여 줍니다.
 
-<img src="../assets/screenshots/v0.18.3/daily-briefing.png" width="480" alt="다음 날 결산 및 개장 뉴스" />
+<img src="../assets/screenshots/v0.19.0/daily-briefing.png" width="480" alt="다음 날 결산 및 개장 뉴스" />
 
 </details>
 
@@ -54,7 +54,7 @@
 
 상자를 옮기는 애니메이션의 한 장면입니다. 작업 후 다음 날 결산으로 넘어갑니다.
 
-<img src="../assets/screenshots/v0.18.3/warehouse.png" width="480" alt="물류센터 알바 애니메이션 장면" />
+<img src="../assets/screenshots/v0.19.0/warehouse.png" width="480" alt="물류센터 알바 애니메이션 장면" />
 
 </details>
 
@@ -63,7 +63,7 @@
 
 기본 1주에서 ‘+10주’를 두 번 눌러 21주를 선택했습니다. 이 상태에서 매수를 누르면 21주를 구매합니다.
 
-<img src="../assets/screenshots/v0.18.3/ten-shares.png" width="480" alt="+10주 두 번 선택 후 21주, 210210원의 매수 견적" />
+<img src="../assets/screenshots/v0.19.0/ten-shares.png" width="480" alt="+10주 두 번 선택 후 21주, 210210원의 매수 견적" />
 
 </details>
 
@@ -71,7 +71,7 @@
 
 | 항목 | 값 |
 | --- | --- |
-| 버전 | 0.18.3 |
+| 버전 | 0.19.0 |
 | 플랫폼 | Windows / 격리된 Unity 검증 Player |
 | 해상도 | 480×960 PNG |
 | 검사 결과 | 이번 촬영 실행의 UI 119개 검사 통과 |
@@ -79,7 +79,7 @@
 | 편집 | 없음. `Development Build` 표시를 포함한 원본 |
 | 배너 | `assets/branding/banner.svg`는 별도 제작한 벡터 일러스트 |
 
-원본 실행 결과는 로컬 `build/ui-verification-2f979030d8d64713b39363035355bcdd/`에 있습니다. README용 파일은 원본과 SHA-256이 같은지 확인해 복사했습니다. 캡처를 다시 만드는 명령은 [개발 가이드](development-guide.md#검사와-실제-화면-캡처)에 있습니다.
+원본 실행 결과는 로컬 `build/ui-verification-00073d032c9c4c01a6a6d1470c85c8f6/`에 있습니다. README용 파일은 원본과 SHA-256이 같은지 확인해 복사했습니다. 캡처를 다시 만드는 명령은 [개발 가이드](development-guide.md#검사와-실제-화면-캡처)에 있습니다.
 
 | 공개 이미지 | 원본 캡처 이름 |
 | --- | --- |

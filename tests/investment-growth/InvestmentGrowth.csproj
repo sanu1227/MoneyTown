@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><EnableDefaultCompileItems>false</EnableDefaultCompileItems><Nullable>disable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../unity/Assets/Scripts/Core/*.cs" Exclude="../../unity/Assets/Scripts/Core/*Checks.cs" />
+    <Compile Include="Program.cs" />
+    <EmbeddedResource Include="../../unity/Assets/Resources/information-catalog.txt" LogicalName="information-catalog" />
+    <EmbeddedResource Include="../../unity/Assets/Resources/information-catalog-v1.txt" LogicalName="information-catalog-v1" />
+    <EmbeddedResource Include="../../unity/Assets/Resources/information-catalog-v2.txt" LogicalName="information-catalog-v2" />
+  </ItemGroup>
+</Project>

@@ -17,7 +17,7 @@ namespace MoneyTown
         static void Check(bool condition,string message){if(!condition)throw new Exception(message);}
         static GameState Next(GameState state)=>Market.AcknowledgeSettlement(Market.NextDay(state));
         static string Money(long value)=>value.ToString("N0",CultureInfo.GetCultureInfo("ko-KR"))+"원";
-        static ClueRecord Record(GameState state,IntelOffer offer,int marketVersion=3)=>new ClueRecord {
+        static ClueRecord Record(GameState state,IntelOffer offer,int marketVersion=Market.CurrentMarketVersion)=>new ClueRecord {
             Version=offer.Version,MarketVersion=marketVersion,ContentEdition=offer.ContentEdition,EventEdition=state.EventEdition,
             IssuedDay=state.Day,Seed=state.Seed,Index=offer.Index,PaidPrice=offer.Price,Prices=(long[])state.Stocks[offer.Company].History.Clone()
         };
@@ -82,10 +82,10 @@ namespace MoneyTown
         {
             var before=Market.Create(122);before.Cash=before.DayStartAssets=100000000;
             var bought=Intelligence.Buy(before,Intelligence.DailyCount+5,before.Day);
-            Check(bought.Clues.Single().MarketVersion==3,"New purchases did not pin the new price model.");
+            Check(bought.Clues.Single().MarketVersion==Market.CurrentMarketVersion,"New purchases did not pin the new price model.");
             var traded=Market.Trade(bought,1,2,true);traded=Market.Trade(traded,1,1,false);
             var restored=SaveCodec.Decode(SaveCodec.Encode(traded));
-            Check(restored.Clues.Single().MarketVersion==3,"Save/reload lost the purchase's price model.");
+            Check(restored.Clues.Single().MarketVersion==Market.CurrentMarketVersion,"Save/reload lost the purchase's price model.");
             var expected=Market.NextDay(before);
             foreach(var state in new[]{bought,traded,restored}) {
                 var next=Market.NextDay(state);

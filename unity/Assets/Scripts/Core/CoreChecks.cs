@@ -106,7 +106,7 @@ namespace MoneyTown
             CheckIntraday();CheckSettlement();CheckDayMigration();CheckMarketIntervals();
             CheckArticleEditions();
             CheckMediaVoices();
-            return 30 + StorageChecks.Run() + PurchaseGuidanceChecks.Run() + OrderGuidanceChecks.Run() + HistoryChecks.Run() + ProgressChecks.Run() + ExpansionChecks.Run() + CorrelationChecks.Run() + WarehouseChecks.Run();
+            return 30 + StorageChecks.Run() + PurchaseGuidanceChecks.Run() + OrderGuidanceChecks.Run() + HistoryChecks.Run() + ProgressChecks.Run() + ExpansionChecks.Run() + CorrelationChecks.Run() + WarehouseChecks.Run() + InvestmentGrowthChecks.Run();
         }
         static void CheckMediaVoices()
         {
@@ -416,11 +416,12 @@ namespace MoneyTown
                 foreach(var n in r.News){writer.Write(n.Company);writer.Write(n.PreviousPrice);writer.Write(n.OpeningPrice);
                     writer.Write(n.Headline);writer.Write(n.Body);writer.Write(n.EventImpact);writer.Write(n.MarketImpact);}
             }
+            if(version>=9)writer.Write(r.WorkIncome);
         }
         internal static byte[] LegacyBytes(GameState s,int version)
         {
             // Frozen older file layouts, independent of the current save writer.
-            if(version<1||version>8||version<8&&s.Clues.Any(c=>c.Version>2||c.ContentEdition>2))throw new ArgumentException("Legacy fixture contains current information.");
+            if(version<1||version>9||version<8&&s.Clues.Any(c=>c.Version>2||c.ContentEdition>2))throw new ArgumentException("Legacy fixture contains current information.");
             int companies=version>=8?s.Stocks.Length:6;
             using(var buffer=new MemoryStream()) {
                 using(var writer=new BinaryWriter(buffer,System.Text.Encoding.UTF8,true)) {

@@ -30,7 +30,8 @@ namespace MoneyTown
             Check(restored.SettlementPending&&restored.Cash==worked.Cash&&restored.LastReport.WorkIncome==50000&&restored.DayReports.Last().WorkIncome==50000,"Pending wage settlement must survive restart.");
             restored=Market.AcknowledgeSettlement(restored);restored=Market.NextDay(restored);
             Check(restored.LastReport.WorkIncome==0&&restored.LastReport.Profit==worked.LastReport.OpeningProfit+500,"The following day must not count wages again.");
-            var old=Market.NextDay(Intelligence.Buy(Market.Create(),0,1));
+            var old=Market.Create();old.MarketVersion=3;
+            old=Market.NextDay(Intelligence.Buy(old,0,1));old.MarketVersion=3;
             var migrated=SaveCodec.Decode(CoreChecks.LegacyBytes(old,8));
             Check(migrated.Cash==old.Cash&&migrated.Clues.Length==old.Clues.Length&&migrated.SettlementPending&&migrated.LastReport.WorkIncome==0&&migrated.DayReports.All(r=>r.WorkIncome==0),"Version 8 migration must retain money and purchases without inventing wages.");
             Check(SaveCodec.Encode(migrated).SequenceEqual(SaveCodec.Encode(old)),"Version 8 migration changed existing state.");

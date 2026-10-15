@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-결과는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.18.3-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다.
+결과는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.19.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.18.3-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.19.0-Setup-x64.exe
 ```
 
 ## Android APK
@@ -111,6 +111,7 @@ dotnet run --project tests/strategy-comparison/StrategyComparison.csproj
 
 - PC 진행 파일: `%USERPROFILE%\AppData\LocalLow\MoneyTown\MoneyTown\game-unity-v1.bin`
 - PC 설정: `HKEY_CURRENT_USER\Software\MoneyTown\MoneyTown`
+- v0.19.0은 저장 형식 10에 현재 날짜의 가격 모델을 기록합니다. 형식 1~9를 읽으면 다음 개장 한 번은 모델 3으로 진행하고 새 날짜부터 모델 4로 전환합니다. 이전 구매본·과거 결산은 변경하지 않습니다.
 - Android·Unity 에디터·PC의 저장은 별개일 수 있습니다. 이전 Kotlin·웹 저장은 자동 이전하지 않습니다.
 - 소스에는 Unity `Assets`·`.meta`·`Packages`·`ProjectSettings`와 콘텐츠·검증·문서를 포함합니다. 캐시·로그·개인 설정·서명 키·빌드 결과는 제외합니다.
 - 기능별 검증과 개발 노트를 마친 뒤 한국어 메시지로 커밋하고 `origin`에 일반 push합니다. 자세한 규칙은 [AGENTS.md](../AGENTS.md)를 따릅니다.

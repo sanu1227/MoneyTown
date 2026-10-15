@@ -27,6 +27,7 @@ namespace MoneyTown
     {
         public long Day, Seed, Cash, Realized, DepositDue;
         public int EventEdition = InformationCatalog.CurrentEdition;
+        public int MarketVersion = Market.CurrentMarketVersion;
         public long TickSeed,TickCount,DayStartAssets,DayStartRealized,DayFees,DayInformationCost,DayInterest;
         public DayReport LastReport;
         public TradeRecord[] Trades = Array.Empty<TradeRecord>();
@@ -61,7 +62,7 @@ namespace MoneyTown
     public static partial class Market
     {
         public const long Limit = 9007199254740991;
-        public const int CurrentMarketVersion = 3;
+        public const int CurrentMarketVersion = 4;
         public static readonly Company[] Companies = {
             new Company("그린푸드", "식품", 10000, .001, .018),
             new Company("픽셀게임즈", "게임", 16000, .002, .045),
@@ -108,6 +109,7 @@ namespace MoneyTown
             Require(s != null && s.Day >= 1 && s.Day <= Limit - 3 && s.Seed >= 0 && s.Seed <= uint.MaxValue, damaged);
             Amount(s.Cash);
             Require(s.EventEdition>=2&&s.EventEdition<=InformationCatalog.CurrentEdition,damaged);
+            Require(s.MarketVersion>=3&&s.MarketVersion<=CurrentMarketVersion,damaged);
             Require(s.Realized >= -Limit && s.Realized <= Limit, damaged);
             Require(s.Stocks != null && s.Stocks.Length == Companies.Length && s.Reports != null && s.Reports.Length == Companies.Length, damaged);
             foreach (var stock in s.Stocks) {
@@ -161,7 +163,7 @@ namespace MoneyTown
             // The event drives the opening; order flow can still offset a weaker event.
             // Keep one RNG draw per company so purchases and upgrades never re-roll events.
             double change=Math.Max(-.12,Math.Min(.12,company.Growth+eventEffect+(Random(s)*2-1)*OpeningVolatility(index)));
-            return OpeningChange(change);
+            return OpeningChange(change,s.MarketVersion);
         }
         public static GameState Deposit(GameState previous)
         {
@@ -186,6 +188,7 @@ namespace MoneyTown
             report.News=report.News.OrderByDescending(n=>Math.Abs((double)n.OpeningPrice/n.PreviousPrice-1)).ThenBy(n=>n.Company).ToArray();
             s.Day++;
             s.EventEdition=InformationCatalog.CurrentEdition;
+            s.MarketVersion=CurrentMarketVersion;
             if(s.DepositDue>0&&s.Day>=s.DepositDue){s.Cash=Add(s.Cash,100500);s.DepositDue=0;report.OpeningInterest=500;}
             News(s);
             report.OpeningPrices=s.Stocks.Select(p=>p.Price).ToArray();report.OpeningAssets=Total(s);

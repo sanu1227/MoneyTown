@@ -107,9 +107,9 @@ namespace MoneyTown
         }
         static int CurrentHistoryOffset(byte[] bytes)
         {
-            // Locate v9's history section so corrupt-byte checks target real fields, not incidental offsets.
+            // Locate v10's history section so corrupt-byte checks target real fields, not incidental offsets.
             using(var reader=new BinaryReader(new MemoryStream(bytes))) {
-                reader.BaseStream.Position=8+5*8+4+1+4;
+                reader.BaseStream.Position=8+5*8+4+1+4+4;
                 for(int i=0;i<Market.Companies.Length;i++) {
                     reader.BaseStream.Position+=3*8;int count=reader.ReadInt32();reader.BaseStream.Position+=count*8;
                 }

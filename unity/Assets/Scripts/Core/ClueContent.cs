@@ -53,6 +53,7 @@ namespace MoneyTown
             string snapshot=$"구매 당시 {company.Name} | 시세 {Money(p.Last())} · {period}\n기간 최저 {Money(p.Min())} / 최고 {Money(p.Max())}";
             string volatility=(Market.OpeningVolatility(offer.Company,record.MarketVersion)*100).ToString(record.MarketVersion>=3?"0.00":"0.0",CultureInfo.GetCultureInfo("ko-KR"));
             if(offer.Grade>=8)snapshot+=$"\n\n가격 성향 | {(record.MarketVersion==1?"평소 변동 범위":"개장 무작위 변동 성향")} ±{volatility}% · 기본 성장 성향 +{company.Growth*100:0.0}%. 사건과 무작위 변동이 더해져 최종 시세가 정해진다.";
+            if(offer.Grade>=8&&record.MarketVersion>=4)snapshot+=" 상승으로 합산된 개장 반응은 3배로 확대되며 최종 상승률은 최대 12%다. 하락 반응은 기존 폭을 적용한다.";
             return snapshot;
         }
         public static string PriceScenario(ClueRecord record)
@@ -63,7 +64,7 @@ namespace MoneyTown
             long price=record.Prices.Last();
             double volatility=Market.OpeningVolatility(offer.Company,record.MarketVersion);
             double lowChange=Math.Max(-.12,center-volatility),highChange=Math.Min(.12,center+volatility);
-            if(record.MarketVersion>=2){lowChange=Market.OpeningChange(lowChange);highChange=Market.OpeningChange(highChange);}
+            if(record.MarketVersion>=2){lowChange=Market.OpeningChange(lowChange,record.MarketVersion);highChange=Market.OpeningChange(highChange,record.MarketVersion);}
             long low=Math.Max(100,(long)Math.Floor(price*(1+lowChange)+.5));
             long high=Math.Max(100,(long)Math.Floor(price*(1+highChange)+.5));
             if(record.MarketVersion>=2)return $"고정 기준 개장 시나리오 | {Money(low)}~{Money(high)}\n구매 당시 {Money(price)} 이후 장중 추가 변동이 없고 취재가 사실이라는 가정입니다. 장중 갱신마다 기준 시세가 달라질 수 있어 실제 익일 가격 범위를 보장하지 않습니다. 수수료는 제외합니다.";

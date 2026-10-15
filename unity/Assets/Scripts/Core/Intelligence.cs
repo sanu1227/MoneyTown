@@ -95,7 +95,7 @@ namespace MoneyTown
             Require(Owned(previous,offerDay,index)==null,"이미 구매한 정보입니다.");
             Require(previous.Cash>=offer.Price,"정보 구매 비용이 부족합니다.");
             var s=previous.Copy();s.Cash-=offer.Price;s.DayInformationCost=checked(s.DayInformationCost+offer.Price);
-            var record=new ClueRecord{Version=CurrentVersion,MarketVersion=Market.CurrentMarketVersion,ContentEdition=InformationCatalog.CurrentEdition,EventEdition=s.EventEdition,IssuedDay=s.Day,Seed=s.Seed,Index=index,PaidPrice=offer.Price,Prices=(long[])s.Stocks[offer.Company].History.Clone()};
+            var record=new ClueRecord{Version=CurrentVersion,MarketVersion=s.MarketVersion,ContentEdition=InformationCatalog.CurrentEdition,EventEdition=s.EventEdition,IssuedDay=s.Day,Seed=s.Seed,Index=index,PaidPrice=offer.Price,Prices=(long[])s.Stocks[offer.Company].History.Clone()};
             s.Clues=s.Clues.Concat(new[]{record}).Skip(Math.Max(0,s.Clues.Length+1-ArchiveLimit)).ToArray();
             return Market.Validate(s);
         }

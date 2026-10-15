@@ -55,7 +55,11 @@ namespace MoneyTown
             return Validate(s);
         }
         public const double IntradayMaximum=.006,OpeningMinimum=.015;
-        internal static double OpeningChange(double change)=>(change<0?-1:1)*Math.Max(OpeningMinimum,Math.Abs(change));
+        internal static double OpeningChange(double change,int marketVersion=CurrentMarketVersion)
+        {
+            double opening=(change<0?-1:1)*Math.Max(OpeningMinimum,Math.Abs(change));
+            return marketVersion>=4&&opening>0?Math.Min(.12,opening*3):opening;
+        }
         internal static void InitializeDay(GameState s)
         {
             s.TickSeed=(s.Seed^0xA511E9B3L)&uint.MaxValue;s.TickCount=0;

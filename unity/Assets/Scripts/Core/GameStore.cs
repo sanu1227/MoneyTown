@@ -13,10 +13,11 @@ namespace MoneyTown
             Market.Validate(s);
             using (var buffer = new MemoryStream()) {
                 using (var writer = new BinaryWriter(buffer, System.Text.Encoding.UTF8, true)) {
-                    writer.Write(0x4d54554e); writer.Write(9);
+                    writer.Write(0x4d54554e); writer.Write(10);
                     writer.Write(s.Day); writer.Write(s.Seed); writer.Write(s.Cash); writer.Write(s.Realized); writer.Write(s.DepositDue);
                     writer.Write(s.NewsCompany); writer.Write(s.PositiveNews);
                     writer.Write(s.EventEdition);
+                    writer.Write(s.MarketVersion);
                     foreach (var stock in s.Stocks) {
                         writer.Write(stock.Price); writer.Write(stock.Quantity); writer.Write(stock.Cost);
                         writer.Write(stock.History.Length);
@@ -73,12 +74,14 @@ namespace MoneyTown
             using (var reader = new BinaryReader(buffer)) {
                 if (reader.ReadInt32() != 0x4d54554e) throw new InvalidDataException("지원하지 않는 저장 파일입니다.");
                 int version = reader.ReadInt32();
-                if (version < 1 || version > 9) throw new InvalidDataException("지원하지 않는 저장 버전입니다.");
+                if (version < 1 || version > 10) throw new InvalidDataException("지원하지 않는 저장 버전입니다.");
                 var s = new GameState { Day = reader.ReadInt64(), Seed = reader.ReadInt64(), Cash = reader.ReadInt64(), Realized = reader.ReadInt64(),
                     DepositDue = reader.ReadInt64(), NewsCompany = reader.ReadInt32(), PositiveNews = reader.ReadBoolean(),
                     Stocks = Market.Companies.Select(c=>new Stock{Price=c.Price,History=new[]{c.Price},HistoryDays=new long[]{0},HistoryOpenings=new[]{false}}).ToArray(),
                     Reports = new long[Market.Companies.Length] };
                 s.EventEdition=version>=8?reader.ReadInt32():2;
+                // Finish the already offered day with its original price model before upgrading.
+                s.MarketVersion=version>=10?reader.ReadInt32():3;
                 int companies=version>=8?Market.Companies.Length:6;
                 for (int i = 0; i < companies; i++) {
                     var stock = new Stock { Price = reader.ReadInt64(), Quantity = reader.ReadInt64(), Cost = reader.ReadInt64() };

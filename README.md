@@ -19,9 +19,9 @@
 <table>
   <tr><th align="center">거래소</th><th align="center">정보 가판대</th><th align="center">내 자산</th></tr>
   <tr>
-    <td><img src="assets/screenshots/v0.18.3/exchange.png" alt="거래소: 주가 차트, 갱신 시간, 보유 주식과 주문 버튼" width="260" /></td>
-    <td><img src="assets/screenshots/v0.18.3/information.png" alt="정보 가판대: 등급, 신뢰도와 가격을 표시한 봉인 정보" width="260" /></td>
-    <td><img src="assets/screenshots/v0.18.3/portfolio.png" alt="내 자산: 포트폴리오, 물류센터 알바와 정기 예금" width="260" /></td>
+    <td><img src="assets/screenshots/v0.19.0/exchange.png" alt="거래소: 주가 차트, 갱신 시간, 보유 주식과 주문 버튼" width="260" /></td>
+    <td><img src="assets/screenshots/v0.19.0/information.png" alt="정보 가판대: 등급, 신뢰도와 가격을 표시한 봉인 정보" width="260" /></td>
+    <td><img src="assets/screenshots/v0.19.0/portfolio.png" alt="내 자산: 포트폴리오, 물류센터 알바와 정기 예금" width="260" /></td>
   </tr>
   <tr><td align="center">차트를 보고 거래 수량 선택</td><td align="center">불확실한 단서의 가치를 판단</td><td align="center">자산을 관리하고 다음 투자를 준비</td></tr>
 </table>
@@ -29,14 +29,14 @@
 <table>
   <tr><th align="center">기업 분석</th><th align="center">다음 날 브리핑</th><th align="center">물류센터 알바</th></tr>
   <tr>
-    <td><img src="assets/screenshots/v0.18.3/company-report.png" alt="신문 지면처럼 읽는 기업 지정 분석서" width="260" /></td>
-    <td><img src="assets/screenshots/v0.18.3/daily-briefing.png" alt="뉴스 원인과 실제 주가 변동률을 함께 보여 주는 결산 창" width="260" /></td>
-    <td><img src="assets/screenshots/v0.18.3/warehouse.png" alt="상자를 나르는 물류센터 작업 애니메이션의 한 장면" width="260" /></td>
+    <td><img src="assets/screenshots/v0.19.0/company-report.png" alt="신문 지면처럼 읽는 기업 지정 분석서" width="260" /></td>
+    <td><img src="assets/screenshots/v0.19.0/daily-briefing.png" alt="뉴스 원인과 실제 주가 변동률을 함께 보여 주는 결산 창" width="260" /></td>
+    <td><img src="assets/screenshots/v0.19.0/warehouse.png" alt="상자를 나르는 물류센터 작업 애니메이션의 한 장면" width="260" /></td>
   </tr>
   <tr><td align="center">근거와 조건을 읽는 투자</td><td align="center">왜 움직였는지 확인하는 시장</td><td align="center">하루를 써서 다시 마련하는 자금</td></tr>
 </table>
 
-2026-10-16, **v0.18.3 Windows 검증용 Unity Player**에서 새로 촬영한 실제 화면입니다. 테스트 데이터를 사용했으며 이미지 보정이나 UI 합성 없이 원본을 제공합니다. Android 실기기 캡처는 아닙니다. [원본 갤러리와 촬영 정보](docs/gallery.md)
+2026-10-16, **v0.19.0 Windows 검증용 Unity Player**에서 새로 촬영한 실제 화면입니다. 테스트 데이터를 사용했으며 이미지 보정이나 UI 합성 없이 원본을 제공합니다. Android 실기기 캡처는 아닙니다. [원본 갤러리와 촬영 정보](docs/gallery.md)
 
 ## 어떻게 플레이하나요?
 
@@ -90,11 +90,12 @@ Unity 라이선스·플랫폼 모듈과 각 빌드 도구가 필요합니다. �
 
 ## 현재 상태
 
-**v0.18.3** — ‘+10주’를 누를 때마다 현재 주문 수량이 10주씩 늘어납니다.
+**v0.19.0** — 상승한 개장 변동폭을 3배로 확대하고 최대 +12%로 제한해 투자 수익을 키웠습니다. 기존 저장은 진행 중인 하루의 개장을 정산한 뒤 새 규칙으로 전환합니다.
 
 | 검증 | 확인 범위 |
 | --- | --- |
-| Unity 코어 **64개** | 0.18.3 빌드에서 거래·정보·저장·알바 등 규칙 검사 통과 |
+| Unity 코어 **67개** | 0.19.0 빌드에서 거래·정보·저장·알바 등 규칙 검사 통과 |
+| 수익 비교 **1,536조건** | 상승했던 표본의 100만원 왕복 거래 평균 순이익 23,324원에서 72,472원. 정보비 제외. [측정 조건과 장기 영향](tests/investment-growth/README.md) |
 | UI **119개 × 2개 화면 크기** | 480×960·360×800 실제 Windows Player 검사 통과. 누적 수량·한도·실제 매수·작은 화면 표시 확인 |
 | Windows 설치·업데이트 | 144개 배포 파일 일치, 기존 저장·설정 보존 확인 |
 | Android APK | ARM64 빌드 완료. **실제 Android 기기 검증은 진행 전** |
