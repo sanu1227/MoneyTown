@@ -15,6 +15,7 @@ namespace MoneyTown
         static void CheckCompaniesAndMigration()
         {
             var fresh=Market.Create();Check(fresh.Stocks.Length==12&&Market.Companies.Length==12,"Expected twelve playable companies.");
+            fresh.Cash=fresh.DayStartAssets=100000000;
             for(int company=6;company<12;company++) {
                 var bought=Market.Trade(fresh,company,2,true);var restored=SaveCodec.Decode(SaveCodec.Encode(bought));
                 Check(restored.Stocks[company].Quantity==2&&restored.Trades.Last().Company==company,"New holding or trade identity lost.");

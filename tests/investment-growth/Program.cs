@@ -11,6 +11,7 @@ using (var second = new StreamReader(typeof(Market).Assembly.GetManifestResource
     InformationCatalog.Load(current.ReadToEnd(), first.ReadToEnd(), second.ReadToEnd());
 
 var samples = new List<Sample>();
+int priceConditions = 0, skippedConditions = 0;
 for (int seed = 1; seed <= seeds; seed++) {
     var oldState = Market.Create(seed);
     var newState = oldState.Copy();
@@ -28,6 +29,10 @@ for (int seed = 1; seed <= seeds; seed++) {
         if (direction > 0) Require(newPrice > oldPrice, "A rising opening did not reward the position more.");
         else Require(newPrice == oldPrice, "A falling or flat opening changed.");
         Require(newPrice <= (long)Math.Floor(close * 1.12 + .5), "The opening exceeded the twelve-percent cap.");
+        priceConditions++;
+        long oldQuantity = OrderGuidance.MaximumBuy(oldState, company), newQuantity = OrderGuidance.MaximumBuy(newState, company);
+        Require(oldQuantity == newQuantity, "The model changed initial cash eligibility or affordable quantity.");
+        if (oldQuantity == 0) { skippedConditions++; continue; }
         var oldTrade = RoundTrip(oldState, company, oldOpen);
         var newTrade = RoundTrip(newState, company, newOpen);
         if (direction > 0) Require(newTrade.Profit > oldTrade.Profit, "After-fee profit did not improve.");
@@ -38,7 +43,8 @@ for (int seed = 1; seed <= seeds; seed++) {
 }
 
 Console.WriteLine($"# MoneyTown conditional opening-response diagnostic; seeds=1..{seeds}; companies={Market.Companies.Length}; first day only; starting cash=1000000.");
-Console.WriteLine("# Every company is traded unconditionally from the same initial state. Results are grouped AFTER the opening by model-three price direction.");
+Console.WriteLine($"# price_conditions={priceConditions}; traded_conditions={samples.Count}; skip_count={skippedConditions}; skipped only when starting cash cannot cover one share plus its fee.");
+Console.WriteLine("# Every affordable company is traded unconditionally from the same initial state. Trade results are grouped AFTER the opening by model-three price direction.");
 Console.WriteLine("# This is not a playable foresight strategy, information-reading accuracy, or a long-term growth forecast. No information purchases or intraday ticks.");
 Console.WriteLine("# Net profit uses production maximum-buy, buy, next-day, acknowledgement and full-sale operations, including both fees and unspent cash.");
 Console.WriteLine("direction,samples,old_mean_net_profit,new_mean_net_profit,old_min_net_profit,new_min_net_profit,old_max_net_profit,new_max_net_profit,old_mean_opening_pct,new_mean_opening_pct");
@@ -50,8 +56,9 @@ foreach (int direction in new[] { 1, -1, 0 }) {
         group.Min(s => s.OldProfit), group.Min(s => s.NewProfit), group.Max(s => s.OldProfit), group.Max(s => s.NewProfit),
         F(group.Average(s => s.OldChange)), F(group.Average(s => s.NewChange))));
 }
-Require(samples.Count == seeds * Market.Companies.Length, "The sample count changed.");
-Console.WriteLine($"# PASS: {samples.Count} paired round trips; opening directions, falling prices, RNG, next-day events and offers preserved; rising after-fee profits improved.");
+Require(priceConditions == seeds * Market.Companies.Length && samples.Count + skippedConditions == priceConditions,
+    "The price, trade and skipped condition counts differ.");
+Console.WriteLine($"# PASS: {priceConditions} paired price conditions; {samples.Count} paired round trips; {skippedConditions} unaffordable conditions skipped for trading only; opening directions, falling prices, RNG, next-day events and offers preserved; cash eligibility identical; rising after-fee profits improved.");
 
 static (long Profit, long Fees) RoundTrip(GameState initial, int company, GameState expectedOpening) {
     long quantity = OrderGuidance.MaximumBuy(initial, company);

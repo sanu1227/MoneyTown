@@ -147,6 +147,50 @@ namespace MoneyTown
             UiFixture(limitedCash);SetQuantity(0);UiButton("+10주").onClick.Invoke();
             UiCheck(Quantity()==10&&!buy.interactable&&!sell.interactable&&buyLabel.text.Contains("현금")&&state.Cash==100000&&state.Trades.Length==0,
                 "ten-share order stays uncommitted when cash cannot cover the fee or holdings cannot cover a sale");
+            UiFixture(Market.Create());UiButton("CompanyPicker").onClick.Invoke();
+            UiCheck(Enumerable.Range(0,Market.Companies.Length).Count(i=>OrderGuidance.MaximumBuy(state,i)>0)==6&&
+                GetComponentsInChildren<Button>().Where(button=>button.name.StartsWith("Company-",StringComparison.Ordinal)).Select(button=>button.name)
+                    .SequenceEqual(new[]{"Company-4","Company-10","Company-0","Company-1","Company-3","Company-7"}),
+                "starting cash buys six companies and the picker orders their current prices from low to high");
+            UiCheck(PriceTier(49999)=="저가주"&&PriceTier(50000)=="중가주"&&PriceTier(999999)=="중가주"&&
+                PriceTier(1000000)=="고가주"&&PriceTier(2999999)=="고가주"&&PriceTier(3000000)=="초고가주",
+                "price tier labels use the current price at each exact boundary");
+            yield return new WaitForEndOfFrame();
+            UiCheck(new[]{4,10,0,1,3,7}.All(i=>UiLabel("CompanyPrice-"+i).text==Money(state.Stocks[i].Price)&&
+                UiOnScreen(UiLabel("CompanyPrice-"+i).rectTransform)&&
+                UiLabel("CompanyPrice-"+i).cachedTextGenerator.characterCountVisible>=UiLabel("CompanyPrice-"+i).text.Length),
+                "entry company prices remain complete and visible on the current screen size");
+            UiCapture("25-price-tiers");
+            UiButton("다음 ›").onClick.Invoke();
+            UiCheck(selected==8&&UiLabel("CompanyTier-2").text=="초고가주 · 현금 부족"&&
+                GetComponentsInChildren<Button>().Where(button=>button.name.StartsWith("Company-",StringComparison.Ordinal)).Select(button=>button.name)
+                    .SequenceEqual(new[]{"Company-8","Company-9","Company-6","Company-5","Company-11","Company-2"}),
+                "higher price page follows current prices and marks a fee-inclusive cash shortage");
+            yield return new WaitForEndOfFrame();
+            UiCheck(new[]{8,9,6,5,11,2}.All(i=>new[]{UiLabel("CompanyPrice-"+i),UiLabel("CompanyTier-"+i)}
+                .All(label=>UiOnScreen(label.rectTransform)&&label.cachedTextGenerator.characterCountVisible>=label.text.Length)),
+                "higher price cards keep their full price and shortage labels readable");
+            UiButton("Company-2").onClick.Invoke();
+            UiCheck(!buy.interactable&&!sell.interactable&&estimate.text=="매수에 5,006,000원 더 필요 · 수수료 포함"&&
+                UiLabel("TradingPriceTier").text=="기술 · 초고가주"&&state.Cash==1000000&&state.Trades.Length==0,
+                "an unaffordable high price share explains the exact missing cash without trading");
+            yield return new WaitForEndOfFrame();
+            UiCheck(UiOnScreen(estimate.rectTransform)&&estimate.cachedTextGenerator.characterCountVisible>=estimate.text.Length&&
+                UiLabel("TradingPrice").cachedTextGenerator.characterCountVisible>=UiLabel("TradingPrice").text.Length,
+                "the full high share price and missing cash fit the fixed trading screen");
+            UiCapture("26-expensive-stock");
+            var highBudget=Market.Create();highBudget.Cash=highBudget.DayStartAssets=6006000;
+            UiFixture(highBudget);selected=2;RenderTab();
+            UiCheck(buy.interactable&&buyLabel.text.Contains("6,006,000원"),"exact cash including the fee enables a high price purchase");
+            buy.onClick.Invoke();
+            UiCheck(state.Stocks[2].Quantity==1&&state.Stocks[2].Cost==6006000&&state.Cash==0&&sell.interactable,
+                "a funded high price purchase uses the existing quantity, fee and sale rules");
+            var repriced=Market.Create();repriced.Stocks[2].Price=repriced.Stocks[2].History[0]=5000;
+            UiFixture(repriced);UiButton("CompanyPicker").onClick.Invoke();
+            UiCheck(GetComponentsInChildren<Button>().Where(button=>button.name.StartsWith("Company-",StringComparison.Ordinal)).Select(button=>button.name)
+                .SequenceEqual(new[]{"Company-4","Company-2","Company-10","Company-0","Company-1","Company-3"})&&
+                UiLabel("CompanyPrice-2").text=="5,000원"&&UiLabel("CompanyTier-2").text=="저가주",
+                "the picker uses saved current prices and stable company IDs to break equal price ties");
             UiFixture(Market.Create());
             UiButton("최대\n매수").onClick.Invoke();
             UiCheck(Quantity() == 99 && buy.interactable, "maximum buy includes rounded fee");
@@ -222,12 +266,14 @@ namespace MoneyTown
             UiFixture(expanded);
             UiButton("CompanyPicker").onClick.Invoke();
             int companyCount = Market.Companies.Length;
+            var companiesByPrice=Enumerable.Range(0,companyCount).OrderBy(i=>state.Stocks[i].Price).ThenBy(i=>i).ToArray();
             for (int page = 0; page < (companyCount + CompaniesPerPage - 1) / CompaniesPerPage; page++) {
                 if (page > 0) UiButton("다음 ›").onClick.Invoke();
                 int start = page * CompaniesPerPage, end = Math.Min(start + CompaniesPerPage, companyCount);
                 UiCheck(GetComponentsInChildren<Button>().Count(button => button.name.StartsWith("Company-", StringComparison.Ordinal)) == end - start,
                     "company page " + (page + 1) + " shows only its six companies");
-                for (int company = start; company < end; company++) {
+                for (int position = start; position < end; position++) {
+                    int company=companiesByPrice[position];
                     int symbolKind=UiButton("Company-" + company).GetComponentInChildren<MarketIcon>().Kind;
                     UiButton("Company-" + company).onClick.Invoke();
                     UiCheck(selected == company && UiText().Contains(Market.Companies[company].Sector), "company selection " + company + " reaches its trading screen");
@@ -237,26 +283,27 @@ namespace MoneyTown
                 yield return new WaitForEndOfFrame(); UiCapture("09-companies-page-" + (page + 1));
             }
             UiCheck(!UiButton("다음 ›").interactable, "last company page prevents out-of-range navigation");
+            int selectedCompany=selected;
             long stockCash = state.Cash;
             var stockQuote = Market.GetQuote(state, selected, 1);
             buy.onClick.Invoke();
-            UiCheck(state.Stocks[companyCount - 1].Quantity == 1 && state.Cash == stockCash - stockQuote.Buy,
+            UiCheck(state.Stocks[selectedCompany].Quantity == 1 && state.Cash == stockCash - stockQuote.Buy,
                 "new company purchase uses the selected stock price and fee");
             navigation[1].onClick.Invoke(); InfoHome(2);
             UiButton("CompanyPicker").onClick.Invoke();
-            UiCheck(selected == companyCount - 1 && UiButton("Company-" + selected) != null,
+            UiCheck(selected == selectedCompany && UiButton("Company-" + selected) != null,
                 "company analysis follows the selected company on its page");
             var newCompanyOffer = Intelligence.CompanyOffers(state, selected).First();
             OpenClue(state.Day, newCompanyOffer.Index);
             long informationCash = state.Cash;
             GetComponentsInChildren<Button>().First(button => button.name.StartsWith("기업 분석 구매", StringComparison.Ordinal)).onClick.Invoke();
-            UiCheck(state.Cash == informationCash - newCompanyOffer.Price && state.Clues.Last().Offer.Company == companyCount - 1,
+            UiCheck(state.Cash == informationCash - newCompanyOffer.Price && state.Clues.Last().Offer.Company == selectedCompany,
                 "new company report purchase charges once and opens the correct article");
-            UiCheck(state.Clues.Last().Version == Intelligence.CurrentVersion && UiText().Contains(Market.Companies[companyCount - 1].Name),
+            UiCheck(state.Clues.Last().Version == Intelligence.CurrentVersion && UiText().Contains(Market.Companies[selectedCompany].Name),
                 "expanded article uses current generation and the selected company");
             yield return new WaitForEndOfFrame(); UiCapture("10-new-company-report");
-            UiButton(Market.Companies[companyCount - 1].Name + " 거래 화면").onClick.Invoke();
-            UiCheck(tab == 0 && selected == companyCount - 1 && !choosingCompany && UiText().Contains(Market.Companies[selected].Name),
+            UiButton(Market.Companies[selectedCompany].Name + " 거래 화면").onClick.Invoke();
+            UiCheck(tab == 0 && selected == selectedCompany && !choosingCompany && UiText().Contains(Market.Companies[selected].Name),
                 "report trade link retains selected company and page");
             navigation[1].onClick.Invoke(); informationBand = 0; InfoHome(0);
             UiCheck(content.GetComponentsInChildren<PaperSheet>().Length == Intelligence.DailyCount && UiText().Contains(InformationCatalog.All.Count.ToString("N0") + "개 정보"),

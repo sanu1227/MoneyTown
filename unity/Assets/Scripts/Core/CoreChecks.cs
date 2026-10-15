@@ -44,7 +44,8 @@ namespace MoneyTown
             s = NextDay(s); Equal(1000500, s.Cash); Equal(0, s.DepositDue);
             s = NextDay(s); Equal(1000500, s.Cash);
 
-            s = NextDay(Market.Deposit(Intelligence.Buy(Market.Trade(Market.Create(), 2, 2, true),1,1)));
+            s = Market.Create();s.Cash=s.DayStartAssets=100000000;
+            s = NextDay(Market.Deposit(Intelligence.Buy(Market.Trade(s, 2, 2, true),1,1)));
             var copy = SaveCodec.Decode(SaveCodec.Encode(s));
             if (!SaveCodec.Encode(NextDay(s)).SequenceEqual(SaveCodec.Encode(NextDay(copy)))) throw new Exception("Restored market diverged.");
 
@@ -106,7 +107,7 @@ namespace MoneyTown
             CheckIntraday();CheckSettlement();CheckDayMigration();CheckMarketIntervals();
             CheckArticleEditions();
             CheckMediaVoices();
-            return 30 + StorageChecks.Run() + PurchaseGuidanceChecks.Run() + OrderGuidanceChecks.Run() + HistoryChecks.Run() + ProgressChecks.Run() + ExpansionChecks.Run() + CorrelationChecks.Run() + WarehouseChecks.Run() + InvestmentGrowthChecks.Run();
+            return 30 + StorageChecks.Run() + PurchaseGuidanceChecks.Run() + OrderGuidanceChecks.Run() + HistoryChecks.Run() + ProgressChecks.Run() + ExpansionChecks.Run() + CorrelationChecks.Run() + WarehouseChecks.Run() + InvestmentGrowthChecks.Run() + PriceProgressionChecks.Run();
         }
         static void CheckMediaVoices()
         {
@@ -420,8 +421,8 @@ namespace MoneyTown
         }
         internal static byte[] LegacyBytes(GameState s,int version)
         {
-            // Frozen older file layouts, independent of the current save writer.
-            if(version<1||version>9||version<8&&s.Clues.Any(c=>c.Version>2||c.ContentEdition>2))throw new ArgumentException("Legacy fixture contains current information.");
+            // Frozen file layouts through v10, independent of the current save writer.
+            if(version<1||version>10||version<8&&s.Clues.Any(c=>c.Version>2||c.ContentEdition>2))throw new ArgumentException("Legacy fixture contains current information.");
             int companies=version>=8?s.Stocks.Length:6;
             using(var buffer=new MemoryStream()) {
                 using(var writer=new BinaryWriter(buffer,System.Text.Encoding.UTF8,true)) {
@@ -429,6 +430,7 @@ namespace MoneyTown
                     writer.Write(s.Day);writer.Write(s.Seed);writer.Write(s.Cash);writer.Write(s.Realized);writer.Write(s.DepositDue);
                     writer.Write(s.NewsCompany%companies);writer.Write(s.PositiveNews);
                     if(version>=8)writer.Write(s.EventEdition);
+                    if(version>=10)writer.Write(s.MarketVersion);
                     foreach(var stock in s.Stocks.Take(companies)) {
                         writer.Write(stock.Price);writer.Write(stock.Quantity);writer.Write(stock.Cost);writer.Write(stock.History.Length);
                         foreach(long price in stock.History)writer.Write(price);

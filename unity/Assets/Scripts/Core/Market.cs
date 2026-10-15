@@ -65,17 +65,17 @@ namespace MoneyTown
         public const int CurrentMarketVersion = 4;
         public static readonly Company[] Companies = {
             new Company("그린푸드", "식품", 10000, .001, .018),
-            new Company("픽셀게임즈", "게임", 16000, .002, .045),
-            new Company("노바테크", "기술", 24000, .002, .04),
-            new Company("솔라에너지", "에너지", 12000, .001, .03),
-            new Company("브릿지물류", "물류", 8000, .001, .02),
-            new Company("온유메디컬", "의료", 20000, .001, .035),
-            new Company("한빛모터스", "자동차", 18000, .0015, .032),
-            new Company("두레건설", "건설", 14000, .001, .028),
-            new Company("해오름항공", "항공", 11000, .001, .038),
-            new Company("별빛엔터", "콘텐츠", 15000, .002, .044),
-            new Company("모아리테일", "유통", 9000, .001, .024),
-            new Company("누리텔레콤", "통신", 22000, .0008, .017)
+            new Company("픽셀게임즈", "게임", 50000, .002, .045),
+            new Company("노바테크", "기술", 6000000, .002, .04),
+            new Company("솔라에너지", "에너지", 150000, .001, .03),
+            new Company("브릿지물류", "물류", 1000, .001, .02),
+            new Company("온유메디컬", "의료", 3000000, .001, .035),
+            new Company("한빛모터스", "자동차", 1800000, .0015, .032),
+            new Company("두레건설", "건설", 300000, .001, .028),
+            new Company("해오름항공", "항공", 1100000, .001, .038),
+            new Company("별빛엔터", "콘텐츠", 1400000, .002, .044),
+            new Company("모아리테일", "유통", 5000, .001, .024),
+            new Company("누리텔레콤", "통신", 4000000, .0008, .017)
         };
         static void Require(bool condition, string message)
         { if (!condition) throw new InvalidOperationException(message); }

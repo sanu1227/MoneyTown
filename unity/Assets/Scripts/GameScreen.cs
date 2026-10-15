@@ -32,6 +32,7 @@ namespace MoneyTown
         float flashUntil;
         static Color Hex(string value){ColorUtility.TryParseHtmlString("#"+value,out var c);return c;}
         static string Money(long value)=>value.ToString("N0",CultureInfo.GetCultureInfo("ko-KR"))+"원";
+        static string PriceTier(long price)=>price<50000?"저가주":price<1000000?"중가주":price<3000000?"고가주":"초고가주";
         static string Signed(long value)=>(value>0?"+":"")+Money(value);
         static double Change(Stock s)=>s.History.Length<2?0:(s.Price/(double)s.History[s.History.Length-2]-1)*100;
         static string Percent(double value)=>value.ToString("+0.00;-0.00;0.00",CultureInfo.InvariantCulture)+"%";
@@ -232,27 +233,31 @@ namespace MoneyTown
         }
         void CompanyStrip()
         {
-            int page=selected/CompaniesPerPage,pages=(Market.Companies.Length+CompaniesPerPage-1)/CompaniesPerPage;
+            var companies=Enumerable.Range(0,Market.Companies.Length).OrderBy(i=>state.Stocks[i].Price).ThenBy(i=>i).ToArray();
+            int page=Array.IndexOf(companies,selected)/CompaniesPerPage,pages=(companies.Length+CompaniesPerPage-1)/CompaniesPerPage;
             var pager=Row(content,48,8);
-            var previous=Button(pager,"‹ 이전",()=>{selected=(page-1)*CompaniesPerPage;RenderTab();},Raised,48);
+            var previous=Button(pager,"‹ 이전",()=>{selected=companies[(page-1)*CompaniesPerPage];RenderTab();},Raised,48);
             Width((RectTransform)previous.transform,94);previous.interactable=page>0;
-            Flexible(Label(pager,(page+1)+" / "+pages+" · 전체 "+Market.Companies.Length+"개 기업",18,Muted,48,TextAnchor.MiddleCenter).rectTransform);
-            var following=Button(pager,"다음 ›",()=>{selected=(page+1)*CompaniesPerPage;RenderTab();},Raised,48);
+            Flexible(Label(pager,(page+1)+" / "+pages+" · 현재가 낮은 순",18,Muted,48,TextAnchor.MiddleCenter).rectTransform);
+            var following=Button(pager,"다음 ›",()=>{selected=companies[(page+1)*CompaniesPerPage];RenderTab();},Raised,48);
             Width((RectTransform)following.transform,94);following.interactable=page+1<pages;
             RectTransform row=null;
-            int end=Math.Min((page+1)*CompaniesPerPage,Market.Companies.Length);
+            int end=Math.Min((page+1)*CompaniesPerPage,companies.Length);
             for(int i=page*CompaniesPerPage;i<end;i++){
-                if(i%3==0)row=Row(content,76,6);
-                int index=i;var button=Button(row,"",()=>{selected=index;choosingCompany=false;RenderTab();scroll.verticalNormalizedPosition=1;},i==selected?Hex("30516A"):Panel,76);
-                button.name="Company-"+i;
-                if(i==selected){var outline=button.gameObject.AddComponent<Outline>();outline.effectColor=SectorColors[i];outline.effectDistance=new Vector2(1.5f,1.5f);}
-                var body=Row(button.transform,76,5);Stretch(body);body.GetComponent<HorizontalLayoutGroup>().padding=new RectOffset(7,7,8,8);
-                body.GetComponent<HorizontalLayoutGroup>().childAlignment=TextAnchor.MiddleCenter;
-                CompanyIcon(body,i,SectorColors[i],32);
-                var details=Column(body,0,1);Flexible(details);
-                Label(details,Market.Companies[i].Name,17,null,28,TextAnchor.MiddleCenter);
-                var quote=Label(details,"",16,null,24,TextAnchor.MiddleCenter);
-                Watch(()=>{double delta=Change(state.Stocks[index]);quote.text=Percent(delta);quote.color=Movement(delta);});
+                if(i%3==0)row=Row(content,108,6);
+                int index=companies[i];var button=Button(row,"",()=>{selected=index;choosingCompany=false;RenderTab();scroll.verticalNormalizedPosition=1;},index==selected?Hex("30516A"):Panel,108);
+                button.name="Company-"+index;
+                if(index==selected){var outline=button.gameObject.AddComponent<Outline>();outline.effectColor=SectorColors[index];outline.effectDistance=new Vector2(1.5f,1.5f);}
+                var body=Column(button.transform,7,3);Stretch(body);
+                var heading=Row(body,28,5);CompanyIcon(heading,index,SectorColors[index],26);
+                Flexible(Label(heading,Market.Companies[index].Name,17,null,28,TextAnchor.MiddleCenter).rectTransform);
+                var quote=Label(body,"",20,null,28,TextAnchor.MiddleCenter);quote.name="CompanyPrice-"+index;
+                var tier=Label(body,"",14,Muted,24,TextAnchor.MiddleCenter);tier.name="CompanyTier-"+index;
+                Watch(()=>{
+                    long price=state.Stocks[index].Price;bool affordable=state.Cash>=Market.GetQuote(state,index,1).Buy;
+                    quote.text=Money(price);quote.color=affordable?Color.white:Muted;
+                    tier.text=PriceTier(price)+(affordable?"":" · 현금 부족");tier.color=affordable?Mint:Gold;
+                });
             }
         }
         void Trading()
@@ -261,10 +266,11 @@ namespace MoneyTown
             var company=Market.Companies[selected];var stock=state.Stocks[selected];double change=Change(stock);
             var card=Card(content);
             var titleRow=Row(card,60);CompanyIcon(titleRow,selected,SectorColors[selected],48);
-            var title=Column(titleRow,0,0);Flexible(title);Label(title,company.Name,25,null,36);Label(title,company.Sector,16,Muted,24);
+            var title=Column(titleRow,0,0);Flexible(title);Label(title,company.Name,25,null,36);
+            var priceTier=Label(title,"",16,Muted,24);priceTier.name="TradingPriceTier";
             var choose=Button(titleRow,choosingCompany?"목록 접기":"종목 선택",()=>{choosingCompany=!choosingCompany;RenderTab();scroll.verticalNormalizedPosition=1;},Raised,60);
             choose.name="CompanyPicker";Width((RectTransform)choose.transform,132);
-            var price=Row(card,56);var priceText=Label(price,"",40,null,56);Flexible(priceText.rectTransform);
+            var price=Row(card,56);var priceText=Label(price,"",40,null,56);priceText.name="TradingPrice";Flexible(priceText.rectTransform);
             var badge=Label(price,Percent(change),26,Movement(change),40,TextAnchor.MiddleRight);Width(badge.rectTransform,142);
             tradeClock=Label(card,"다음 시세 갱신까지  "+marketClock.RemainingText,22,Mint,34,TextAnchor.MiddleLeft);
             var chartRect=Rect("PriceChart",card);Height(chartRect,185);
@@ -274,6 +280,7 @@ namespace MoneyTown
             var high=Label(range,"",16,Muted,24,TextAnchor.MiddleRight);Flexible(high.rectTransform);
             Watch(()=>{
                 var current=state.Stocks[selected];double delta=Change(current);
+                priceTier.text=company.Sector+" · "+PriceTier(current.Price);
                 priceText.text=Money(current.Price);badge.text=Percent(delta);badge.color=Movement(delta);
                 var prices=current.History;
                 chart.Prices=prices;chart.Openings=current.HistoryOpenings;chart.SetVerticesDirty();
@@ -334,7 +341,7 @@ namespace MoneyTown
             if(estimate==null||buy==null||sell==null)return;
             try{
                 var guidance=OrderGuidance.GetEstimate(state,selected,Quantity());var order=guidance.Quote;
-                estimate.text=Quantity()+"주 · 수수료 각 "+Money(order.Fee)+" 포함";
+                estimate.text=guidance.BuyError=="현금 부족"?"매수에 "+Money(order.Buy-state.Cash)+" 더 필요 · 수수료 포함":Quantity()+"주 · 수수료 각 "+Money(order.Fee)+" 포함";
                 string buyError=blocked?"진행 복구 필요":guidance.BuyError,sellError=blocked?"진행 복구 필요":guidance.SellError;
                 buyLabel.text="매수\n"+(buyError.Length==0?Money(order.Buy):buyError);sellLabel.text="매도\n"+(sellError.Length==0?Money(order.Sell):sellError);
                 buy.interactable=buyError.Length==0;sell.interactable=sellError.Length==0;

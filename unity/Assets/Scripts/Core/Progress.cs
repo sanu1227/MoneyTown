@@ -44,7 +44,7 @@ namespace MoneyTown
             state.Cash = 10000000; RecordAndCheck(state, GoalFlags.AssetsTwoMillion | GoalFlags.AssetsTenMillion);
             state.Cash = 1000000; Progress.Record(state);
             Check((state.Goals & GoalFlags.AssetsTenMillion) != 0, "Completed asset goal was lost.");
-            for (int i = 0; i < 3; i++) state = Market.Trade(state, i, 1, true);
+            foreach (int i in new[]{0,1,4}) state = Market.Trade(state, i, 1, true);
             RecordAndCheck(state, GoalFlags.Diversified);
             state = Market.Create(); state.Cash = 100;
             Check(Progress.FundsExhausted(state), "No possible order at the minimum price should be detected.");
