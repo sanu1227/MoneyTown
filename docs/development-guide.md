@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.22.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
+빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.23.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.22.0-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.23.0-Setup-x64.exe
 ```
 
 ## Android APK
@@ -89,16 +89,16 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 
 ## 배경음악 수정
 
-v0.22.0의 원곡 **‘After the Bell / 장 마감의 여유’**는 88 BPM, 32마디, 약 87.27초이며 따뜻한 건반·베이스·가벼운 드럼을 사용합니다. `unity/Assets/Resources/Audio/town-lounge.wav`를 PCM 스트리밍으로 불러오고 `GameMusic.cs`의 독립 2D `AudioSource`로 반복합니다. 효과음이 재생되거나 메뉴가 바뀌어도 음악을 다시 시작하지 않습니다.
+v0.23.0은 `unity/Assets/Resources/Audio/`의 `town-lounge.wav`, `market-morning.wav`, `newsroom-bossa.wav`, `city-evening.wav`를 PCM 스트리밍으로 불러옵니다. `GameMusic.cs`의 독립 2D `AudioSource`에서 한 곡씩 재생하고, 네 곡을 한 번씩 들은 뒤 다시 섞습니다. 한 바퀴의 마지막 곡과 다음 바퀴 첫 곡도 다르게 고릅니다. 효과음이 재생되거나 메뉴가 바뀌어도 음악을 다시 시작하지 않습니다.
 
-`FeedbackScreen.cs`의 **설정 > 배경음악**은 켜기/끄기와 음량 0·25·50·75·100%(기본 켜짐·25%)를 제공합니다. 기기 설정 키는 `MoneyTown.Music.Enabled`, `MoneyTown.Music.Volume`입니다. 효과음·동작 줄이기와 독립적이며 게임 저장 형식은 바꾸지 않습니다. 꺼짐·0음량·앱 중단 때 `Pause`, 복귀 때 `UnPause`와 0.5초 페이드인을 사용합니다.
+`FeedbackScreen.cs`의 **설정 > 배경음악**은 현재 곡·다음 곡·켜기/끄기와 음량 0·25·50·75·100%(기본 켜짐·25%)를 제공합니다. 기기 설정 키는 `MoneyTown.Music.Enabled`, `MoneyTown.Music.Volume`입니다. 효과음·동작 줄이기와 독립적이며 게임 저장 형식은 바꾸지 않습니다. 꺼짐·0음량·앱 중단 때 `Pause`, 복귀 때 같은 위치에서 `UnPause`와 0.5초 페이드인을 사용합니다. 곡 종료 전에는 0.5초 페이드아웃을 적용합니다. `NextTrack()`은 무음·중단 상태를 유지하며 선곡만 바꿉니다.
 
 ```powershell
 python scripts/generate-bgm.py
 python scripts/generate-bgm.py --check
 ```
 
-생성 코드와 음악 원본을 함께 관리합니다. [음악 구성·파일 사양·루프 검사](music-assets.md)를 참고하세요. 파형 검증 외에 Unity Player에서 루프 경계, 효과음과 동시 재생, 음소거·음량 변경, 메뉴 전환, 배경 복귀와 설정 재적용을 확인합니다. 새 버전의 실행·설치 결과는 검증 완료 후 개발 노트에 기록합니다.
+생성 코드와 음악 원본을 함께 관리합니다. [음악 구성·파일 사양·루프 검사](music-assets.md)를 참고하세요. 파형 검증 외에 Unity Player에서 셔플 경계와 자동 곡 전환, 효과음과 동시 재생, 음소거·음량 변경, 메뉴 전환, 배경 복귀와 설정 재적용을 확인합니다. 새 버전의 실행·설치 결과는 검증 완료 후 개발 노트에 기록합니다.
 
 ## 효과음과 애니메이션 수정
 

@@ -709,11 +709,47 @@ namespace MoneyTown
             string[] keys={MusicKey,MusicVolumeKey};bool[] existed=keys.Select(GameRuntime.HasKey).ToArray();
             int[] preferences=keys.Select(key=>GameRuntime.GetInt(key)).ToArray();
             try {
-                var source=music.OutputSource;var clip=Resources.Load<AudioClip>("Audio/town-lounge");
-                UiCheck(clip!=null&&clip.loadState==AudioDataLoadState.Loaded&&clip.channels==2&&clip.frequency==44100&&clip.length>80&&clip.length<90,
-                    "music loads the complete stereo lounge track");
-                UiCheck(music.MusicEnabled&&music.VolumePercent==25&&source!=null&&source.loop&&!source.playOnAwake&&source.spatialBlend==0
-                    &&source.clip==clip&&source!=effects.OutputSource,"music defaults to a separate two-dimensional loop at twenty-five percent");
+                var source=music.OutputSource;
+                string[] trackNames={"town-lounge","market-morning","newsroom-bossa","city-evening"};
+                float[] durations={87.2727f,60,72,80};
+                var clips=trackNames.Select(name=>Resources.Load<AudioClip>("Audio/"+name)).ToArray();
+                for(int i=0;i<clips.Length;i++) {
+                    var loaded=clips[i];
+                    UiCheck(loaded!=null&&loaded.loadState!=AudioDataLoadState.Failed&&loaded.channels==2&&loaded.frequency==44100
+                        &&loaded.loadType==AudioClipLoadType.Streaming&&Math.Abs(loaded.length-durations[i])<.1f,
+                        "music has complete stereo streaming metadata for "+trackNames[i]+" ["+(loaded==null?"null":
+                            "state="+loaded.loadState+", channels="+loaded.channels+", frequency="+loaded.frequency+
+                            ", loadType="+loaded.loadType+", length="+loaded.length)+"]");
+                }
+                UiCheck(music.TrackCount==4&&music.CurrentTrackIndex>=0&&music.CurrentTrackIndex<4&&!string.IsNullOrWhiteSpace(music.CurrentTitle)
+                    &&music.MusicEnabled&&music.VolumePercent==25&&source!=null&&!source.loop&&!source.playOnAwake&&source.spatialBlend==0
+                    &&source.clip==clips[music.CurrentTrackIndex]&&source!=effects.OutputSource,
+                    "four-track music defaults to a separate nonlooping two-dimensional source at twenty-five percent");
+                var randomState=UnityEngine.Random.state;byte[] beforeShuffle=SaveCodec.Encode(state);
+                music.Configure(false,25);
+                var order=new List<int>{music.CurrentTrackIndex};bool mutedSkip=true;
+                for(int i=1;i<12;i++) {
+                    music.NextTrack();order.Add(music.CurrentTrackIndex);
+                    mutedSkip&=!source.isPlaying&&source.volume==0&&source.timeSamples==0&&source.clip==clips[music.CurrentTrackIndex];
+                }
+                UiCheck(Enumerable.Range(0,3).All(cycle=>order.Skip(cycle*4).Take(4).Distinct().Count()==4),
+                    "three shuffle cycles each play all four tracks exactly once");
+                UiCheck(Enumerable.Range(1,order.Count-1).All(i=>order[i]!=order[i-1]),
+                    "shuffled music never repeats adjacent tracks including cycle boundaries");
+                UiCheck(mutedSkip&&!music.MusicEnabled&&music.VolumePercent==25,
+                    "next track while muted selects a new track without starting playback or changing volume");
+                UiCheck(randomState.Equals(UnityEngine.Random.state)&&beforeShuffle.SequenceEqual(SaveCodec.Encode(state)),
+                    "playlist shuffling preserves Unity random state and every saved economy field");
+                appPaused=false;appFocused=true;UpdateFeedbackActivity();music.Configure(true,25);
+                var playedTracks=new HashSet<int>();bool allTracksPlay=true;
+                for(int i=0;i<4;i++) {
+                    music.NextTrack();playedTracks.Add(music.CurrentTrackIndex);
+                    yield return new WaitForSecondsRealtime(.12f);
+                    allTracksPlay&=source.clip.loadState==AudioDataLoadState.Loaded&&source.isPlaying&&source.timeSamples>0;
+                }
+                UiCheck(allTracksPlay&&playedTracks.Count==4,
+                    "every track loads and advances its real streaming audio playhead when selected");
+                music.Configure(true,25);var clip=source.clip;
                 appPaused=false;appFocused=true;UpdateFeedbackActivity();
                 int before=source.timeSamples;yield return new WaitForSecondsRealtime(.6f);
                 UiCheck(source.isPlaying&&source.timeSamples>before&&Math.Abs(source.volume-.25f)<.001f,
@@ -743,12 +779,21 @@ namespace MoneyTown
                 appPaused=false;UpdateFeedbackActivity();yield return new WaitForSecondsRealtime(.12f);
                 UiCheck(!music.IsSuspended&&source.isPlaying&&source.timeSamples>stopped&&source.timeSamples<stopped+clip.frequency,
                     "foreground return resumes music from the saved playhead");
+                appPaused=true;UpdateFeedbackActivity();int previousTrack=music.CurrentTrackIndex;music.NextTrack();
+                UiCheck(music.IsSuspended&&music.CurrentTrackIndex!=previousTrack&&!source.isPlaying&&source.volume==0&&source.timeSamples==0,
+                    "next track while backgrounded changes selection but cannot start music");
+                clip=source.clip;appPaused=false;UpdateFeedbackActivity();yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(source.isPlaying&&source.clip==clip&&source.timeSamples>0&&source.timeSamples<clip.frequency&&music.VolumePercent==25,
+                    "foreground return starts the background-selected track with the saved volume");
                 music.enabled=false;stopped=source.timeSamples;music.enabled=true;
                 UiCheck(source.isPlaying&&source.timeSamples>=stopped-2048,
                     "disabling and reenabling the music component preserves the track");
                 source.timeSamples=clip.samples-clip.frequency/10;yield return new WaitForSecondsRealtime(.25f);
-                UiCheck(source.isPlaying&&source.timeSamples>=0&&source.timeSamples<clip.frequency,
-                    "music automatically loops across the end of the track");
+                UiCheck(source.isPlaying&&source.clip!=clip&&source.timeSamples>=0&&source.timeSamples<source.clip.frequency,
+                    "natural track completion automatically starts another track without repeating");
+                yield return new WaitForSecondsRealtime(.5f);
+                UiCheck(Math.Abs(source.volume-.25f)<.001f&&music.VolumePercent==25,
+                    "automatic track transition restores the selected volume after its fade in");
 
                 UiFixture(Market.Create());clockSettings.onClick.Invoke();
                 byte[] saved=File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory,"game-unity-v1.bin"));byte[] unchanged=SaveCodec.Encode(state);
@@ -763,6 +808,19 @@ namespace MoneyTown
                 UiCheck(!music.MusicEnabled&&music.VolumePercent==75&&!source.isPlaying&&GameRuntime.GetInt(MusicKey)==0,
                     "saved music enable and volume preferences restore through the normal settings path");
                 UiButton("MusicEnabled").onClick.Invoke();UiButton("MusicVolume-25").onClick.Invoke();
+                previousTrack=music.CurrentTrackIndex;UiButton("MusicNext").onClick.Invoke();yield return null;
+                UiCheck(music.CurrentTrackIndex!=previousTrack&&source.isPlaying&&UiLabel("MusicNowPlaying").text==music.CurrentTitle,
+                    "next track button changes the playing song and updates its visible title");
+                int[] savedPreferences=keys.Select(key=>GameRuntime.GetInt(key)).ToArray();
+                source.timeSamples=source.clip.samples-source.clip.frequency/10;yield return new WaitForSecondsRealtime(.25f);
+                UiCheck(UiLabel("MusicNowPlaying").text==music.CurrentTitle&&savedPreferences.SequenceEqual(keys.Select(key=>GameRuntime.GetInt(key))),
+                    "automatic song changes update the visible title while preserving music preferences");
+                UiButton("MusicEnabled").onClick.Invoke();previousTrack=music.CurrentTrackIndex;
+                UiButton("MusicNext").onClick.Invoke();yield return null;
+                UiCheck(music.CurrentTrackIndex!=previousTrack&&!source.isPlaying&&!music.MusicEnabled&&GameRuntime.GetInt(MusicKey)==0
+                    &&UiLabel("MusicNowPlaying").text==music.CurrentTitle,
+                    "muted next-track control updates the title without overriding saved mute");
+                UiButton("MusicEnabled").onClick.Invoke();
                 UiCheck(saved.SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory,"game-unity-v1.bin")))&&unchanged.SequenceEqual(SaveCodec.Encode(state)),
                     "music settings never modify saved game progress or game state");
                 effects.CancelAnimations();Canvas.ForceUpdateCanvases();scroll.StopMovement();
@@ -770,9 +828,9 @@ namespace MoneyTown
                 var bounds=RectTransformUtility.CalculateRelativeRectTransformBounds(scroll.viewport,card);
                 content.anchoredPosition+=new Vector2(0,scroll.viewport.rect.center.y-bounds.center.y);
                 yield return new WaitForEndOfFrame();
-                UiCheck(UiOnScreen(card)&&new[]{"MusicEnabled","MusicVolume-0","MusicVolume-100"}
+                UiCheck(UiOnScreen(card)&&UiOnScreen((RectTransform)UiLabel("MusicNowPlaying").transform)&&new[]{"MusicNext","MusicEnabled","MusicVolume-0","MusicVolume-100"}
                     .All(name=>UiOnScreen((RectTransform)UiButton(name).transform)),"music settings and all volume choices fit on screen after scrolling");
-                UiCapture("29-music-settings");
+                UiCapture("30-music-playlist");
             } finally {
                 for(int i=0;i<keys.Length;i++){if(existed[i])GameRuntime.SetInt(keys[i],preferences[i]);else GameRuntime.DeleteKey(keys[i]);}
                 RestoreMusicSettings();RestoreFeedbackSettings();appPaused=paused;appFocused=focused;UpdateFeedbackActivity();

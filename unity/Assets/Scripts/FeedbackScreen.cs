@@ -11,6 +11,7 @@ namespace MoneyTown
         const string MusicKey="MoneyTown.Music.Enabled",MusicVolumeKey="MoneyTown.Music.Volume";
         GameFeedback effects;
         GameMusic music;
+        Text musicNowPlaying;
         void InitializeFeedback()
         {
             effects=gameObject.AddComponent<GameFeedback>();effects.Initialize();
@@ -31,6 +32,7 @@ namespace MoneyTown
         {
             bool suspended=appPaused||!appFocused&&!GameRuntime.Verifying;
             effects?.SetSuspended(suspended);music?.SetSuspended(suspended);
+            if(musicNowPlaying!=null&&musicNowPlaying.text!=music.CurrentTitle)musicNowPlaying.text=music.CurrentTitle;
         }
         void BindButtonFeedback(Button button,Action action)
         {
@@ -101,7 +103,9 @@ namespace MoneyTown
         {
             var card=Card(parent,20,10);card.name="MusicSettingsCard";
             Label(card,"배경음악",27,Mint,44);
-            Label(card,"장 마감의 여유 · 88 BPM",22,Gold,36);
+            musicNowPlaying=Label(card,music.CurrentTitle,22,Gold,36);musicNowPlaying.name="MusicNowPlaying";
+            Label(card,music.TrackCount+"곡 랜덤 재생 · 한 바퀴마다 순서 변경",18,Muted,32);
+            Button(card,"다음 곡",()=>music.NextTrack(),Raised,58).name="MusicNext";
             Button(card,"배경음악 · "+(music.MusicEnabled?"켜짐":"꺼짐"),()=>SetMusicSettings(!music.MusicEnabled,music.VolumePercent),Raised,60).name="MusicEnabled";
             Label(card,"음악 음량 · "+music.VolumePercent+"%",21,Muted,36);
             var row=Row(card,58,6);
@@ -109,7 +113,7 @@ namespace MoneyTown
                 int volume=level;
                 Button(row,volume+"%",()=>SetMusicSettings(music.MusicEnabled,volume),music.VolumePercent==volume?Hex("266957"):Raised,58).name="MusicVolume-"+volume;
             }
-            Label(card,"따뜻한 건반과 가벼운 리듬의 연주곡입니다. 효과음과 따로 조절하며, 다른 화면에서도 이어집니다.",18,Muted,66);
+            Label(card,"같은 곡이 연속으로 나오지 않습니다. 효과음과 따로 조절하며, 다른 화면에서도 이어집니다.",18,Muted,66);
         }
     }
 }

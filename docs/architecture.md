@@ -27,7 +27,7 @@ v0.19.0의 가격 모델 4는 사건·성장·수급의 합과 기존 개장 최
 | 정보 가판대와 기사 지면 | [`InformationScreen.cs`](../unity/Assets/Scripts/InformationScreen.cs) |
 | 물류센터 알바와 애니메이션 | [`WorkScreen.cs`](../unity/Assets/Scripts/WorkScreen.cs) |
 | 효과음·버튼·금액·지면의 움직임 | [`GameFeedback.cs`](../unity/Assets/Scripts/GameFeedback.cs) |
-| 배경음악 반복·일시정지·페이드 | [`GameMusic.cs`](../unity/Assets/Scripts/GameMusic.cs) |
+| 배경음악 셔플·일시정지·페이드 | [`GameMusic.cs`](../unity/Assets/Scripts/GameMusic.cs) |
 | 연출 이벤트 연결·소리와 애니메이션 설정 | [`FeedbackScreen.cs`](../unity/Assets/Scripts/FeedbackScreen.cs) |
 | 원본 효과음 생성·파형 검사 | [`generate-sfx.py`](../scripts/generate-sfx.py), [효과음 자료](audio-assets.md) |
 | 원곡 배경음악 생성·루프 검사 | [`generate-bgm.py`](../scripts/generate-bgm.py), [음악 자료](music-assets.md) |
@@ -42,7 +42,9 @@ v0.21.0의 `GameFeedback`은 `Resources/Audio`의 효과음 8종을 2D `AudioSou
 
 효과음 켜기/끄기, 음량 0·25·50·75·100%(기본 50%), 동작 줄이기는 `GameRuntime`을 통해 기기 설정에 저장합니다. 게임 저장 형식 11과 별개입니다. 동작 줄이기는 화면 움직임을 중단하고 알바를 정지 장면으로 표시하지만 기존 약 4.2초 작업 흐름과 보상 규칙은 유지합니다. 앱 비활성화 때는 소리와 진행 중인 움직임을 멈춥니다.
 
-v0.22.0의 `GameMusic`은 `Resources/Audio/town-lounge`의 원곡을 PCM 스트리밍으로 읽어 별도 2D `AudioSource`에서 반복합니다. 메뉴 전환과 효과음 재생은 음악의 재생 위치를 바꾸지 않습니다. 초기에는 중단 상태로 생성하고 저장한 설정을 적용한 뒤 재생합니다. 꺼짐·0음량·앱 비활성화 때 일시정지하며, 복귀하면 같은 위치에서 0.5초 페이드인합니다. 오브젝트 비활성화로 네이티브 오디오가 멈춘 경우에도 재생 위치를 복원합니다.
+v0.23.0의 `GameMusic`은 `Resources/Audio`의 원곡 4곡을 PCM 스트리밍으로 읽어 별도 2D `AudioSource`에서 재생합니다. 독립 `System.Random`으로 Fisher–Yates 셔플을 수행해 한 바퀴마다 모든 곡을 한 번씩 재생하고, 다음 바퀴 첫 곡이 직전 곡과 같으면 순서를 교환합니다. 시장·사건 난수와 Unity 전역 난수를 사용하지 않습니다. 곡 종료와 수동 `NextTrack()` 모두 같은 순서를 소비합니다.
+
+메뉴 전환과 효과음 재생은 음악의 재생 위치를 바꾸지 않습니다. 초기에는 중단 상태로 생성하고 저장한 설정을 적용한 뒤 재생합니다. 꺼짐·0음량·앱 비활성화 때 일시정지하며, 복귀하면 같은 곡의 같은 위치에서 0.5초 페이드인합니다. 자연 종료 전에는 짧은 페이드아웃을 적용합니다. 중단 상태에서 다음 곡을 골라도 자동으로 켜지지 않습니다.
 
 배경음악은 기본 켜짐·25%이고 0·25·50·75·100%를 선택합니다. `FeedbackScreen`이 배경음악 카드를 효과음 카드 앞에 배치하고 `MoneyTown.Music.Enabled`·`MoneyTown.Music.Volume` 설정을 저장합니다. 음악·효과음의 AudioSource와 설정을 분리해 각각 음량을 조절하며 동작 줄이기는 음악 재생에 영향을 주지 않습니다.
 
