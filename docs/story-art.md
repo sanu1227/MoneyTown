@@ -1,8 +1,25 @@
 # 스토리 일러스트 제작 기록
 
-작성일: 2026-10-16 / 적용 버전: 0.25.0
+작성일: 2026-10-16 / 원본 적용: 0.25.0 / 장면별 카툰 추가: 0.28.0
 
-## 제작 방식
+## 0.28.0 장면별 카툰 일러스트
+
+첫 멘트의 `00-beginning.png`와 중앙 자막 연출은 유지합니다. 이후 17페이지에는 각각 새로 그린 두 장면을 사용합니다. 총 34개의 독립된 삽화이며 같은 그림을 확대해 반복하지 않습니다. 시작 자금 정리·신문 분석·성과 확인·기록·도시 관찰·동료와 토론·다음 목표처럼 대사의 행동과 장소를 구분했습니다.
+
+Codex 내장 `image_gen.imagegen`으로 페이지마다 별도 생성했습니다. 기존 그림과 첫 새 페이지를 인물·화풍 참고로 사용해 짧은 검은 머리, 남색 재킷, 따뜻한 빛과 청록색 그림자를 이어갑니다. 음성·대사·이야기 진도는 바꾸지 않습니다.
+
+파일은 `unity/Assets/Resources/StoryArt/Comic/<ArtName>-pNN.png`입니다. 1024×1536 PNG 한 장의 위·아래 절반에 **서로 다른 삽화**를 담고, Unity가 각 절반을 별도의 컷에 표시합니다. 화면 비율을 유지하며 자르고 중앙 경계에서 4px 안쪽을 사용합니다. 이미지 파일 자체를 잘라서 재저장하거나 글자를 합성하지 않았습니다. 캡션·말풍선은 기존 Unity UI가 그립니다.
+
+전체 생성 프롬프트와 참조 파일:
+
+- [공통 프롬프트](../assets/story/comic-prompt-template.txt)
+- [프롤로그 2페이지](../assets/story/comic-prompts-prologue.json)
+- [200만원·1천만원 6페이지](../assets/story/comic-prompts-01-02.json)
+- [1억원·10억원·100억원 9페이지](../assets/story/comic-prompts-03-05.json)
+
+파일 목록·해시와 실제 화면 검증 결과는 이 문서의 장면별 에셋 표와 [개발 노트](development-log.md)에 기록합니다.
+
+## 0.25.0 원본 제작 방식
 
 MoneyTown의 도입부와 총자산 이정표에 사용하는 신규 일러스트 6장입니다. Codex 내장 `image_gen.imagegen`으로 각각 별도 생성했습니다. 외부 게임의 자산이나 사용자 참고 이미지를 제작 입력으로 사용하지 않았습니다. CLI/API 대체 경로는 사용하지 않았습니다.
 
@@ -92,3 +109,27 @@ Use case: precise-object-edit. Edit this existing MoneyTown illustration only to
 ```text
 Use case: precise-object-edit. Edit this existing MoneyTown illustration only to remove all signage or text on the distant buildings. In particular remove the small blue illuminated sign with white letter-like marks near the top of the tower to the right of the protagonist's head; replace that sign with ordinary blue glass and warm window reflections matching the building. Remove any other tiny glyphs or branding from rooftops. Preserve the entire composition, exact protagonist, bridge, city, sky, wet reflections, painterly finish and 1024 x 1536 portrait resolution. No words, letters, numbers, logos, watermark or signs anywhere. Keep all details outside the tiny signage regions unchanged.
 ```
+
+## 0.28.0 장면별 에셋
+
+각 파일은 별도로 그린 두 장면을 담은 1024×1536 PNG입니다. 아래 해시는 최종 프로젝트 파일 기준입니다.
+
+| 파일 | 장면 | 크기(bytes) | SHA-256 |
+| --- | --- | ---: | --- |
+| [00-beginning-p02.png](../unity/Assets/Resources/StoryArt/Comic/00-beginning-p02.png) | 시작 자금과 첫 공책 | 2229998 | `21da597878ed28188d7fb24321c50153b0ae0e75430b8e372588bbbaa7c15df6` |
+| [00-beginning-p03.png](../unity/Assets/Resources/StoryArt/Comic/00-beginning-p03.png) | 신문 기사와 기업 단서 | 2402457 | `62f829ad5989ef9b5cd8c0c545d013ae20870dc32ef805bd15ec3a3eb56b1b8d` |
+| [01-first-step-p01.png](../unity/Assets/Resources/StoryArt/Comic/01-first-step-p01.png) | 첫 수익 확인과 기쁨 | 2015616 | `c9f81e413b50237b6419cccf9ac5c1b1ada503ea95ae57c1a544780472e6661a` |
+| [01-first-step-p02.png](../unity/Assets/Resources/StoryArt/Comic/01-first-step-p02.png) | 실수 검토와 기록 | 2131316 | `bc33a7f03d99138ba721683016fd50306c03626fab9045898b9a55195260c49a` |
+| [01-first-step-p03.png](../unity/Assets/Resources/StoryArt/Comic/01-first-step-p03.png) | 옥상에서 발견한 기회 | 2452799 | `84ada2864b784d0b3dd0023e4cf48a285be09a952040bd98bfaf4f1edfa4c161` |
+| [02-own-desk-p01.png](../unity/Assets/Resources/StoryArt/Comic/02-own-desk-p01.png) | 새 공책과 책상 정리 | 2399579 | `96d1cae8e49165e85f8651b5ccbe7a3d2a97635976a5d608f746910d02d3f397` |
+| [02-own-desk-p02.png](../unity/Assets/Resources/StoryArt/Comic/02-own-desk-p02.png) | 신문·메모의 연결 | 2013023 | `418cbbf939824381c6d94bad634becf804085434ffbeaf567252410093ab6965` |
+| [02-own-desk-p03.png](../unity/Assets/Resources/StoryArt/Comic/02-own-desk-p03.png) | 첫 사무실의 시작 | 2190745 | `bc90e538585fc9b6afa9fbd7e7fbce812e5514509a3c96de30e395cd52c8e78e` |
+| [03-city-view-p01.png](../unity/Assets/Resources/StoryArt/Comic/03-city-view-p01.png) | 출근길과 달라진 계좌 | 2271548 | `4ff420fe2fa29872e073889ecd91998c56899ee9f4e0194f664953dad7d9c3a7` |
+| [03-city-view-p02.png](../unity/Assets/Resources/StoryArt/Comic/03-city-view-p02.png) | 가게·물류·늦은 사무실 | 2229449 | `61de7718170c3dd64951ff1af9588f12942e8e00dfadce49756fe09dfc810891` |
+| [03-city-view-p03.png](../unity/Assets/Resources/StoryArt/Comic/03-city-view-p03.png) | 큰돈 앞에서 잠시 멈춤 | 2448314 | `a06c3618739925de0607e72130d08e1cbe2523dc1661c30819aafd3923536398` |
+| [04-boardroom-p01.png](../unity/Assets/Resources/StoryArt/Comic/04-boardroom-p01.png) | 동료 앞의 첫 발표 | 2130826 | `5838adaf1d33eaf63cffc39a53851974725f0077423b245e03fa282699a1634f` |
+| [04-boardroom-p02.png](../unity/Assets/Resources/StoryArt/Comic/04-boardroom-p02.png) | 서로 다른 의견과 깨달음 | 2300747 | `5f63a5fdeca93de5b4715340cf3a2be1cff6fbd54d1f19573dc98fa6850daae6` |
+| [04-boardroom-p03.png](../unity/Assets/Resources/StoryArt/Comic/04-boardroom-p03.png) | 질문과 동료의 설명 | 2125646 | `8a0d9a7d1c8c3ddb00ea4a0daa9d02edc77d6981b53e3aff7ed78fd5cb11d52e` |
+| [05-world-horizon-p01.png](../unity/Assets/Resources/StoryArt/Comic/05-world-horizon-p01.png) | 오래된 목표 다시 읽기 | 2313633 | `4da6a3aabdd0691eaf510b61bfc74d1dcb4970cd2e5b56796c4c46a5192198a4` |
+| [05-world-horizon-p02.png](../unity/Assets/Resources/StoryArt/Comic/05-world-horizon-p02.png) | 더 넓은 시장과 다음 선택 | 2134653 | `93e315ec36141aff582a70664bb95b76b47884008e88b49215f0e5f9011d28a0` |
+| [05-world-horizon-p03.png](../unity/Assets/Resources/StoryArt/Comic/05-world-horizon-p03.png) | 바람에 넘어가는 다음 페이지 | 2582736 | `b9512e2ae002220ed52ea95464f7eaf016d5f86597134318a5567b905c880338` |

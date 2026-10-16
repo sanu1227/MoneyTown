@@ -24,7 +24,6 @@ namespace MoneyTown
         float storyMotionTime,storyPageTime;
         static readonly Color StoryInk=new Color(.12f,.12f,.11f);
         static readonly Color StoryPaper=new Color(.97f,.945f,.88f);
-        static readonly float[] StoryDetailFocus={.75f,.66f,.70f,.75f,.68f,.61f};
         bool StoryActive => storyOverlay!=null&&storyOverlay.gameObject.activeSelf;
         bool StoryOpeningActive => StoryActive&&storyChapter==0&&storyPage==0;
 
@@ -166,9 +165,18 @@ namespace MoneyTown
                 storyOpeningSafe.offsetMin=storyOpeningSafe.offsetMax=Vector2.zero;
             }
             Canvas.ForceUpdateCanvases();
-            CropStoryIllustration(storyIllustration,1,new Vector2(.5f,.72f));
-            CropStoryIllustration(storyDetail,.72f,new Vector2(.45f,StoryDetailFocus[storyChapter]));
+            CropStoryPanel(storyIllustration,true);
+            CropStoryPanel(storyDetail,false);
             CropStoryIllustration(storyOpeningIllustration,1,new Vector2(.5f,.5f));
+        }
+        static void CropStoryPanel(RawImage image,bool upper)
+        {
+            if(image==null||image.texture==null)return;
+            var bounds=image.rectTransform.rect;if(bounds.height<=0||bounds.width<=0)return;
+            float inset=4f/image.texture.height,panelHeight=.5f-2*inset;
+            float aspect=bounds.width/bounds.height,panelAspect=image.texture.width/(image.texture.height*panelHeight);
+            float width=Mathf.Min(1,aspect/panelAspect),height=panelHeight*Mathf.Min(1,panelAspect/aspect);
+            image.uvRect=new UnityEngine.Rect((1-width)/2,(upper?.5f:0)+(.5f-height)/2,width,height);
         }
         static void CropStoryIllustration(RawImage image,float zoom,Vector2 focus)
         {
@@ -190,7 +198,7 @@ namespace MoneyTown
             if(StoryActive||blocked||warehouseWorking||state.SettlementPending||chapter<0||chapter>=state.StoryUnlocked)return;
             storyChapter=chapter;storyPage=0;storyReplay=replay;storyMotionTime=0;
             var entry=StoryChapters.All[chapter];
-            storyOpeningIllustration.texture=storyIllustration.texture=storyDetail.texture=Resources.Load<Texture2D>("StoryArt/"+entry.ArtName);
+            storyOpeningIllustration.texture=Resources.Load<Texture2D>("StoryArt/00-beginning");
             storyTitle.text=entry.Title;storyRequirement.text=(replay?"다시 보는 이야기 · ":"")+entry.Requirement;
             storySkip.GetComponentInChildren<Text>().text=replay?"닫기":"건너뛰기";
             storyOpeningSkip.GetComponentInChildren<Text>().text=replay?"닫기":"건너뛰기";
@@ -200,6 +208,10 @@ namespace MoneyTown
         void ShowStoryPage()
         {
             var pages=StoryChapters.All[storyChapter].Pages;string page=pages[storyPage];int split=page.IndexOf('\n');
+            if(!StoryOpeningActive) {
+                string artName=StoryChapters.All[storyChapter].ArtName+"-p"+(storyPage+1).ToString("00");
+                storyIllustration.texture=storyDetail.texture=Resources.Load<Texture2D>("StoryArt/Comic/"+artName);
+            }
             storyCaption.text=split<0?"아직, 작은 방에서.":page.Substring(0,split);
             storyBody.text=split<0?page:page.Substring(split+1);
             storyPageLabel.text=(storyPage+1).ToString("00")+" / "+pages.Length.ToString("00");

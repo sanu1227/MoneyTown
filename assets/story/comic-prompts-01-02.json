@@ -1,0 +1,161 @@
+{
+  "created_date": "2026-10-16",
+  "assets": [
+    {
+      "file": "unity/Assets/Resources/StoryArt/Comic/01-first-step-p01.png",
+      "provider": "OpenAI built-in image_gen",
+      "reference": "unity/Assets/Resources/StoryArt/Comic/00-beginning-p02.png",
+      "reference_role": "Character identity, painting style and two-panel atlas layout; new scene compositions.",
+      "prompt": "Use case: illustration-story.\nAsset: a two-panel comic art atlas for the Korean investment game MoneyTown, portrait 1024x1536.\nRe-stage the young adult protagonist from the reference into TWO NEW SEPARATE ILLUSTRATIONS. The reference is for character identity and painterly anime visual style only. Do not reproduce the reference composition.\nLAYOUT IS CRITICAL: top half (0-50% canvas height) is one complete landscape illustration, bottom half (50-100%) is a second DIFFERENT landscape illustration. A clean hard horizontal cut at the exact center. No gutters, borders, margins, captions, bubbles, text, numbers, logos or watermarks. No objects cross the center boundary.\nStyle: polished Korean narrative game illustration, expressive detailed anime painting, consistent short tousled black hair, navy jacket over pale shirt, slim adult build, warm amber light and cool teal shadows, detailed believable settings.\nTOP PANEL: In the small apartment at night, front three-quarter medium view: the protagonist studies a laptop, eyes widening and one hand hovering near his mouth in amazement at his first doubled savings. Laptop screen angled away, abstract colored financial shapes only, absolutely no text or numbers. Warm desk lamp and a rainy blue window make a new nighttime setting.\nBOTTOM PANEL: A different view, close portrait from beside the laptop: the young man leans back, lets out a surprised delighted laugh and makes a small celebratory fist near his chest. His expressive face occupies the upper-middle of this lower panel. Laptop edge and warm lamp bokeh in foreground; the modest room stays visible but not a repeated camera framing.\nComposition: each half is independently framed. Keep each half's essential faces/hands/action around its horizontal center and middle height. Top half's highest 18% may be covered by game caption, bottom half's lowest 35% may be covered by speech bubble. Keep meaningful action above that bubble area. Anatomically natural hands, clean silhouettes, no extra fingers. This is illustration art only, no game UI.",
+      "targeted_edit": "Use case: precise-object-edit. Change ONLY the top panel laptop lid: remove the glowing chart currently painted on the OUTER BACK of the laptop screen, replace that face with a plain matte silver-gray laptop back without any logo, symbol or display. The protagonist is looking at the actual screen on the unseen side. Preserve every other thing in both panels, protagonist anatomy and expression, compositions, colors, exact center horizontal division, 1024x1536 atlas, and the entire bottom panel. No text, numbers, labels, logos, or borders.",
+      "generated_output": "exec-c0e016fb-8550-4b7c-bb73-bd6f4ffb4f64.png",
+      "format": {
+        "width": 1024,
+        "height": 1536,
+        "top_panel": [
+          0,
+          0,
+          1024,
+          768
+        ],
+        "bottom_panel": [
+          0,
+          768,
+          1024,
+          768
+        ]
+      },
+      "inspection": "Generated result and copied PNG visually inspected. Distinct independently staged panels, consistent protagonist, no captions/bubbles/UI, clean horizontal center boundary."
+    },
+    {
+      "file": "unity/Assets/Resources/StoryArt/Comic/01-first-step-p02.png",
+      "provider": "OpenAI built-in image_gen",
+      "reference": "unity/Assets/Resources/StoryArt/Comic/00-beginning-p02.png",
+      "reference_role": "Character identity, painting style and two-panel atlas layout; new scene compositions.",
+      "prompt": "Use case: illustration-story.\nAsset: a two-panel comic art atlas for the Korean investment game MoneyTown, portrait 1024x1536.\nRe-stage the young adult protagonist from the reference into TWO NEW SEPARATE ILLUSTRATIONS. The reference is for character identity and painterly anime visual style only. Do not reproduce the reference composition.\nLAYOUT IS CRITICAL: top half (0-50% canvas height) is one complete landscape illustration, bottom half (50-100%) is a second DIFFERENT landscape illustration. A clean hard horizontal cut at the exact center. No gutters, borders, margins, captions, bubbles, text, numbers, logos or watermarks. No objects cross the center boundary.\nStyle: polished Korean narrative game illustration, expressive detailed anime painting, consistent short tousled black hair, navy jacket over pale shirt, slim adult build, warm amber light and cool teal shadows, detailed believable settings.\nTOP PANEL: Overhead oblique still life at a late-night work table: an open cream notebook, blank small colored index cards, two simple unlabeled line-chart printouts showing one rise and one fall, pen and tea. The protagonist's single writing hand moves a pen toward a clean page, his dark-haired head partly visible at the side. Show thoughtful review of wins and mistakes, no readable letters or numbers anywhere.\nBOTTOM PANEL: A new camera angle at window height: protagonist sits turned sideways with notebook in his lap and pen raised thoughtfully near his chin, looking at a corkboard of abstract colored notes. A reflective slightly serious expression, shoulders relaxed. City dusk outside, amber desk light. The notebook/pen and face stay above the bottom 35 percent bubble zone.\nComposition: each half is independently framed. Keep each half's essential faces/hands/action around its horizontal center and middle height. Top half's highest 18% may be covered by game caption, bottom half's lowest 35% may be covered by speech bubble. Keep meaningful action above that bubble area. Anatomically natural hands, clean silhouettes, no extra fingers. This is illustration art only, no game UI.",
+      "targeted_edit": "Use case: precise-object-edit. Remove ONLY all tiny text, digits, labels, and handwriting from this two-panel illustration. In the upper panel, leave line-chart shapes and blank unnumbered axes but erase tiny numbers beside them. In the lower panel, make the pinboard note cards blank colored paper, without scribbles or letters, preserving the existing photographs. Keep all protagonist anatomy, poses, expressions, notebook, hands, camera compositions, lighting, scenery, and exact center horizontal division unchanged. No added captions, borders, bubbles or UI. Portrait 1024x1536.",
+      "generated_output": "exec-3a877a31-7309-451c-ac93-da6ec185f962.png",
+      "format": {
+        "width": 1024,
+        "height": 1536,
+        "top_panel": [
+          0,
+          0,
+          1024,
+          768
+        ],
+        "bottom_panel": [
+          0,
+          768,
+          1024,
+          768
+        ]
+      },
+      "inspection": "Generated result and copied PNG visually inspected. Distinct independently staged panels, consistent protagonist, no captions/bubbles/UI, clean horizontal center boundary."
+    },
+    {
+      "file": "unity/Assets/Resources/StoryArt/Comic/01-first-step-p03.png",
+      "provider": "OpenAI built-in image_gen",
+      "reference": "unity/Assets/Resources/StoryArt/Comic/00-beginning-p02.png",
+      "reference_role": "Character identity, painting style and two-panel atlas layout; new scene compositions.",
+      "prompt": "Use case: illustration-story.\nAsset: a two-panel comic art atlas for the Korean investment game MoneyTown, portrait 1024x1536.\nRe-stage the young adult protagonist from the reference into TWO NEW SEPARATE ILLUSTRATIONS. The reference is for character identity and painterly anime visual style only. Do not reproduce the reference composition.\nLAYOUT IS CRITICAL: top half (0-50% canvas height) is one complete landscape illustration, bottom half (50-100%) is a second DIFFERENT landscape illustration. A clean hard horizontal cut at the exact center. No gutters, borders, margins, captions, bubbles, text, numbers, logos or watermarks. No objects cross the center boundary.\nStyle: polished Korean narrative game illustration, expressive detailed anime painting, consistent short tousled black hair, navy jacket over pale shirt, slim adult build, warm amber light and cool teal shadows, detailed believable settings.\nTOP PANEL: Wide rooftop establishing scene at dusk, protagonist at center leaning both forearms on a low safe parapet, viewed mostly from behind; the dense Korean neighborhood below bustles with small shops, buses and warm windows. Layered blue skyline, orange afterglow. He sees opportunity in the ordinary city, no signs or writing.\nBOTTOM PANEL: Different camera at front three-quarter waist-up height on the same rooftop: protagonist looks beyond the camera toward the city, quiet confident smile and attentive eyes, light wind lifts a few black hair strands and navy jacket collar. Rooftop metal stair door and warm sky behind him; clear new composition, not a crop of the top view.\nComposition: each half is independently framed. Keep each half's essential faces/hands/action around its horizontal center and middle height. Top half's highest 18% may be covered by game caption, bottom half's lowest 35% may be covered by speech bubble. Keep meaningful action above that bubble area. Anatomically natural hands, clean silhouettes, no extra fingers. This is illustration art only, no game UI.",
+      "targeted_edit": null,
+      "generated_output": "exec-ee933364-4dd6-4302-a566-96f07f96a577.png",
+      "format": {
+        "width": 1024,
+        "height": 1536,
+        "top_panel": [
+          0,
+          0,
+          1024,
+          768
+        ],
+        "bottom_panel": [
+          0,
+          768,
+          1024,
+          768
+        ]
+      },
+      "inspection": "Generated result and copied PNG visually inspected. Distinct independently staged panels, consistent protagonist, no captions/bubbles/UI, clean horizontal center boundary."
+    },
+    {
+      "file": "unity/Assets/Resources/StoryArt/Comic/02-own-desk-p01.png",
+      "provider": "OpenAI built-in image_gen",
+      "reference": "unity/Assets/Resources/StoryArt/Comic/00-beginning-p02.png",
+      "reference_role": "Character identity, painting style and two-panel atlas layout; new scene compositions.",
+      "prompt": "Use case: illustration-story.\nAsset: a two-panel comic art atlas for the Korean investment game MoneyTown, portrait 1024x1536.\nRe-stage the young adult protagonist from the reference into TWO NEW SEPARATE ILLUSTRATIONS. The reference is for character identity and painterly anime visual style only. Do not reproduce the reference composition.\nLAYOUT IS CRITICAL: top half (0-50% canvas height) is one complete landscape illustration, bottom half (50-100%) is a second DIFFERENT landscape illustration. A clean hard horizontal cut at the exact center. No gutters, borders, margins, captions, bubbles, text, numbers, logos or watermarks. No objects cross the center boundary.\nStyle: polished Korean narrative game illustration, expressive detailed anime painting, consistent short tousled black hair, navy jacket over pale shirt, slim adult build, warm amber light and cool teal shadows, detailed believable settings.\nTOP PANEL: At a bright stationery shop counter, the protagonist selects a fresh thick cream notebook from neat stacks, holding it open with careful hands, pleased determined expression. Warm late-afternoon sunlight, wooden shelves with unlettered covers, a clear new public interior, no price tags or writing.\nBOTTOM PANEL: In his modest room later, overhead oblique medium scene of him clearing a cluttered desk into a tidy workspace: he slides a pile of blank papers into a simple cardboard tray, a new notebook rests centrally beside a closed laptop. Face seen in profile near upper center, purposeful movement. Different location and camera from top panel, no repeated scene.\nComposition: each half is independently framed. Keep each half's essential faces/hands/action around its horizontal center and middle height. Top half's highest 18% may be covered by game caption, bottom half's lowest 35% may be covered by speech bubble. Keep meaningful action above that bubble area. Anatomically natural hands, clean silhouettes, no extra fingers. This is illustration art only, no game UI.",
+      "targeted_edit": null,
+      "generated_output": "exec-7dd9c6ab-852d-4dd8-9011-ae101de802d7.png",
+      "format": {
+        "width": 1024,
+        "height": 1536,
+        "top_panel": [
+          0,
+          0,
+          1024,
+          768
+        ],
+        "bottom_panel": [
+          0,
+          768,
+          1024,
+          768
+        ]
+      },
+      "inspection": "Generated result and copied PNG visually inspected. Distinct independently staged panels, consistent protagonist, no captions/bubbles/UI, clean horizontal center boundary."
+    },
+    {
+      "file": "unity/Assets/Resources/StoryArt/Comic/02-own-desk-p02.png",
+      "provider": "OpenAI built-in image_gen",
+      "reference": "unity/Assets/Resources/StoryArt/Comic/00-beginning-p02.png",
+      "reference_role": "Character identity, painting style and two-panel atlas layout; new scene compositions.",
+      "prompt": "Use case: illustration-story.\nAsset: a two-panel comic art atlas for the Korean investment game MoneyTown, portrait 1024x1536.\nRe-stage the young adult protagonist from the reference into TWO NEW SEPARATE ILLUSTRATIONS. The reference is for character identity and painterly anime visual style only. Do not reproduce the reference composition.\nLAYOUT IS CRITICAL: top half (0-50% canvas height) is one complete landscape illustration, bottom half (50-100%) is a second DIFFERENT landscape illustration. A clean hard horizontal cut at the exact center. No gutters, borders, margins, captions, bubbles, text, numbers, logos or watermarks. No objects cross the center boundary.\nStyle: polished Korean narrative game illustration, expressive detailed anime painting, consistent short tousled black hair, navy jacket over pale shirt, slim adult build, warm amber light and cool teal shadows, detailed believable settings.\nTOP PANEL: Side-angle medium view of a small research wall and desk: protagonist stands connecting several blank newspaper clippings and colored note cards using a red thread, carefully comparing different clues. One clipping has a small picture of a trade fair and another a delivery truck; no visible letters, words or numbers. Warm lamp on the wall, cool evening shadows.\nBOTTOM PANEL: Close intimate front three-quarter scene: protagonist examines two different plain information folders on the desk, one expensive-looking dark envelope with gold seal, one ordinary cream sheet. He taps his temple with a pen, skeptical thoughtful half-smile, realizing he must judge information himself. Face and hands in upper-middle, no symbols or text, new framing distinct from above.\nComposition: each half is independently framed. Keep each half's essential faces/hands/action around its horizontal center and middle height. Top half's highest 18% may be covered by game caption, bottom half's lowest 35% may be covered by speech bubble. Keep meaningful action above that bubble area. Anatomically natural hands, clean silhouettes, no extra fingers. This is illustration art only, no game UI.",
+      "targeted_edit": "Use case: precise-object-edit. Carefully remove ONLY the tiny fake writing and labels from the TOP PANEL research board. Keep pinned photographs of trade fair, truck, harbor and city, red threads, colored note cards and pins, but all paper margins and cards must be completely blank with no letters or scribbles. Remove little lettering inside the trade fair photo as well. Keep both characters, hands, expressions, pen, envelopes, lighting, exact two-panel composition and clean center horizontal cut unchanged. Keep the bottom panel unchanged. No added text, UI, logos or bubbles. Portrait 1024x1536.",
+      "generated_output": "exec-52eac5bc-ef8d-4774-bcd0-6c5bf9555542.png",
+      "format": {
+        "width": 1024,
+        "height": 1536,
+        "top_panel": [
+          0,
+          0,
+          1024,
+          768
+        ],
+        "bottom_panel": [
+          0,
+          768,
+          1024,
+          768
+        ]
+      },
+      "inspection": "Generated result and copied PNG visually inspected. Distinct independently staged panels, consistent protagonist, no captions/bubbles/UI, clean horizontal center boundary."
+    },
+    {
+      "file": "unity/Assets/Resources/StoryArt/Comic/02-own-desk-p03.png",
+      "provider": "OpenAI built-in image_gen",
+      "reference": "unity/Assets/Resources/StoryArt/Comic/00-beginning-p02.png",
+      "reference_role": "Character identity, painting style and two-panel atlas layout; new scene compositions.",
+      "prompt": "Use case: illustration-story.\nAsset: a two-panel comic art atlas for the Korean investment game MoneyTown, portrait 1024x1536.\nRe-stage the young adult protagonist from the reference into TWO NEW SEPARATE ILLUSTRATIONS. The reference is for character identity and painterly anime visual style only. Do not reproduce the reference composition.\nLAYOUT IS CRITICAL: top half (0-50% canvas height) is one complete landscape illustration, bottom half (50-100%) is a second DIFFERENT landscape illustration. A clean hard horizontal cut at the exact center. No gutters, borders, margins, captions, bubbles, text, numbers, logos or watermarks. No objects cross the center boundary.\nStyle: polished Korean narrative game illustration, expressive detailed anime painting, consistent short tousled black hair, navy jacket over pale shirt, slim adult build, warm amber light and cool teal shadows, detailed believable settings.\nTOP PANEL: A clean little desk against the apartment wall now functions as his first private office: laptop, upright blank notebook, lamp, tiny green plant, neatly stacked research papers. Protagonist stands beside it, hands resting on hips and a proud modest smile; wide cozy room view in warm morning light. No employees, signage, words or brand marks.\nBOTTOM PANEL: A fresh low three-quarter camera from across the desk: he sits down in the newly organized office chair, rolls back his jacket sleeves with a calm ready-to-work expression. Face, sleeve gesture and notebook occupy upper middle. Soft square sunlight from the window, plant leaves foreground, a new angle and moment rather than a crop of top.\nComposition: each half is independently framed. Keep each half's essential faces/hands/action around its horizontal center and middle height. Top half's highest 18% may be covered by game caption, bottom half's lowest 35% may be covered by speech bubble. Keep meaningful action above that bubble area. Anatomically natural hands, clean silhouettes, no extra fingers. This is illustration art only, no game UI.",
+      "targeted_edit": "Use case: precise-object-edit. Remove only the rows of tiny printed writing from the paper stacks on the desk in both panels. Retain simple blue unlabeled bar charts and pie shapes on the paper, but no lines of fake writing, letters or numbers. Preserve all protagonist poses and hands, portrait face, clothes, workspace, room scenery, colors, lighting, notebook and laptop, exact two-panel layout and center horizontal cut. No added text, border, bubble or UI. Portrait 1024x1536.",
+      "generated_output": "exec-55319b51-d898-4fce-864e-e5de50dd57a5.png",
+      "format": {
+        "width": 1024,
+        "height": 1536,
+        "top_panel": [
+          0,
+          0,
+          1024,
+          768
+        ],
+        "bottom_panel": [
+          0,
+          768,
+          1024,
+          768
+        ]
+      },
+      "inspection": "Generated result and copied PNG visually inspected. Distinct independently staged panels, consistent protagonist, no captions/bubbles/UI, clean horizontal center boundary."
+    }
+  ]
+}

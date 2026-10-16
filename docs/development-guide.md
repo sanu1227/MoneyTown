@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.27.1-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
+빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.28.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.27.1-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.28.0-Setup-x64.exe
 ```
 
 ## Android APK
@@ -91,11 +91,13 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 
 장별 제목·해금 안내·세 페이지 대사·이미지 이름은 [`StoryChapters.cs`](../unity/Assets/Scripts/StoryChapters.cs)에 있습니다. 실제 해금 금액과 순차 확인 규칙은 [`Core/Story.cs`](../unity/Assets/Scripts/Core/Story.cs), 표시 우선순위·저장 재시도·다시 보기·움직임은 [`StoryScreen.cs`](../unity/Assets/Scripts/StoryScreen.cs)에서 관리합니다. 장 배열의 순서와 `Story.Thresholds`의 순서를 맞춥니다. 전체 구성은 [성장 이야기](story.md)를 참고하세요.
 
-이미지는 `unity/Assets/Resources/StoryArt/`의 PNG 6장과 `.meta`입니다. `ArtName`에는 확장자를 제외한 파일명을 넣으며 Unity가 `Resources.Load<Texture2D>`로 읽습니다. 한국어 문장은 이미지에 넣지 않고 UI 텍스트로 표시합니다. 원본·크기·해시·생성 프롬프트와 임포트 설정은 [일러스트 제작 기록](story-art.md)에 보관합니다.
+첫 멘트는 `unity/Assets/Resources/StoryArt/00-beginning.png`를 그대로 사용합니다. 이 폴더의 기존 PNG 6장과 `.meta`는 보존합니다. 만화는 `StoryArt/Comic/<ArtName>-pNN.png`의 전용 PNG 17장과 `.meta`를 사용합니다. `ArtName`은 기존 장 식별자이며 `NN`은 장 안의 페이지를 1부터 두 자리로 표시한 값입니다. 프롤로그에는 p02·p03, 이후 다섯 장에는 p01~p03이 필요합니다.
+
+각 만화 PNG는 1024×1536이며 위아래에 독립된 장면 두 개를 그립니다. Unity가 `Resources.Load<Texture2D>`로 읽고 `CropStoryPanel`에서 상하 반쪽을 각각 표시합니다. 가운데 경계의 최소 4px는 표시 범위에서 제외하고 화면 비율에 따라 추가로 잘리므로 주요 인물과 행동은 각 반쪽 안쪽에 배치합니다. 임포트의 `npotScale: 0`, 최대 크기 2048 설정으로 원본 비율과 크기를 유지합니다. 한국어 문장은 이미지에 넣지 않고 UI 텍스트로 표시합니다. 원본·크기·해시·생성 프롬프트와 임포트 설정은 [일러스트 제작 기록](story-art.md)에 보관합니다.
 
 [`Core/StoryChecks.cs`](../unity/Assets/Scripts/Core/StoryChecks.cs)는 해금 경계·총자산·자산 하락·확인 순서·이전 저장 호환성을 검사합니다. [`StoryVerificationScreen.cs`](../unity/Assets/Scripts/StoryVerificationScreen.cs)는 Unity Player에서 화면 우선순위·시세 차단·저장 실패 재시도·다시 보기·본문 배치·그림·동작 줄이기를 확인합니다. 위 코어·Verification 명령에 포함되며, 이미지 자체 확인과 실제 화면 캡처를 함께 점검합니다.
 
-0.27.1은 첫 문장만 전체 화면 중앙의 세 줄 자막으로 표시합니다. 문구 순서·금빛 강조·암전 해제, 연출 중 첫 클릭의 즉시 완성, 완성 후 클릭의 두 번째 페이지 이동을 확인합니다. 나머지 17페이지는 기존 아이보리 지면 안의 두 컷·캡션·말풍선을 유지합니다. 기존 장 일러스트를 두 구도로 잘라 쓰며 대사는 이미지와 분리합니다. 컷 등장 후 정지와 한 번 클릭의 다음 페이지 이동도 확인합니다.
+0.28.0은 첫 문장의 배경과 `BuildStoryOpening`·`UpdateStoryOpening`을 0.27.1 그대로 유지합니다. 문구 순서·금빛 강조·3.8초 연출·암전 해제, 연출 중 첫 클릭의 즉시 완성, 완성 후 클릭의 두 번째 페이지 이동을 확인합니다. 나머지 17페이지는 각각 고유한 페이지 텍스처를 읽어야 합니다. 위아래 컷이 서로 겹치지 않는 반쪽을 표시하는지, 경계선이 섞이거나 그림 비율이 왜곡되지 않는지 검사합니다. 전체 18페이지의 `41~58-story-scene-*` 캡처에서 대사에 맞는 장면과 가림·잘림도 확인합니다. 기존 아이보리 지면·캡션·말풍선, 컷 등장 후 정지와 한 번 클릭의 다음 페이지 이동은 유지합니다.
 
 공통으로 Unity 시작 로고가 끝난 뒤 연출 시작, 동작 줄이기의 즉시 완성, 앱 중단 시 연출 정지, 중앙 자막과 만화의 저장 실패 안내·건너뛰기·재감상을 점검합니다. 내레이션 부재와 기존 배경음악·효과음 유지도 확인합니다. 검증 수치와 실제 화면 결과는 해당 버전의 [개발 노트](development-log.md)에 기록합니다.
 

@@ -3,6 +3,20 @@
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
 <details open>
+<summary><strong>v0.28.0 장면별 새 일러스트 — 17페이지·34장면</strong></summary>
+
+첫 멘트는 기존 중앙 자막과 배경을 유지합니다. 이후에는 페이지와 상하 컷마다 다른 장면이 나옵니다. 시작 자금, 기사 분석, 도시의 일터, 동료의 의견을 대사에 맞춰 그렸습니다. [장면별 원본·프롬프트·해시](story-art.md)
+
+<img src="../assets/screenshots/v0.28.0/comic-start.png" width="480" alt="시작 자금을 세는 모습과 첫 공책을 펼치는 별도 장면" />
+<img src="../assets/screenshots/v0.28.0/comic-news.png" width="480" alt="신문을 읽고 기사 속 단서를 투자 아이디어와 연결하는 장면" />
+<img src="../assets/screenshots/v0.28.0/comic-city.png" width="480" alt="가게와 물류, 늦게 일하는 사무실에서 경제를 관찰하는 장면" />
+<img src="../assets/screenshots/v0.28.0/comic-meeting.png" width="480" alt="서로 다른 의견을 나누고 놓친 조건을 깨닫는 회의실 장면" />
+
+2026-10-16, 격리 Windows 검증용 Unity Player의 480×960 화면을 촬영했습니다. 원본은 `build/ui-verification-6e58baddf87548bca019fb87368b1643/`의 42·43·51·54번 PNG이며 공개 이미지와 각각 SHA-256이 같습니다. 전체 18페이지를 캡처해 확인했고 480×960·360×800에서 각각 UI 279개를 통과했습니다. 첫 화면의 32번 캡처는 v0.27.1 검사 원본과 바이트가 같습니다. 이미지 보정·UI 합성 없이 제공하며 Android 실기기 캡처는 아닙니다.
+
+</details>
+
+<details>
 <summary><strong>v0.27.1 첫 멘트 중앙 자막 복원 — 이후 카툰 유지</strong></summary>
 
 ‘이건 내가 / 세계 최고의 부자가 / 되는 이야기이다’가 중앙에 순서대로 나타나고 도시 배경을 드러냅니다. ‘문장 바로 보기’로 연출을 완성한 뒤 ‘이야기 시작’을 누르면 두 컷 만화로 이어집니다. 내레이션은 재생하지 않습니다. [스토리 구성과 조작](story.md)

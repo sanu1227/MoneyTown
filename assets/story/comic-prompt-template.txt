@@ -1,0 +1,7 @@
+Use case: illustration-story.
+Asset: a two-panel comic art atlas for the Korean investment game MoneyTown, portrait 1024x1536.
+Re-stage the young adult protagonist from the reference into TWO NEW SEPARATE ILLUSTRATIONS. The reference is for character identity and painterly anime visual style only. Do not reproduce the reference composition.
+LAYOUT IS CRITICAL: top half (0-50% canvas height) is one complete landscape illustration, bottom half (50-100%) is a second DIFFERENT landscape illustration. A clean hard horizontal cut at the exact center. No gutters, borders, margins, captions, bubbles, text, numbers, logos or watermarks. No objects cross the center boundary.
+Style: polished Korean narrative game illustration, expressive detailed anime painting, consistent short tousled black hair, navy jacket over pale shirt, slim adult build, warm amber light and cool teal shadows, detailed believable settings.
+SCENE_PAIR
+Composition: each half is independently framed. Keep each half's essential faces/hands/action around its horizontal center and middle height. Top half's highest 18% may be covered by game caption, bottom half's lowest 35% may be covered by speech bubble. Keep meaningful action above that bubble area. Anatomically natural hands, clean silhouettes, no extra fingers. This is illustration art only, no game UI.

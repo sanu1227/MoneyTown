@@ -226,13 +226,13 @@ namespace MoneyTown
                     "closing a replay also preserves all saved progress");
 
                 UiFixture(UiStoryState(10000000000, Story.Count), 3, stories: true);
-                var art = new HashSet<Texture>(); bool allPagesFit = true;
+                var art = new HashSet<Texture>(); var artNames = new HashSet<string>();
+                bool allPagesFit = true, uniquePageArt = true, separatePanels = true;
+                int comicPages = 0;
                 unchanged = SaveCodec.Encode(state);
                 for (int chapter = 0; chapter < Story.Count; chapter++) {
                     ShowStory(chapter, true);
                     var image = storyIllustration;
-                    allPagesFit &= image.texture != null && image.texture.width >= 768 && image.texture.height >= 768;
-                    art.Add(image.texture);
                     for (int page = 0; page < 3; page++) {
                         UpdateStoryAnimation(); yield return new WaitForEndOfFrame();
                         var lines = StoryChapters.All[chapter].Pages[page].Split('\n');
@@ -241,17 +241,34 @@ namespace MoneyTown
                         allPagesFit &= UiStoryFits() && storyPage == page && storyCaption.text == caption && storyBody.text == dialogue;
                         if (StoryOpeningActive)
                             allPagesFit &= !storySafe.gameObject.activeInHierarchy && storyOpeningLines.All(line => line.alpha == 1) &&
-                                storyOpeningIllustration.texture == image.texture && UiStoryCropFits(storyOpeningIllustration);
-                        else
+                                storyOpeningIllustration.texture == Resources.Load<Texture2D>("StoryArt/" + StoryChapters.All[chapter].ArtName) &&
+                                UiStoryCropFits(storyOpeningIllustration);
+                        else {
+                            comicPages++;
+                            string artName = StoryChapters.All[chapter].ArtName + "-p" + (page + 1).ToString("00");
+                            var pageArt = Resources.Load<Texture2D>("StoryArt/Comic/" + artName);
+                            uniquePageArt &= pageArt != null && pageArt.width == 1024 && pageArt.height == 1536 &&
+                                pageArt.name == artName && image.texture == pageArt && storyDetail.texture == pageArt;
+                            art.Add(pageArt); artNames.Add(artName);
+                            separatePanels &= UiStoryCropFits(image) && UiStoryCropFits(storyDetail) &&
+                                image.uvRect.yMin >= .5f + 4f / image.texture.height - .0001f &&
+                                storyDetail.uvRect.yMax <= .5f - 4f / image.texture.height + .0001f &&
+                                storyDetail.uvRect.yMax <= image.uvRect.yMin;
                             allPagesFit &= storyCutGroups.All(cut => cut.alpha == 1) && storyTextGroup.alpha == 1 &&
-                                storyDetail.texture == image.texture && storyDetail.uvRect != image.uvRect &&
                                 UiStoryCropFits(image) && UiStoryCropFits(storyDetail);
+                        }
+                        UiCapture((41 + chapter * 3 + page).ToString("00") + "-story-scene-" +
+                            StoryChapters.All[chapter].ArtName + "-p" + (page + 1).ToString("00"));
                         if (chapter == 4 && page == 1) UiCapture("37-story-comic-boardroom");
                         UiButton(StoryOpeningActive ? "StoryOpeningNext" : "StoryNext").onClick.Invoke();
                     }
                 }
-                UiCheck(allPagesFit && art.Count == Story.Count && unchanged.SequenceEqual(SaveCodec.Encode(state)),
-                    "all six illustrations, the original opening and seventeen comic pages fit safe-area replay with readable text and undistorted crops");
+                UiCheck(allPagesFit && unchanged.SequenceEqual(SaveCodec.Encode(state)),
+                    "the unchanged original opening and seventeen comic pages fit safe-area replay with readable text and undistorted crops");
+                UiCheck(uniquePageArt && comicPages == 17 && art.Count == 17 && artNames.Count == 17,
+                    "all seventeen comic pages load their own named 1024 by 1536 illustration without repeating another page texture");
+                UiCheck(separatePanels,
+                    "all thirty-four comic panels use disjoint image halves with a four-pixel center inset and no distortion or scene bleed");
 
                 var openingChecks = VerifyStoryOpeningUi();
                 while (openingChecks.MoveNext()) yield return openingChecks.Current;
