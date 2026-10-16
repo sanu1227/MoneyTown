@@ -2,7 +2,18 @@
 
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
-**2026-10-16 촬영.** 첫 문장 연출은 v0.25.1, 성장 스토리는 v0.25.0, 곡 직접 선택은 v0.24.0, 음악 랜덤 재생은 v0.23.0, 이전 음악 설정은 v0.22.0, 효과음 설정은 v0.21.0, 가격 조정 내역은 v0.20.1, 기본 화면은 v0.20.0입니다. 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+**2026-10-16 촬영.** 내레이션 설정은 v0.26.0, 첫 문장 연출은 v0.25.1, 성장 스토리는 v0.25.0, 곡 직접 선택은 v0.24.0, 음악 랜덤 재생은 v0.23.0, 이전 음악 설정은 v0.22.0, 효과음 설정은 v0.21.0, 가격 조정 내역은 v0.20.1, 기본 화면은 v0.20.0입니다. 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+
+<details open>
+<summary><strong>v0.26.0 무료 내레이션 — 첫 문장에 목소리와 효과음</strong></summary>
+
+Windows 한국어 음성과 직접 합성한 울림·차임으로 도입부를 들려줍니다. 재생 중 배경음악은 잠시 작아지며, 효과음과 내레이션의 켜기·끄기·음량 설정을 함께 사용합니다. [완성 음원 듣기](../unity/Assets/Resources/Audio/story-opening.wav) · [제작 과정](opening-audio.md)
+
+<img src="../assets/screenshots/v0.26.0/narration-settings.png" width="480" alt="효과음과 내레이션 켜기 및 50퍼센트 음량 설정" />
+
+원본은 `build/ui-verification-85fae8586ca24d8f819bd6307c4bb61e/28-feedback-settings.png`입니다. 480×960·360×800에서 각각 UI 274개를 통과했고 공개 이미지 SHA-256은 원본과 같습니다. 실제 스피커 청취와 Android 실기기 검증은 별도로 남아 있습니다.
+
+</details>
 
 <details open>
 <summary><strong>v0.25.1 첫 문장 — 금빛 타이틀과 도시의 등장</strong></summary>

@@ -13,7 +13,8 @@ namespace MoneyTown
         Image storyOpeningShade,storyHeader;
         Text storyBrand,storyOpeningNotice;
         Button storyOpeningNext;
-        const float StoryOpeningDuration=3.8f;
+        const float StoryOpeningDuration=5.75f;
+        static readonly float[] StoryOpeningPhraseTimes={.2f,1.11f,2.880375f};
         Text storyBody,storyTitle,storyRequirement,storyPageLabel,storyNotice;
         Button storyNext,storySkip;
         int storyChapter,storyPage;
@@ -84,8 +85,8 @@ namespace MoneyTown
             if(!StoryOpeningActive)return;
             float time=effects.ReducedMotion?StoryOpeningDuration:storyPageTime;
             for(int i=0;i<storyOpeningLines.Length;i++)
-                storyOpeningLines[i].alpha=Mathf.SmoothStep(0,1,Mathf.Clamp01((time-.2f-i*.8f)/.8f));
-            storyOpeningShade.color=new Color(0,0,0,1-.5f*Mathf.SmoothStep(0,1,Mathf.Clamp01((time-2.4f)/1.4f)));
+                storyOpeningLines[i].alpha=Mathf.SmoothStep(0,1,Mathf.Clamp01((time-StoryOpeningPhraseTimes[i])/.7f));
+            storyOpeningShade.color=new Color(0,0,0,1-.5f*Mathf.SmoothStep(0,1,Mathf.Clamp01((time-3f)/(StoryOpeningDuration-3f))));
             storyOpeningNext.GetComponentInChildren<Text>().text=time<StoryOpeningDuration?"문장 바로 보기":"이야기 시작";
         }
         void PositionStoryWindow()
@@ -127,6 +128,7 @@ namespace MoneyTown
             bool opening=StoryOpeningActive;
             storyDialogue.gameObject.SetActive(!opening);storyOpening.gameObject.SetActive(opening);storyOpeningShade.gameObject.SetActive(opening);
             storyBrand.gameObject.SetActive(!opening);storyHeader.color=opening?Color.clear:new Color(.04f,.08f,.13f,.88f);
+            if(opening)BeginOpeningAudio();else StopOpeningAudio();
             UpdateStoryOpening();
             Canvas.ForceUpdateCanvases();UpdateStoryAnimation();
         }
@@ -148,6 +150,7 @@ namespace MoneyTown
         }
         void CloseStoryScreen()
         {
+            StopOpeningAudio();
             if(storyOverlay==null)return;
             storyOverlay.gameObject.SetActive(false);storyArt.localScale=Vector3.one;storyArt.anchoredPosition=Vector2.zero;
             storyOpening.gameObject.SetActive(false);storyOpeningShade.gameObject.SetActive(false);
@@ -160,6 +163,7 @@ namespace MoneyTown
             if(effects.ReducedMotion){storyArt.localScale=Vector3.one;storyArt.anchoredPosition=Vector2.zero;storyTextGroup.alpha=1;
                 if(StoryOpeningActive)storyPageTime=StoryOpeningDuration;UpdateStoryOpening();return;}
             if(appPaused||!appFocused&&!GameRuntime.Verifying)return;
+            if(StoryOpeningActive&&!UnityEngine.Rendering.SplashScreen.isFinished)return;
             float elapsed=Mathf.Min(Time.unscaledDeltaTime,.1f);
             storyMotionTime+=elapsed;storyPageTime+=elapsed;
             storyArt.localScale=Vector3.one*(1.02f+.025f*(.5f-.5f*Mathf.Cos(storyMotionTime*.2f)));

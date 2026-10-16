@@ -1,0 +1,90 @@
+{
+  "text": "이건 내가 세계 최고의 부자가 되는 이야기이다",
+  "ssml": "<speak version=\"1.0\" xmlns=\"http://www.w3.org/2001/10/synthesis\" xml:lang=\"ko-KR\"><mark name=\"line-1\"/>이건 내가<break time=\"180ms\"/><mark name=\"line-2\"/>세계 최고의 부자가<break time=\"140ms\"/><mark name=\"line-3\"/>되는 이야기이다</speak>",
+  "voice": {
+    "VoiceName": "Microsoft Heami Desktop",
+    "Culture": "ko-KR",
+    "Gender": "Female",
+    "Age": "Adult",
+    "Rate": -1,
+    "Bookmarks": [
+      {
+        "Name": "line-1",
+        "Seconds": 0
+      },
+      {
+        "Name": "line-2",
+        "Seconds": 0.9099999999999999
+      },
+      {
+        "Name": "line-3",
+        "Seconds": 2.6803749999999997
+      }
+    ]
+  },
+  "source": {
+    "file": "assets/audio/opening-narration-source.wav",
+    "sha256": "da67d27d960bc7d33f2885f1d59fceb03235bee0d8f2a200cf4a5dbac305832f",
+    "sample_rate": 16000,
+    "channels": 1,
+    "sample_width_bits": 16,
+    "frames": 78902,
+    "duration_seconds": 4.931375
+  },
+  "mix": {
+    "file": "unity/Assets/Resources/Audio/story-opening.wav",
+    "sha256": "8003ed288d794df07475f5a2399d3a0f5908721056ab52b5ab15388d2deb3960",
+    "frames": 252754,
+    "sample_rate": 44100,
+    "channels": 1,
+    "sample_width_bits": 16,
+    "duration_seconds": 5.731383,
+    "peak": 0.690605,
+    "rms": 0.115603,
+    "voice_gain": 1.413091962,
+    "lead_seconds": 0.2,
+    "tail_seconds": 0.6,
+    "noise_seed": 20261016,
+    "text_cues": [
+      {
+        "text": "이건 내가",
+        "start_seconds": 0.2
+      },
+      {
+        "text": "세계 최고의 부자가",
+        "start_seconds": 1.11
+      },
+      {
+        "text": "되는 이야기이다",
+        "start_seconds": 2.880375
+      }
+    ],
+    "effects": [
+      {
+        "name": "soft-low-resonance",
+        "start_seconds": 1.11,
+        "duration_seconds": 1.35
+      },
+      {
+        "name": "gold-chime-1",
+        "start_seconds": 1.17,
+        "duration_seconds": 1.15
+      },
+      {
+        "name": "gold-chime-2",
+        "start_seconds": 1.28,
+        "duration_seconds": 1.15
+      },
+      {
+        "name": "gold-chime-3",
+        "start_seconds": 1.39,
+        "duration_seconds": 1.15
+      },
+      {
+        "name": "city-reveal-swell",
+        "start_seconds": 3.000375,
+        "duration_seconds": 1.65
+      }
+    ]
+  }
+}

@@ -217,6 +217,8 @@ namespace MoneyTown
 
                 var openingChecks = VerifyStoryOpeningUi();
                 while (openingChecks.MoveNext()) yield return openingChecks.Current;
+                var audioChecks = VerifyStoryAudioUi();
+                while (audioChecks.MoveNext()) yield return audioChecks.Current;
 
                 GameRuntime.SetInt(TutorialModeKey, 0); GameRuntime.DeleteKey(TutorialStepKey);
                 UiFixture(Market.Create(), stories: true); RestoreTutorial(); TryShowStory();
@@ -325,6 +327,100 @@ namespace MoneyTown
                 saved.SequenceEqual(File.ReadAllBytes(savePath)),
                 "replay restarts the opening presentation and returns to help with every saved field unchanged");
             effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
+        }
+        IEnumerator VerifyStoryAudioUi()
+        {
+            bool sound = effects.SoundEnabled, reduced = effects.ReducedMotion, musicEnabled = music.MusicEnabled;
+            int soundVolume = effects.VolumePercent, musicVolume = music.VolumePercent;
+            bool paused = appPaused, focused = appFocused;
+            string[] keys = { SoundKey, VolumeKey, ReducedMotionKey, MusicKey, MusicVolumeKey };
+            bool[] existed = keys.Select(GameRuntime.HasKey).ToArray();
+            int[] preferences = keys.Select(key => GameRuntime.GetInt(key)).ToArray();
+            try {
+                appPaused = false; appFocused = true;
+                effects.Configure(true, 50, false); music.Configure(true, 25); music.NextTrack(); UpdateFeedbackActivity();
+                UiFixture(Market.Create(), stories: true);
+                yield return new WaitForSecondsRealtime(.65f);
+                var voice = storyOpeningAudio;
+                var clip = Resources.Load<AudioClip>("Audio/story-opening");
+                UiCheck(clip != null && clip.loadState == AudioDataLoadState.Loaded && clip.samples > 0 &&
+                    voice != null && voice.clip == clip && voice != effects.OutputSource && voice != music.OutputSource &&
+                    !voice.loop && !voice.playOnAwake && voice.spatialBlend == 0 && voice.isPlaying && voice.timeSamples > 0 &&
+                    Math.Abs(voice.volume - .5f) < .001f && Math.Abs(music.DuckFactor - .25f) < .001f &&
+                    music.VolumePercent == 25 && Math.Abs(music.OutputSource.volume - .0625f) < .001f,
+                    "opening narration plays through its own source at the effects volume while music is ducked without changing its setting");
+
+                OnApplicationPause(true); int stopped = voice.timeSamples;
+                yield return new WaitForSecondsRealtime(.12f);
+                bool held = !voice.isPlaying && storyAudioPaused && Math.Abs(voice.timeSamples - stopped) <= 2048;
+                OnApplicationPause(false); appFocused = true;
+                yield return new WaitForSecondsRealtime(.2f);
+                UiCheck(held && voice.isPlaying && !storyAudioPaused && voice.timeSamples > stopped &&
+                    voice.timeSamples < stopped + clip.frequency,
+                    "opening narration pauses in the background and resumes from the same spoken position");
+
+                storyPageTime = 0; UpdateStoryOpening(); int before = voice.timeSamples;
+                UiButton("StoryOpeningNext").onClick.Invoke();
+                yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(StoryOpeningActive && storyPage == 0 && voice.isPlaying && voice.clip == clip &&
+                    voice.timeSamples > before && voice.timeSamples < before + clip.frequency,
+                    "revealing the whole opening sentence leaves the narration playing continuously without restarting");
+                UiButton("StoryOpeningNext").onClick.Invoke();
+                yield return new WaitForSecondsRealtime(.4f);
+                UiCheck(storyPage == 1 && !StoryOpeningActive && !voice.isPlaying && !storyAudioRequested &&
+                    Math.Abs(music.DuckFactor - 1) < .001f && music.VolumePercent == 25 &&
+                    Math.Abs(music.OutputSource.volume - .25f) < .001f,
+                    "advancing past the opening stops its narration and smoothly restores the original music volume");
+
+                effects.Configure(true, 50, true); UiFixture(Market.Create(), stories: true);
+                yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(StoryOpeningActive && storyOpeningLines.All(line => line.alpha == 1) &&
+                    storyArt.localScale == Vector3.one && voice.isPlaying && voice.timeSamples > 0,
+                    "reduced motion keeps the opening still while its narration remains audible");
+
+                bool silent = true;
+                for (int mode = 0; mode < 2; mode++) {
+                    effects.Configure(mode != 0, mode == 0 ? 50 : 0, true);
+                    UiFixture(Market.Create(), stories: true);
+                    yield return new WaitForSecondsRealtime(.3f);
+                    silent &= !voice.isPlaying && !storyAudioStarted && storyAudioRequested &&
+                        Math.Abs(music.DuckFactor - 1) < .001f;
+                }
+                effects.Configure(true, 75, true); UpdateFeedbackActivity();
+                yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(silent && voice.isPlaying && voice.timeSamples > 0 && voice.timeSamples < clip.frequency &&
+                    Math.Abs(voice.volume - .75f) < .001f,
+                    "effects mute and zero volume suppress narration and ducking until sound is restored at the selected volume");
+
+                voice.timeSamples = Math.Max(0, clip.samples - clip.frequency / 10); UpdateOpeningAudio();
+                yield return new WaitForSecondsRealtime(.3f);
+                bool ended = !voice.isPlaying && storyAudioStarted && !storyAudioPaused;
+                OnApplicationPause(true); yield return new WaitForSecondsRealtime(.05f);
+                OnApplicationPause(false); appFocused = true;
+                yield return new WaitForSecondsRealtime(.6f);
+                UiCheck(ended && StoryOpeningActive && !voice.isPlaying && storyAudioStarted && !storyAudioPaused &&
+                    Math.Abs(music.DuckFactor - 1) < .001f && Math.Abs(music.OutputSource.volume - .25f) < .001f,
+                    "naturally finished narration never restarts after app suspension and releases music ducking");
+
+                UiFixture(UiStoryState(1000000, 1), 3, stories: true);
+                byte[] unchanged = SaveCodec.Encode(state);
+                string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
+                byte[] saved = File.ReadAllBytes(savePath);
+                UiButton("StoryReplay-0").onClick.Invoke();
+                yield return new WaitForSecondsRealtime(.12f);
+                bool restarted = StoryOpeningActive && storyReplay && voice.isPlaying &&
+                    voice.timeSamples > 0 && voice.timeSamples < clip.frequency;
+                UiButton("StorySkip").onClick.Invoke();
+                yield return new WaitForSecondsRealtime(.3f);
+                UiCheck(restarted && !StoryActive && tab == 3 && !voice.isPlaying && !storyAudioRequested &&
+                    Math.Abs(music.DuckFactor - 1) < .001f && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
+                    saved.SequenceEqual(File.ReadAllBytes(savePath)) &&
+                    existed.SequenceEqual(keys.Select(GameRuntime.HasKey)) && preferences.SequenceEqual(keys.Select(key => GameRuntime.GetInt(key))),
+                    "replay restarts narration once and closing it stops audio while preserving game progress and all sound preferences");
+            } finally {
+                CloseStoryScreen(); effects.Configure(sound, soundVolume, reduced); music.Configure(musicEnabled, musicVolume);
+                appPaused = paused; appFocused = focused; UpdateFeedbackActivity();
+            }
         }
 #endif
     }

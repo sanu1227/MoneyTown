@@ -33,6 +33,7 @@ v0.19.0의 가격 모델 4는 사건·성장·수급의 합과 기존 개장 최
 | 원곡 배경음악 생성·루프 검사 | [`generate-bgm.py`](../scripts/generate-bgm.py), [음악 자료](music-assets.md) |
 | 이야기 해금·확인 순서 | [`Core/Story.cs`](../unity/Assets/Scripts/Core/Story.cs), [`Core/Progress.cs`](../unity/Assets/Scripts/Core/Progress.cs) |
 | 이야기 화면·대사·일러스트 연결 | [`StoryScreen.cs`](../unity/Assets/Scripts/StoryScreen.cs), [`StoryChapters.cs`](../unity/Assets/Scripts/StoryChapters.cs), [일러스트 자료](story-art.md) |
+| 첫 문장 내레이션·효과음·음악 낮추기 | [`StoryAudio.cs`](../unity/Assets/Scripts/StoryAudio.cs), [`GameMusic.cs`](../unity/Assets/Scripts/GameMusic.cs) |
 | 차트·아이콘·종이 표현 | [`PriceChart.cs`](../unity/Assets/Scripts/PriceChart.cs), [`MarketIcon.cs`](../unity/Assets/Scripts/MarketIcon.cs), [`PaperSheet.cs`](../unity/Assets/Scripts/PaperSheet.cs) |
 | 거래·가격·날짜 규칙 | [`Core/Market.cs`](../unity/Assets/Scripts/Core/Market.cs), [`Core/TradingDay.cs`](../unity/Assets/Scripts/Core/TradingDay.cs) |
 | 주문 가능 여부와 최대 매수 | [`Core/OrderGuidance.cs`](../unity/Assets/Scripts/Core/OrderGuidance.cs) |
@@ -56,7 +57,11 @@ v0.24.0의 `GameMusic`은 `Resources/Audio`의 원곡 4곡을 PCM 스트리밍�
 
 `StoryScreen`은 새 게임의 도입부를 튜토리얼보다 먼저 표시합니다. 성장 장면은 미확인 결산·물류센터 작업·튜토리얼이 끝난 뒤 표시하며 설정·도움말에서는 기다립니다. 이야기 중 일반 화면을 숨기고 거래·날짜·시세 갱신을 막습니다. 그림의 확대·이동과 본문 페이드는 앱 비활성화 때 멈추고, 동작 줄이기에서는 정지 그림과 완성된 본문을 사용합니다.
 
-v0.25.1은 `StoryScreen`의 프롤로그 첫 페이지(`chapter 0`, `page 0`)에만 별도 연출을 적용합니다. 중앙 세 줄은 0.2·1.0·1.8초부터 각각 0.8초 동안 나타나고, 가운데 줄은 금빛 48pt 굵은 글씨입니다. 2.4~3.8초에는 검은 덮개의 알파를 1에서 0.5로 낮춰 도시를 드러냅니다. 연출 중 진행 버튼은 장면을 즉시 완성하고, 완성 뒤에는 기존 다음 페이지로 이동합니다. 재감상에도 적용하며 앱 중단 시 시간을 멈추고 동작 줄이기에서는 완성 장면을 바로 표시합니다. 새 저장 필드나 경제 상태는 추가하지 않습니다.
+v0.26.0의 `StoryAudio`는 `Resources/Audio/story-opening.wav`의 내레이션과 합성 효과음을 별도 2D `AudioSource`로 재생합니다. 프롤로그 첫 페이지에서 Unity 시작 화면이 끝난 뒤 한 번 시작하며, 다음 페이지·장 닫기·컴포넌트 비활성화 때 중지합니다. 재감상은 처음부터 재생하고 앱 중단·복귀는 `Pause`·`UnPause`로 위치를 보존합니다. 효과음 켜기/끄기와 음량 설정을 공유하며 동작 줄이기는 음성에 영향을 주지 않습니다.
+
+음성이 실제 재생되는 동안 `GameMusic.DuckFactor`를 0.25로 낮추고 종료·중단 시 1로 복원합니다. 사용자가 저장한 음악 음량은 바꾸지 않습니다. ‘문장 바로 보기’는 시각 연출만 완성하며 음성 위치를 바꾸지 않고, 다음 대사로 이동하면 중지합니다. 게임 저장과 자산 규칙에는 변화가 없습니다. [음원 제작 기록](opening-audio.md)
+
+v0.25.1에서 도입한 첫 문장 연출은 `StoryScreen`의 프롤로그 첫 페이지(`chapter 0`, `page 0`)에 적용했습니다. 당시 중앙 세 줄은 0.2·1.0·1.8초부터 각각 0.8초 동안 나타나고, 가운데 줄은 금빛 48pt 굵은 글씨였습니다. 2.4~3.8초에는 검은 덮개의 알파를 1에서 0.5로 낮춰 도시를 드러냈습니다. 연출 중 진행 버튼은 장면을 즉시 완성하고, 완성 뒤에는 기존 다음 페이지로 이동합니다. 재감상에도 적용하며 앱 중단 시 시간을 멈추고 동작 줄이기에서는 완성 장면을 바로 표시합니다. 새 저장 필드나 경제 상태는 추가하지 않습니다.
 
 마지막 페이지와 건너뛰기는 현재 자산의 해금 상태를 다시 계산하고 확인 진도를 저장한 뒤 창을 닫습니다. 저장 실패 시 현재 장과 페이지를 유지해 재시도할 수 있습니다. 초기 해금 저장이 실패했더라도 확인 저장의 재시도에서 해금을 함께 반영합니다. 페이지 단위로 저장하지 않으므로 중간 종료 후에는 해당 장 처음부터 이어집니다. 도움말의 다시 보기는 저장을 바꾸지 않습니다. [장 구성과 대사 관리](story.md)
 

@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.25.1-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
+빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.26.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.25.1-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.26.0-Setup-x64.exe
 ```
 
 ## Android APK
@@ -94,6 +94,8 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 이미지는 `unity/Assets/Resources/StoryArt/`의 PNG 6장과 `.meta`입니다. `ArtName`에는 확장자를 제외한 파일명을 넣으며 Unity가 `Resources.Load<Texture2D>`로 읽습니다. 한국어 문장은 이미지에 넣지 않고 UI 텍스트로 표시합니다. 원본·크기·해시·생성 프롬프트와 임포트 설정은 [일러스트 제작 기록](story-art.md)에 보관합니다.
 
 [`Core/StoryChecks.cs`](../unity/Assets/Scripts/Core/StoryChecks.cs)는 해금 경계·총자산·자산 하락·확인 순서·이전 저장 호환성을 검사합니다. [`StoryVerificationScreen.cs`](../unity/Assets/Scripts/StoryVerificationScreen.cs)는 Unity Player에서 화면 우선순위·시세 차단·저장 실패 재시도·다시 보기·본문 배치·그림·동작 줄이기를 확인합니다. 위 코어·Verification 명령에 포함되며, 이미지 자체 확인과 실제 화면 캡처를 함께 점검합니다.
+
+도입부 음성은 [`StoryAudio.cs`](../unity/Assets/Scripts/StoryAudio.cs)가 `Audio/story-opening.wav`를 재생합니다. [무료 음원 제작 기록](opening-audio.md)에 원문·음성·북마크 시점·생성기를 보관합니다. `python scripts/generate-opening-audio.py --check`는 TTS를 호출하지 않고 저장된 원본에서 음성을 포함한 믹스를 정확히 재합성해 검사합니다. 목소리를 다시 만들면 `StoryScreen`의 문구 시점과 연출 길이도 새 음원에 맞춰 확인합니다.
 
 ## 배경음악 수정
 
