@@ -8,6 +8,13 @@ namespace MoneyTown
     {
         RectTransform storyOverlay,storySafe,storyArt,storyDialogue;
         RawImage storyIllustration,storyDetail;
+        RectTransform storyOpening,storyOpeningSafe;
+        RawImage storyOpeningIllustration;
+        Image storyOpeningShade;
+        readonly CanvasGroup[] storyOpeningLines=new CanvasGroup[3];
+        Text storyOpeningNotice;
+        Button storyOpeningNext,storyOpeningSkip;
+        const float StoryOpeningDuration=3.8f;
         CanvasGroup storyTextGroup;
         readonly CanvasGroup[] storyCutGroups=new CanvasGroup[2];
         Text storyBody,storyCaption,storyTitle,storyRequirement,storyPageLabel,storyNotice,storySoundWord;
@@ -88,7 +95,47 @@ namespace MoneyTown
             footer.offsetMin=new Vector2(28,28);footer.offsetMax=new Vector2(-28,116);
             storySkip=BuildStoryButton(footer,"StorySkip","건너뛰기",SkipStory,0,.35f,StoryPaper);
             storyNext=BuildStoryButton(footer,"StoryNext","다음",AdvanceStory,.38f,1,Hex("F3C853"));
+            BuildStoryOpening();
             storyOverlay.gameObject.SetActive(false);
+        }
+        void BuildStoryOpening()
+        {
+            storyOpening=Rect("StoryOpening",storyOverlay);Stretch(storyOpening);Surface(storyOpening,Color.black,false);
+            var art=Rect("StoryOpeningIllustration",storyOpening);Stretch(art);
+            storyOpeningIllustration=art.gameObject.AddComponent<RawImage>();storyOpeningIllustration.raycastTarget=false;
+            var shade=Rect("StoryOpeningShade",storyOpening);Stretch(shade);
+            storyOpeningShade=Surface(shade,Color.black,false);storyOpeningShade.raycastTarget=false;
+            storyOpeningSafe=Rect("StoryOpeningSafeArea",storyOpening);Stretch(storyOpeningSafe);
+            var lines=Column(storyOpeningSafe,0,16);lines.anchorMin=new Vector2(0,.5f);lines.anchorMax=new Vector2(1,.5f);
+            lines.offsetMin=new Vector2(36,-90);lines.offsetMax=new Vector2(-36,170);
+            string[] words={"이건 내가","세계 최고의 부자가","되는 이야기이다"};
+            for(int i=0;i<words.Length;i++) {
+                var line=Label(lines,words[i],i==1?48:30,i==1?Gold:Color.white,i==1?80:58,TextAnchor.MiddleCenter);
+                line.name="StoryOpeningLine-"+i;if(i==1)line.fontStyle=FontStyle.Bold;
+                storyOpeningLines[i]=line.gameObject.AddComponent<CanvasGroup>();
+            }
+            storyOpeningSkip=Button(storyOpeningSafe,"건너뛰기",SkipStory,Raised,0);storyOpeningSkip.name="StoryOpeningSkip";
+            var skip=(RectTransform)storyOpeningSkip.transform;skip.anchorMin=new Vector2(.57f,1);skip.anchorMax=Vector2.one;
+            skip.offsetMin=new Vector2(0,-110);skip.offsetMax=new Vector2(-28,-28);
+            storyOpeningNotice=Label(storyOpeningSafe,"",19,Red,0,TextAnchor.MiddleCenter);storyOpeningNotice.name="StoryOpeningNotice";
+            var notice=storyOpeningNotice.rectTransform;notice.anchorMin=Vector2.zero;notice.anchorMax=new Vector2(1,0);
+            notice.offsetMin=new Vector2(28,126);notice.offsetMax=new Vector2(-28,196);
+            storyOpeningNext=Button(storyOpeningSafe,"문장 바로 보기",AdvanceStory,Hex("266957"),0);storyOpeningNext.name="StoryOpeningNext";
+            var button=(RectTransform)storyOpeningNext.transform;button.anchorMin=new Vector2(.18f,0);button.anchorMax=new Vector2(.82f,0);
+            button.offsetMin=new Vector2(0,28);button.offsetMax=new Vector2(0,110);
+            storyOpening.gameObject.SetActive(false);
+        }
+        void UpdateStoryOpening()
+        {
+            if(!StoryOpeningActive)return;
+            float time=effects.ReducedMotion?StoryOpeningDuration:storyPageTime;
+            for(int i=0;i<storyOpeningLines.Length;i++)
+                storyOpeningLines[i].alpha=Mathf.SmoothStep(0,1,Mathf.Clamp01((time-.2f-i*.8f)/.8f));
+            storyOpeningShade.color=new Color(0,0,0,1-.5f*Mathf.SmoothStep(0,1,Mathf.Clamp01((time-2.4f)/1.4f)));
+            storyOpeningNext.GetComponentInChildren<Text>().text=time<StoryOpeningDuration?"문장 바로 보기":"이야기 시작";
+            var art=storyOpeningIllustration.rectTransform;
+            art.localScale=Vector3.one*(effects.ReducedMotion?1:1.02f+.025f*(.5f-.5f*Mathf.Cos(storyMotionTime*.2f)));
+            art.anchoredPosition=effects.ReducedMotion?Vector2.zero:new Vector2(6*Mathf.Sin(storyMotionTime*.15f),0);
         }
         RectTransform BuildStoryCut(Transform parent,int index,Vector2 min,Vector2 max,Vector2 insetMin,Vector2 insetMax)
         {
@@ -114,9 +161,14 @@ namespace MoneyTown
             storySafe.anchorMin=new Vector2(Screen.safeArea.xMin/Screen.width,Screen.safeArea.yMin/Screen.height);
             storySafe.anchorMax=new Vector2(Screen.safeArea.xMax/Screen.width,Screen.safeArea.yMax/Screen.height);
             storySafe.offsetMin=storySafe.offsetMax=Vector2.zero;
+            if(storyOpeningSafe!=null) {
+                storyOpeningSafe.anchorMin=storySafe.anchorMin;storyOpeningSafe.anchorMax=storySafe.anchorMax;
+                storyOpeningSafe.offsetMin=storyOpeningSafe.offsetMax=Vector2.zero;
+            }
             Canvas.ForceUpdateCanvases();
             CropStoryIllustration(storyIllustration,1,new Vector2(.5f,.72f));
             CropStoryIllustration(storyDetail,.72f,new Vector2(.45f,StoryDetailFocus[storyChapter]));
+            CropStoryIllustration(storyOpeningIllustration,1,new Vector2(.5f,.5f));
         }
         static void CropStoryIllustration(RawImage image,float zoom,Vector2 focus)
         {
@@ -138,9 +190,10 @@ namespace MoneyTown
             if(StoryActive||blocked||warehouseWorking||state.SettlementPending||chapter<0||chapter>=state.StoryUnlocked)return;
             storyChapter=chapter;storyPage=0;storyReplay=replay;storyMotionTime=0;
             var entry=StoryChapters.All[chapter];
-            storyIllustration.texture=storyDetail.texture=Resources.Load<Texture2D>("StoryArt/"+entry.ArtName);
+            storyOpeningIllustration.texture=storyIllustration.texture=storyDetail.texture=Resources.Load<Texture2D>("StoryArt/"+entry.ArtName);
             storyTitle.text=entry.Title;storyRequirement.text=(replay?"다시 보는 이야기 · ":"")+entry.Requirement;
             storySkip.GetComponentInChildren<Text>().text=replay?"닫기":"건너뛰기";
+            storyOpeningSkip.GetComponentInChildren<Text>().text=replay?"닫기":"건너뛰기";
             storyNotice.text="";safeArea.gameObject.SetActive(false);storyOverlay.gameObject.SetActive(true);storyOverlay.SetAsLastSibling();
             marketWasRunning=false;scroll.StopMovement();PositionStoryWindow();ShowStoryPage();
         }
@@ -152,13 +205,15 @@ namespace MoneyTown
             storyPageLabel.text=(storyPage+1).ToString("00")+" / "+pages.Length.ToString("00");
             storySoundWord.text=storyPage==0?"두근":"";
             storyNext.GetComponentInChildren<Text>().text=storyPage<pages.Length-1?"다음":storyReplay?"다시 보기 마치기":"이야기 마치기";
-            storyPageTime=0;storyNotice.text="";
+            storyPageTime=0;storyNotice.text=storyOpeningNotice.text="";
+            storySafe.gameObject.SetActive(!StoryOpeningActive);storyOpening.gameObject.SetActive(StoryOpeningActive);
             ApplyStoryCutAnimation(effects.ReducedMotion ? .4f : 0);
-            Canvas.ForceUpdateCanvases();
+            UpdateStoryOpening();PositionStoryWindow();
         }
         void AdvanceStory()
         {
             if(!StoryActive)return;
+            if(StoryOpeningActive&&!effects.ReducedMotion&&storyPageTime<StoryOpeningDuration){storyPageTime=StoryOpeningDuration;UpdateStoryOpening();return;}
             if(storyPage<StoryChapters.All[storyChapter].Pages.Length-1){storyPage++;ShowStoryPage();}
             else FinishStory();
         }
@@ -167,7 +222,7 @@ namespace MoneyTown
         {
             if(!storyReplay) {
                 try {var changed=state.Copy();Story.Record(changed);changed=Story.Acknowledge(changed,storyChapter);store.Save(changed);state=changed;}
-                catch(Exception){storyNotice.text="이야기 진행을 저장하지 못했습니다.\n저장 공간을 확인한 뒤 다시 눌러 주세요.";effects.Play(GameCue.Error);return;}
+                catch(Exception){storyOpeningNotice.text=storyNotice.text="이야기 진행을 저장하지 못했습니다.\n저장 공간을 확인한 뒤 다시 눌러 주세요.";effects.Play(GameCue.Error);return;}
             }
             CloseStoryScreen();RenderTab();
         }
@@ -175,6 +230,7 @@ namespace MoneyTown
         {
             if(storyOverlay==null)return;
             storyOverlay.gameObject.SetActive(false);ApplyStoryCutAnimation(.4f);
+            storyOpening.gameObject.SetActive(false);
             storyMotionTime=storyPageTime=0;marketWasRunning=false;
             safeArea.gameObject.SetActive(!settlementOverlay.gameObject.activeSelf);
         }
@@ -189,11 +245,12 @@ namespace MoneyTown
         void UpdateStoryAnimation()
         {
             if(!StoryActive)return;
-            if(effects.ReducedMotion){ApplyStoryCutAnimation(.4f);return;}
+            if(effects.ReducedMotion){ApplyStoryCutAnimation(.4f);UpdateStoryOpening();return;}
             if(!UnityEngine.Rendering.SplashScreen.isFinished)return;
             if(appPaused||!appFocused&&!GameRuntime.Verifying)return;
             float elapsed=Mathf.Min(Time.unscaledDeltaTime,.1f);
-            storyMotionTime+=elapsed;storyPageTime+=elapsed;ApplyStoryCutAnimation(storyPageTime);
+            storyMotionTime+=elapsed;storyPageTime+=elapsed;
+            if(StoryOpeningActive)UpdateStoryOpening();else ApplyStoryCutAnimation(storyPageTime);
         }
         void DrawStoryLibrary(Transform parent)
         {

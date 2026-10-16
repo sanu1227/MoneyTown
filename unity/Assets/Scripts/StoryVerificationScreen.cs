@@ -13,12 +13,14 @@ namespace MoneyTown
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         bool UiStoryFits()
         {
-            Text[] labels = { storyTitle, storyRequirement, storyCaption, storyBody, storyPageLabel, storyNotice, storySoundWord };
+            Text[] labels = StoryOpeningActive
+                ? new[] { UiLabel("StoryOpeningLine-0"), UiLabel("StoryOpeningLine-1"), UiLabel("StoryOpeningLine-2"), storyOpeningNotice }
+                : new[] { storyTitle, storyRequirement, storyCaption, storyBody, storyPageLabel, storyNotice, storySoundWord };
             return labels.All(label => {
                 return UiStoryInside(label.rectTransform) && UiStoryWithinParent(label.rectTransform) &&
                     label.cachedTextGenerator.characterCountVisible >= label.text.Length;
-            }) && storyCutGroups.All(cut => UiStoryInside((RectTransform)cut.transform)) &&
-                new[] { "StoryNext", "StorySkip" }.All(name => {
+            }) && (StoryOpeningActive || storyCutGroups.All(cut => UiStoryInside((RectTransform)cut.transform))) &&
+                (StoryOpeningActive ? new[] { "StoryOpeningNext", "StoryOpeningSkip" } : new[] { "StoryNext", "StorySkip" }).All(name => {
                 var button = UiButton(name); var label = button.GetComponentInChildren<Text>();
                 var rect = (RectTransform)button.transform; var corners = new Vector3[4]; rect.GetWorldCorners(corners);
                 return UiStoryInside(rect) && corners[1].y - corners[0].y >= 43.5f &&
@@ -164,7 +166,7 @@ namespace MoneyTown
                 bool deferredUnlock = !restored && state.StoryUnlocked == 1 && state.StorySeen == 0 &&
                     unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
                     saved.SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin")));
-                store = realStore; tab = 0; RenderTab(); UiButton("StorySkip").onClick.Invoke();
+                store = realStore; tab = 0; RenderTab(); UiButton("StoryOpeningSkip").onClick.Invoke();
                 var recovered = store.Load();
                 UiCheck(deferredUnlock && StoryActive && storyChapter == 1 && state.StoryUnlocked == 3 &&
                     state.StorySeen == 1 && recovered.StoryUnlocked == 3 && recovered.StorySeen == 1 &&
@@ -218,7 +220,7 @@ namespace MoneyTown
                 UiCheck(!StoryActive && tab == 3 && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
                     saved.SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin"))),
                     "finishing a replay returns to help without saving or mutating story and economy progress");
-                UiButton("StoryReplay-0").onClick.Invoke(); UiButton("StorySkip").onClick.Invoke();
+                UiButton("StoryReplay-0").onClick.Invoke(); UiButton("StoryOpeningSkip").onClick.Invoke();
                 UiCheck(!StoryActive && tab == 3 && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
                     saved.SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin"))),
                     "closing a replay also preserves all saved progress");
@@ -236,17 +238,23 @@ namespace MoneyTown
                         var lines = StoryChapters.All[chapter].Pages[page].Split('\n');
                         string caption = lines.Length == 1 ? "아직, 작은 방에서." : lines[0];
                         string dialogue = lines.Length == 1 ? lines[0] : lines[1];
-                        allPagesFit &= UiStoryFits() && storyPage == page && storyCaption.text == caption && storyBody.text == dialogue &&
-                            storyCutGroups.All(cut => cut.alpha == 1) && storyTextGroup.alpha == 1 &&
-                            storyDetail.texture == image.texture && storyDetail.uvRect != image.uvRect &&
-                            UiStoryCropFits(image) && UiStoryCropFits(storyDetail);
+                        allPagesFit &= UiStoryFits() && storyPage == page && storyCaption.text == caption && storyBody.text == dialogue;
+                        if (StoryOpeningActive)
+                            allPagesFit &= !storySafe.gameObject.activeInHierarchy && storyOpeningLines.All(line => line.alpha == 1) &&
+                                storyOpeningIllustration.texture == image.texture && UiStoryCropFits(storyOpeningIllustration);
+                        else
+                            allPagesFit &= storyCutGroups.All(cut => cut.alpha == 1) && storyTextGroup.alpha == 1 &&
+                                storyDetail.texture == image.texture && storyDetail.uvRect != image.uvRect &&
+                                UiStoryCropFits(image) && UiStoryCropFits(storyDetail);
                         if (chapter == 4 && page == 1) UiCapture("37-story-comic-boardroom");
-                        UiButton("StoryNext").onClick.Invoke();
+                        UiButton(StoryOpeningActive ? "StoryOpeningNext" : "StoryNext").onClick.Invoke();
                     }
                 }
                 UiCheck(allPagesFit && art.Count == Story.Count && unchanged.SequenceEqual(SaveCodec.Encode(state)),
-                    "all six distinct illustrations and eighteen comic pages have readable captions, dialogue and two different undistorted crops in safe-area replay");
+                    "all six illustrations, the original opening and seventeen comic pages fit safe-area replay with readable text and undistorted crops");
 
+                var openingChecks = VerifyStoryOpeningUi();
+                while (openingChecks.MoveNext()) yield return openingChecks.Current;
                 var comicChecks = VerifyStoryComicUi();
                 while (comicChecks.MoveNext()) yield return comicChecks.Current;
                 var soundChecks = VerifyStoryWithoutNarrationUi();
@@ -256,7 +264,7 @@ namespace MoneyTown
                 UiFixture(Market.Create(), stories: true); RestoreTutorial(); TryShowStory();
                 UiCheck(StoryActive && storyChapter == 0 && !safeArea.gameObject.activeSelf,
                     "a genuine first-time player sees the introduction before the unstarted tutorial");
-                UiButton("StorySkip").onClick.Invoke();
+                UiButton("StoryOpeningSkip").onClick.Invoke();
                 UiCheck(!StoryActive && tutorial != null && tutorial.Step == 0 && state.StorySeen == 1 && state.Cash == 1000000,
                     "the first tutorial begins after the introduction with unchanged starting capital");
             } finally {
@@ -269,19 +277,117 @@ namespace MoneyTown
                 UiFixture(original, originalTab); marketClock.Reset(); marketWasRunning = false;
             }
         }
-        IEnumerator VerifyStoryComicUi()
+        IEnumerator VerifyStoryOpeningUi()
         {
             effects.Configure(effects.SoundEnabled, effects.VolumePercent, false);
             UiFixture(Market.Create(), stories: true);
+            storyPageTime = 0; UpdateStoryOpening();
+            byte[] unchanged = SaveCodec.Encode(state);
+            string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
+            byte[] saved = File.ReadAllBytes(savePath);
+            float initialShade = storyOpeningShade.color.a;
+            UiCheck(StoryOpeningActive && !storySafe.gameObject.activeInHierarchy && initialShade > .7f &&
+                storyOpening.gameObject.activeInHierarchy && storyOpeningLines.All(line => line.alpha == 0) &&
+                Enumerable.Range(0, 3).Select(index => UiLabel("StoryOpeningLine-" + index).text)
+                    .SequenceEqual(new[] { "이건 내가", "세계 최고의 부자가", "되는 이야기이다" }) &&
+                storyOpeningLines.All(line => line.GetComponent<Text>().alignment == TextAnchor.MiddleCenter) &&
+                UiLabel("StoryOpeningLine-1").fontSize == 48 && UiLabel("StoryOpeningLine-1").color == Gold,
+                "opening restores the exact three centered phrases over a dark full-screen illustration and hides the comic");
+
+            bool ordered = true, staggered = false;
+            for (int step = 0; step <= 20; step++) {
+                storyPageTime = StoryOpeningDuration * step / 20; UpdateStoryOpening();
+                ordered &= storyOpeningLines[0].alpha >= storyOpeningLines[1].alpha &&
+                    storyOpeningLines[1].alpha >= storyOpeningLines[2].alpha;
+                staggered |= storyOpeningLines[0].alpha > .9f && storyOpeningLines[2].alpha < .1f;
+            }
+            UiCheck(ordered && staggered && storyOpeningLines.All(line => line.alpha == 1) &&
+                storyOpeningShade.color.a < initialShade && storyPage == 0 &&
+                storyOpeningNext.GetComponentInChildren<Text>().text == "이야기 시작",
+                "opening reveals its original phrases in order and uncovers the city without automatically advancing");
+
+            storyPageTime = StoryOpeningDuration * .4f; UpdateStoryOpening();
+            OnApplicationPause(true);
+            float pausedTime = storyPageTime, pausedShade = storyOpeningShade.color.a;
+            float[] pausedAlphas = storyOpeningLines.Select(line => line.alpha).ToArray();
+            yield return new WaitForSecondsRealtime(.12f);
+            bool held = storyPageTime == pausedTime && storyOpeningShade.color.a == pausedShade &&
+                pausedAlphas.SequenceEqual(storyOpeningLines.Select(line => line.alpha));
+            yield return new WaitForEndOfFrame(); UiCapture("40-story-opening-dark");
+            OnApplicationPause(false); appFocused = true;
+            yield return new WaitForSecondsRealtime(.12f);
+            UiCheck(held && storyPageTime > pausedTime && storyPageTime < StoryOpeningDuration && storyPage == 0,
+                "opening reveal pauses in the background and resumes without skipping the declaration");
+
+            UiButton("StoryOpeningNext").onClick.Invoke();
+            UiCheck(StoryOpeningActive && storyPage == 0 && storyOpeningLines.All(line => line.alpha == 1) &&
+                state.StorySeen == 0 && unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "first click during the reveal completes the declaration without advancing or saving progress");
+            yield return new WaitForEndOfFrame();
+            UiCheck(UiStoryFits() && UiStoryCropFits(storyOpeningIllustration),
+                "complete opening declaration, full-screen art and 44-pixel touch controls fit the current safe area");
+            UiCapture("38-story-opening-title");
+            UiButton("StoryOpeningNext").onClick.Invoke();
+            UiCheck(!StoryOpeningActive && storyPage == 1 && storySafe.gameObject.activeInHierarchy &&
+                !storyOpening.gameObject.activeInHierarchy && storyBody.gameObject.activeInHierarchy &&
+                storyBody.text == StoryChapters.All[0].Pages[1].Split('\n')[1] &&
+                storyCutGroups.All(cut => cut.gameObject.activeInHierarchy) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "second opening click restores the next page as two comic panels without acknowledging the chapter");
+
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
+            UiFixture(Market.Create(), stories: true); UpdateStoryAnimation();
+            float stillTime = storyPageTime;
+            yield return new WaitForSecondsRealtime(.12f);
+            bool stillOpening = StoryOpeningActive && storyOpeningLines.All(line => line.alpha == 1) &&
+                storyPageTime == stillTime && UiStoryFits();
+            UiButton("StoryOpeningNext").onClick.Invoke();
+            UiCheck(stillOpening && !StoryOpeningActive && storyPage == 1,
+                "reduced motion shows the whole original declaration immediately and one click starts the comic");
+
+            UiFixture(Market.Create(), stories: true);
+            unchanged = SaveCodec.Encode(state); saved = File.ReadAllBytes(savePath);
+            var realStore = store;
+            string failureDirectory = Path.Combine(GameRuntime.DataDirectory, "failed-story-opening");
+            var failingStore = new GameStore(failureDirectory);
+            Directory.CreateDirectory(Path.Combine(failureDirectory, "game-unity-v1.bin.tmp"));
+            try { store = failingStore; UiButton("StoryOpeningSkip").onClick.Invoke(); }
+            finally { store = realStore; }
+            yield return new WaitForEndOfFrame();
+            UiCheck(StoryOpeningActive && storyOpeningNotice.gameObject.activeInHierarchy &&
+                storyOpeningNotice.text.Contains("저장") && UiStoryFits() &&
+                unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "failed opening skip save keeps the declaration visible with a readable error and unchanged progress");
+            UiButton("StoryOpeningSkip").onClick.Invoke();
+            UiCheck(!StoryActive && state.StorySeen == 1 && store.Load().StorySeen == 1,
+                "opening skip retry acknowledges the chapter once after storage recovers");
+
+            UiFixture(UiStoryState(1000000, 1), 3, stories: true);
+            unchanged = SaveCodec.Encode(state); saved = File.ReadAllBytes(savePath);
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, false);
+            UiButton("StoryReplay-0").onClick.Invoke();
+            bool replayOpening = StoryOpeningActive && storyReplay && storyPageTime < StoryOpeningDuration;
+            UiButton("StoryOpeningNext").onClick.Invoke(); UiButton("StoryOpeningNext").onClick.Invoke();
+            UiButton("StoryNext").onClick.Invoke(); UiButton("StoryNext").onClick.Invoke();
+            UiCheck(replayOpening && !StoryActive && tab == 3 && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
+                saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "replay restarts the original opening then two comic pages and returns to help without saving");
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
+        }
+        IEnumerator VerifyStoryComicUi()
+        {
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
+            UiFixture(Market.Create(), stories: true);
+            UiButton("StoryOpeningNext").onClick.Invoke();
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, false);
             storyPageTime = 0; UpdateStoryAnimation();
             byte[] unchanged = SaveCodec.Encode(state);
             string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
             byte[] saved = File.ReadAllBytes(savePath);
-            UiCheck(StoryOpeningActive && storyCaption.text == "아직, 작은 방에서." &&
-                storyBody.text == "이건 내가 세계 최고의 부자가 되는 이야기이다" &&
+            UiCheck(!StoryOpeningActive && storyPage == 1 && storyCaption.text == StoryChapters.All[0].Pages[1].Split('\n')[0] &&
+                storyBody.text == StoryChapters.All[0].Pages[1].Split('\n')[1] &&
                 storyBody.gameObject.activeInHierarchy && storyCutGroups.Length == 2 &&
                 storyCutGroups[0].alpha > storyCutGroups[1].alpha && storyTextGroup.alpha < 1,
-                "comic introduction keeps the exact declaration in a speech bubble and begins with its first panel");
+                "the page after the declaration keeps its comic caption, speech bubble and ordered panel reveal");
 
             bool ordered = true, staggered = false;
             for (int step = 0; step <= 10; step++) {
@@ -290,11 +396,11 @@ namespace MoneyTown
                 staggered |= storyCutGroups[0].alpha > .5f && storyCutGroups[1].alpha < .5f;
             }
             UiCheck(ordered && staggered && storyCutGroups.All(cut => cut.alpha == 1) &&
-                storyTextGroup.alpha == 1 && storyPage == 0,
+                storyTextGroup.alpha == 1 && storyPage == 1,
                 "comic reveals its two panels in order and settles without advancing the page automatically");
             yield return new WaitForEndOfFrame();
-            UiCheck(UiStoryFits(), "complete opening comic and its touch controls fit inside the safe area");
-            UiCapture("35-story-comic-opening");
+            UiCheck(UiStoryFits(), "complete comic and its touch controls fit inside the safe area");
+            UiCapture("39-story-comic-continuation");
 
             storyPageTime = .08f; UpdateStoryAnimation();
             OnApplicationPause(true);
@@ -306,27 +412,26 @@ namespace MoneyTown
                 pausedScales.SequenceEqual(storyCutGroups.Select(cut => cut.transform.localScale));
             OnApplicationPause(false); appFocused = true;
             yield return new WaitForSecondsRealtime(.12f);
-            UiCheck(held && storyPageTime > pausedTime && storyPage == 0,
+            UiCheck(held && storyPageTime > pausedTime && storyPage == 1,
                 "background pause freezes both comic panels and resumes their reveal on the same page");
 
             storyPageTime = 0; UpdateStoryAnimation(); UiButton("StoryNext").onClick.Invoke();
-            UiCheck(!StoryOpeningActive && storyPage == 1 && storyBody.text == StoryChapters.All[0].Pages[1].Split('\n')[1] &&
+            UiCheck(!StoryOpeningActive && storyPage == 2 && storyBody.text == StoryChapters.All[0].Pages[2].Split('\n')[1] &&
                 state.StorySeen == 0 && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
                 saved.SequenceEqual(File.ReadAllBytes(savePath)),
-                "one next click during the first panel reveal advances immediately without acknowledging or saving the chapter");
+                "one next click during a comic panel reveal advances immediately without acknowledging or saving the chapter");
             effects.Configure(effects.SoundEnabled, effects.VolumePercent, true); UpdateStoryAnimation();
-            yield return new WaitForEndOfFrame(); UiCapture("36-story-comic-desk");
 
-            UiFixture(Market.Create(), stories: true); UpdateStoryAnimation();
+            UiFixture(UiStoryState(2000000, 1), stories: true); UpdateStoryAnimation();
             float stillTime = storyPageTime;
             yield return new WaitForSecondsRealtime(.12f);
-            bool stillOpening = StoryOpeningActive && storyCutGroups.All(cut => cut.alpha == 1 && cut.transform.localScale == Vector3.one) &&
+            bool stillComic = !StoryOpeningActive && storyCutGroups.All(cut => cut.alpha == 1 && cut.transform.localScale == Vector3.one) &&
                 storyTextGroup.alpha == 1 && storyPageTime == stillTime;
             UiButton("StoryNext").onClick.Invoke();
-            UiCheck(stillOpening && !StoryOpeningActive && storyPage == 1,
+            UiCheck(stillComic && !StoryOpeningActive && storyPage == 1,
                 "reduced motion shows both panels and speech immediately without animation and one click advances normally");
 
-            UiFixture(Market.Create(), stories: true);
+            UiFixture(UiStoryState(2000000, 1), stories: true);
             unchanged = SaveCodec.Encode(state); saved = File.ReadAllBytes(savePath);
             var realStore = store;
             string failureDirectory = Path.Combine(GameRuntime.DataDirectory, "failed-story-comic");
@@ -335,18 +440,18 @@ namespace MoneyTown
             try { store = failingStore; UiButton("StorySkip").onClick.Invoke(); }
             finally { store = realStore; }
             yield return new WaitForEndOfFrame();
-            UiCheck(StoryOpeningActive && storyNotice.text.Contains("저장") && UiStoryFits() &&
+            UiCheck(!StoryOpeningActive && StoryActive && storyNotice.text.Contains("저장") && UiStoryFits() &&
                 unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
                 "failed comic skip save keeps the first page visible with its complete error notice and unchanged progress");
             UiButton("StorySkip").onClick.Invoke();
-            UiCheck(!StoryActive && state.StorySeen == 1 && store.Load().StorySeen == 1,
+            UiCheck(!StoryActive && state.StorySeen == 2 && store.Load().StorySeen == 2,
                 "comic skip retry acknowledges the chapter once after storage recovers");
 
-            UiFixture(UiStoryState(1000000, 1), 3, stories: true);
+            UiFixture(UiStoryState(2000000, 2), 3, stories: true);
             unchanged = SaveCodec.Encode(state); saved = File.ReadAllBytes(savePath);
             effects.Configure(effects.SoundEnabled, effects.VolumePercent, false);
-            UiButton("StoryReplay-0").onClick.Invoke();
-            bool replayComic = StoryOpeningActive && storyReplay && storyPageTime < .4f;
+            UiButton("StoryReplay-1").onClick.Invoke();
+            bool replayComic = !StoryOpeningActive && StoryActive && storyReplay && storyPageTime < .4f;
             for (int page = 0; page < 3; page++) UiButton("StoryNext").onClick.Invoke();
             UiCheck(replayComic && !StoryActive && tab == 3 && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
                 saved.SequenceEqual(File.ReadAllBytes(savePath)),
@@ -379,7 +484,7 @@ namespace MoneyTown
                     "story ships no opening voice clip or narration source and retains only music and ordinary effects sources");
                 bool uninterrupted = source.isPlaying && source.clip == clip && source.timeSamples > before &&
                     source.timeSamples < before + clip.frequency && Math.Abs(source.volume - volume) < .001f;
-                UiButton("StoryNext").onClick.Invoke(); UiButton("StorySkip").onClick.Invoke();
+                UiButton("StoryOpeningNext").onClick.Invoke(); UiButton("StorySkip").onClick.Invoke();
                 yield return new WaitForSecondsRealtime(.12f);
                 UiCheck(uninterrupted && !StoryActive && tab == 3 && source.isPlaying && source.clip == clip &&
                     Math.Abs(source.volume - .25f) < .001f && music.MusicEnabled && music.VolumePercent == 25 &&

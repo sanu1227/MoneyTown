@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.27.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
+빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.27.1-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.27.0-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.27.1-Setup-x64.exe
 ```
 
 ## Android APK
@@ -95,7 +95,9 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 
 [`Core/StoryChecks.cs`](../unity/Assets/Scripts/Core/StoryChecks.cs)는 해금 경계·총자산·자산 하락·확인 순서·이전 저장 호환성을 검사합니다. [`StoryVerificationScreen.cs`](../unity/Assets/Scripts/StoryVerificationScreen.cs)는 Unity Player에서 화면 우선순위·시세 차단·저장 실패 재시도·다시 보기·본문 배치·그림·동작 줄이기를 확인합니다. 위 코어·Verification 명령에 포함되며, 이미지 자체 확인과 실제 화면 캡처를 함께 점검합니다.
 
-0.27.0의 이야기 화면은 아이보리 지면 안의 두 컷·캡션·말풍선입니다. 기존 장 일러스트를 두 구도로 잘라 쓰며 대사는 이미지와 분리합니다. 컷 등장 후 정지, 첫 클릭의 다음 페이지 이동, 동작 줄이기의 즉시 표시, 앱 중단 시 연출 정지, 저장 실패 안내와 재감상을 확인합니다. 검증 수치와 실제 화면 결과는 해당 버전의 [개발 노트](development-log.md)에 기록합니다.
+0.27.1은 첫 문장만 전체 화면 중앙의 세 줄 자막으로 표시합니다. 문구 순서·금빛 강조·암전 해제, 연출 중 첫 클릭의 즉시 완성, 완성 후 클릭의 두 번째 페이지 이동을 확인합니다. 나머지 17페이지는 기존 아이보리 지면 안의 두 컷·캡션·말풍선을 유지합니다. 기존 장 일러스트를 두 구도로 잘라 쓰며 대사는 이미지와 분리합니다. 컷 등장 후 정지와 한 번 클릭의 다음 페이지 이동도 확인합니다.
+
+공통으로 Unity 시작 로고가 끝난 뒤 연출 시작, 동작 줄이기의 즉시 완성, 앱 중단 시 연출 정지, 중앙 자막과 만화의 저장 실패 안내·건너뛰기·재감상을 점검합니다. 내레이션 부재와 기존 배경음악·효과음 유지도 확인합니다. 검증 수치와 실제 화면 결과는 해당 버전의 [개발 노트](development-log.md)에 기록합니다.
 
 내레이션과 전용 음원 제작 도구는 0.27.0에서 제거했습니다. 이전 음원 재현이 필요하면 현재 작업 트리의 명령 대신 [v0.26.1 제작 문서](https://github.com/sanu1227/MoneyTown/blob/v0.26.1/docs/opening-audio.md)와 해당 태그의 파일을 사용합니다. 배경음악·일반 효과음 제작 절차는 아래 설명과 [효과음 자료](audio-assets.md)를 따릅니다.
 

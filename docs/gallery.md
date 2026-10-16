@@ -3,6 +3,19 @@
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
 <details open>
+<summary><strong>v0.27.1 첫 멘트 중앙 자막 복원 — 이후 카툰 유지</strong></summary>
+
+‘이건 내가 / 세계 최고의 부자가 / 되는 이야기이다’가 중앙에 순서대로 나타나고 도시 배경을 드러냅니다. ‘문장 바로 보기’로 연출을 완성한 뒤 ‘이야기 시작’을 누르면 두 컷 만화로 이어집니다. 내레이션은 재생하지 않습니다. [스토리 구성과 조작](story.md)
+
+<img src="../assets/screenshots/v0.27.1/opening-dark.png" width="480" alt="암전 위에 순서대로 나타나는 첫 멘트와 금빛 강조" />
+<img src="../assets/screenshots/v0.27.1/opening-title.png" width="480" alt="도시 일러스트 위에 완성된 첫 멘트 세 줄과 이야기 시작 버튼" />
+<img src="../assets/screenshots/v0.27.1/comic-continuation.png" width="480" alt="첫 멘트 다음에 이어지는 두 컷 카툰과 주인공의 독백" />
+
+2026-10-16, 격리된 테스트 데이터의 Windows 검증용 Unity Player에서 촬영했습니다. 원본은 `build/ui-verification-c630f51c8bb947898339290cdce97f9e/`의 40·38·39번 PNG입니다. 480×960·360×800에서 각각 UI 277개를 통과했고, 공개 이미지 3개의 SHA-256은 각각 원본과 같습니다. 이미지 보정이나 UI 합성은 하지 않았습니다. Android 실기기 캡처는 아닙니다.
+
+</details>
+
+<details>
 <summary><strong>v0.27.0 카툰 스토리 — 두 컷과 말풍선</strong></summary>
 
 아이보리 지면에 장면 컷과 확대 컷을 배치하고, 상황 캡션과 주인공의 짧은 독백을 나눴습니다. 내레이션은 제거했으며 배경음악과 일반 효과음은 유지합니다. 첫 페이지부터 ‘다음’을 한 번 누르면 넘어갑니다. [스토리 구성과 조작](story.md)

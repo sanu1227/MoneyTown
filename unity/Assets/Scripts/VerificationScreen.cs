@@ -118,10 +118,10 @@ namespace MoneyTown
             UpdateStoryAnimation();
             yield return new WaitForEndOfFrame();
             UiCheck(UiStoryFits() && !safeArea.gameObject.activeSelf &&
-                GetComponentsInChildren<RawImage>().Single(image => image.name == "StoryIllustration").texture != null,
+                storyOpeningIllustration.texture != null,
                 "introduction illustration and all story controls fit the full-screen opening");
             UiCapture("32-story-intro");
-            UiButton("StorySkip").onClick.Invoke();
+            UiButton("StoryOpeningSkip").onClick.Invoke();
             UiCheck(!StoryActive && state.StorySeen == 1 && store.Load().StorySeen == 1 && safeArea.gameObject.activeSelf,
                 "skipping the introduction saves its acknowledgement and reveals the game once");
             RestoreFeedbackSettings();
