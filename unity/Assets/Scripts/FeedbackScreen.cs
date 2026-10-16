@@ -12,6 +12,8 @@ namespace MoneyTown
         GameFeedback effects;
         GameMusic music;
         Text musicNowPlaying;
+        Button[] musicTrackButtons;
+        int shownMusicTrack=-1;
         void InitializeFeedback()
         {
             effects=gameObject.AddComponent<GameFeedback>();effects.Initialize();
@@ -33,6 +35,7 @@ namespace MoneyTown
             bool suspended=appPaused||!appFocused&&!GameRuntime.Verifying;
             effects?.SetSuspended(suspended);music?.SetSuspended(suspended);
             if(musicNowPlaying!=null&&musicNowPlaying.text!=music.CurrentTitle)musicNowPlaying.text=music.CurrentTitle;
+            if(music!=null&&musicTrackButtons!=null&&shownMusicTrack!=music.CurrentTrackIndex)UpdateMusicSelection();
         }
         void BindButtonFeedback(Button button,Action action)
         {
@@ -113,7 +116,31 @@ namespace MoneyTown
                 int volume=level;
                 Button(row,volume+"%",()=>SetMusicSettings(music.MusicEnabled,volume),music.VolumePercent==volume?Hex("266957"):Raised,58).name="MusicVolume-"+volume;
             }
-            Label(card,"같은 곡이 연속으로 나오지 않습니다. 효과음과 따로 조절하며, 다른 화면에서도 이어집니다.",18,Muted,66);
+            Label(card,"아래 목록에서 원하는 곡을 직접 고를 수 있습니다. 곡이 끝나면 랜덤 재생을 이어갑니다.",18,Muted,66);
+            DrawMusicSelection(parent);
+        }
+        void DrawMusicSelection(Transform parent)
+        {
+            var card=Card(parent,20,10);card.name="MusicSelectionCard";
+            Label(card,"원하는 곡 선택",27,Mint,44);
+            Label(card,"곡을 누르면 바로 바뀝니다. 음악이 꺼져 있으면 선택만 바뀝니다.",18,Muted,66);
+            musicTrackButtons=new Button[music.TrackCount];
+            for(int i=0;i<music.TrackCount;i++) {
+                int track=i;
+                var button=Button(card,music.GetTrackTitle(track),()=>{music.SelectTrack(track);UpdateMusicSelection();},Raised,76);
+                button.name="MusicTrack-"+track;musicTrackButtons[i]=button;
+            }
+            UpdateMusicSelection();
+        }
+        void UpdateMusicSelection()
+        {
+            shownMusicTrack=music.CurrentTrackIndex;
+            for(int i=0;i<musicTrackButtons.Length;i++) {
+                var button=musicTrackButtons[i];if(button==null)continue;
+                bool chosen=i==shownMusicTrack;
+                button.image.color=chosen?Hex("266957"):Raised;
+                button.GetComponentInChildren<Text>().text=(chosen?"선택됨 · ":"")+music.GetTrackTitle(i);
+            }
         }
     }
 }

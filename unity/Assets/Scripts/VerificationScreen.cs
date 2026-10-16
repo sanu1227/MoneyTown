@@ -821,6 +821,54 @@ namespace MoneyTown
                     &&UiLabel("MusicNowPlaying").text==music.CurrentTitle,
                     "muted next-track control updates the title without overriding saved mute");
                 UiButton("MusicEnabled").onClick.Invoke();
+                randomState=UnityEngine.Random.state;
+                int firstChoice=(music.CurrentTrackIndex+1)%music.TrackCount;bool directChoices=true;
+                for(int i=0;i<music.TrackCount;i++) {
+                    int choice=(firstChoice+i)%music.TrackCount;
+                    UiButton("MusicTrack-"+choice).onClick.Invoke();yield return new WaitForSecondsRealtime(.12f);
+                    directChoices&=music.CurrentTrackIndex==choice&&source.clip==clips[choice]&&source.isPlaying
+                        &&source.timeSamples>0&&source.timeSamples<source.clip.frequency&&UiLabel("MusicNowPlaying").text==music.GetTrackTitle(choice)
+                        &&Enumerable.Range(0,music.TrackCount).All(index=>UiButton("MusicTrack-"+index).GetComponentInChildren<Text>().text==
+                            (index==choice?"선택됨 · ":"")+music.GetTrackTitle(index));
+                }
+                UiCheck(directChoices,"every direct music choice starts its requested track and updates exactly one selected title");
+                before=source.timeSamples;clip=source.clip;previousTrack=music.CurrentTrackIndex;
+                UiButton("MusicTrack-"+previousTrack).onClick.Invoke();
+                UiCheck(source.isPlaying&&source.clip==clip&&source.timeSamples>=before-2048&&music.CurrentTrackIndex==previousTrack,
+                    "choosing the current song leaves its playing position unchanged");
+                music.SelectTrack(-1);music.SelectTrack(music.TrackCount);
+                UiCheck(source.isPlaying&&source.clip==clip&&source.timeSamples>=before-2048&&music.CurrentTrackIndex==previousTrack
+                    &&music.GetTrackTitle(-1)==string.Empty&&music.GetTrackTitle(music.TrackCount)==string.Empty,
+                    "invalid track indices cannot change the current music or its playback position");
+                UiButton("MusicEnabled").onClick.Invoke();int selectedTrack=(music.CurrentTrackIndex+1)%music.TrackCount;
+                UiButton("MusicTrack-"+selectedTrack).onClick.Invoke();yield return null;
+                UiCheck(music.CurrentTrackIndex==selectedTrack&&!source.isPlaying&&source.timeSamples==0&&source.volume==0&&!music.MusicEnabled
+                    &&GameRuntime.GetInt(MusicKey)==0&&UiLabel("MusicNowPlaying").text==music.GetTrackTitle(selectedTrack),
+                    "direct selection while muted updates the chosen song without overriding saved mute");
+                UiButton("MusicEnabled").onClick.Invoke();UiButton("MusicVolume-0").onClick.Invoke();selectedTrack=(selectedTrack+1)%music.TrackCount;
+                UiButton("MusicTrack-"+selectedTrack).onClick.Invoke();yield return null;
+                UiCheck(music.CurrentTrackIndex==selectedTrack&&!source.isPlaying&&source.timeSamples==0&&source.volume==0&&music.VolumePercent==0
+                    &&GameRuntime.GetInt(MusicVolumeKey)==0,"direct selection at zero volume remains silent and keeps the saved volume");
+                UiButton("MusicVolume-25").onClick.Invoke();appPaused=true;UpdateFeedbackActivity();selectedTrack=(selectedTrack+1)%music.TrackCount;
+                UiButton("MusicTrack-"+selectedTrack).onClick.Invoke();yield return null;
+                UiCheck(music.CurrentTrackIndex==selectedTrack&&music.IsSuspended&&!source.isPlaying&&source.timeSamples==0&&source.volume==0,
+                    "direct selection in the background cannot start audio");
+                appPaused=false;UpdateFeedbackActivity();yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(music.CurrentTrackIndex==selectedTrack&&source.isPlaying&&source.clip==clips[selectedTrack]&&source.timeSamples>0
+                    &&source.timeSamples<source.clip.frequency&&music.VolumePercent==25,"returning to the foreground plays the directly selected song");
+                UiButton("MusicNext").onClick.Invoke();yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(music.CurrentTrackIndex!=selectedTrack&&source.isPlaying&&source.timeSamples>0&&UiLabel("MusicNowPlaying").text==music.CurrentTitle,
+                    "next track after a direct choice resumes random playback without repeating the chosen song");
+                selectedTrack=(music.CurrentTrackIndex+1)%music.TrackCount;UiButton("MusicTrack-"+selectedTrack).onClick.Invoke();
+                yield return new WaitForSecondsRealtime(.12f);source.timeSamples=source.clip.samples-source.clip.frequency/10;
+                float completionDeadline=Time.realtimeSinceStartup+1;
+                while(music.CurrentTrackIndex==selectedTrack&&Time.realtimeSinceStartup<completionDeadline)yield return null;
+                yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(music.CurrentTrackIndex!=selectedTrack&&source.isPlaying&&source.timeSamples>0&&UiLabel("MusicNowPlaying").text==music.CurrentTitle
+                    &&UiButton("MusicTrack-"+music.CurrentTrackIndex).GetComponentInChildren<Text>().text=="선택됨 · "+music.CurrentTitle,
+                    "a directly chosen song naturally ends in a different random song and updates the selected marker");
+                UiCheck(randomState.Equals(UnityEngine.Random.state)&&savedPreferences.SequenceEqual(keys.Select(key=>GameRuntime.GetInt(key))),
+                    "manual song choices preserve Unity random state and saved music preferences");
                 UiCheck(saved.SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory,"game-unity-v1.bin")))&&unchanged.SequenceEqual(SaveCodec.Encode(state)),
                     "music settings never modify saved game progress or game state");
                 effects.CancelAnimations();Canvas.ForceUpdateCanvases();scroll.StopMovement();
@@ -831,6 +879,15 @@ namespace MoneyTown
                 UiCheck(UiOnScreen(card)&&UiOnScreen((RectTransform)UiLabel("MusicNowPlaying").transform)&&new[]{"MusicNext","MusicEnabled","MusicVolume-0","MusicVolume-100"}
                     .All(name=>UiOnScreen((RectTransform)UiButton(name).transform)),"music settings and all volume choices fit on screen after scrolling");
                 UiCapture("30-music-playlist");
+                card=content.GetComponentsInChildren<RectTransform>().First(rect=>rect.name=="MusicSelectionCard");
+                bounds=RectTransformUtility.CalculateRelativeRectTransformBounds(scroll.viewport,card);
+                content.anchoredPosition+=new Vector2(0,scroll.viewport.rect.center.y-bounds.center.y);
+                yield return new WaitForEndOfFrame();
+                UiCheck(UiOnScreen(card)&&Enumerable.Range(0,music.TrackCount).All(index=> {
+                    var button=UiButton("MusicTrack-"+index);var label=button.GetComponentInChildren<Text>();
+                    return UiOnScreen((RectTransform)button.transform)&&label.cachedTextGenerator.characterCountVisible>=label.text.Length;
+                }),"all four direct music choices fit on screen with their complete titles after scrolling");
+                UiCapture("31-music-selection");
             } finally {
                 for(int i=0;i<keys.Length;i++){if(existed[i])GameRuntime.SetInt(keys[i],preferences[i]);else GameRuntime.DeleteKey(keys[i]);}
                 RestoreMusicSettings();RestoreFeedbackSettings();appPaused=paused;appFocused=focused;UpdateFeedbackActivity();

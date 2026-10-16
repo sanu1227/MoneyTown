@@ -23,6 +23,7 @@ namespace MoneyTown
         public int TrackCount => tracks.Count;
         public int CurrentTrackIndex { get; private set; } = -1;
         public string CurrentTitle => CurrentTrackIndex < 0 ? "재생 가능한 곡 없음" : titles[CurrentTrackIndex];
+        public string GetTrackTitle(int index) => index >= 0 && index < titles.Count ? titles[index] : string.Empty;
 
         public void Initialize()
         {
@@ -52,6 +53,21 @@ namespace MoneyTown
             ApplyState();
         }
 
+        public void SelectTrack(int index)
+        {
+            Initialize();
+            if (index < 0 || index >= TrackCount || index == CurrentTrackIndex) return;
+            for (int i = bagPosition; i < bag.Length; i++) {
+                if (bag[i] != index) continue;
+                // Consume this request without dropping the other queued tracks.
+                for (int j = i; j > bagPosition; j--) bag[j] = bag[j - 1];
+                bag[bagPosition++] = index;
+                break;
+            }
+            SetTrack(index);
+            ApplyState();
+        }
+
         void SelectNextTrack()
         {
             if (TrackCount == 0) return;
@@ -67,9 +83,14 @@ namespace MoneyTown
                 }
                 bagPosition = 0;
             }
+            SetTrack(bag[bagPosition++]);
+        }
+
+        void SetTrack(int index)
+        {
             StopFade();
             OutputSource.Stop();
-            CurrentTrackIndex = bag[bagPosition++];
+            CurrentTrackIndex = index;
             OutputSource.clip = tracks[CurrentTrackIndex];
             OutputSource.volume = 0;
             resumeSample = 0;
