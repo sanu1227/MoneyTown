@@ -576,6 +576,8 @@ namespace MoneyTown
             UiCheck(compactOffers.Length==Intelligence.DailyCount&&clipped.Length==0,"compact information cards preserve readable grade, reliability, price and characteristics: "+string.Join(" / ",clipped));
             var feedbackChecks=VerifyFeedbackUi();
             while(feedbackChecks.MoveNext())yield return feedbackChecks.Current;
+            var musicChecks=VerifyMusicUi();
+            while(musicChecks.MoveNext())yield return musicChecks.Current;
         }
         IEnumerator VerifyFeedbackUi()
         {
@@ -698,6 +700,82 @@ namespace MoneyTown
                 effects.CancelAnimations();if(target!=null)Destroy(target.gameObject);
                 for(int i=0;i<keys.Length;i++){if(existed[i])GameRuntime.SetInt(keys[i],preferences[i]);else GameRuntime.DeleteKey(keys[i]);}
                 RestoreFeedbackSettings();appPaused=paused;appFocused=focused;UpdateFeedbackActivity();
+                UiFixture(original,originalTab);marketClock.Reset();marketWasRunning=false;
+            }
+        }
+        IEnumerator VerifyMusicUi()
+        {
+            var original=state.Copy();int originalTab=tab;bool paused=appPaused,focused=appFocused;
+            string[] keys={MusicKey,MusicVolumeKey};bool[] existed=keys.Select(GameRuntime.HasKey).ToArray();
+            int[] preferences=keys.Select(key=>GameRuntime.GetInt(key)).ToArray();
+            try {
+                var source=music.OutputSource;var clip=Resources.Load<AudioClip>("Audio/town-lounge");
+                UiCheck(clip!=null&&clip.loadState==AudioDataLoadState.Loaded&&clip.channels==2&&clip.frequency==44100&&clip.length>80&&clip.length<90,
+                    "music loads the complete stereo lounge track");
+                UiCheck(music.MusicEnabled&&music.VolumePercent==25&&source!=null&&source.loop&&!source.playOnAwake&&source.spatialBlend==0
+                    &&source.clip==clip&&source!=effects.OutputSource,"music defaults to a separate two-dimensional loop at twenty-five percent");
+                appPaused=false;appFocused=true;UpdateFeedbackActivity();
+                int before=source.timeSamples;yield return new WaitForSecondsRealtime(.6f);
+                UiCheck(source.isPlaying&&source.timeSamples>before&&Math.Abs(source.volume-.25f)<.001f,
+                    "music advances in real time and completes its half-second fade in");
+                music.Configure(false,25);int stopped=source.timeSamples;yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(!source.isPlaying&&source.volume==0&&Math.Abs(source.timeSamples-stopped)<=2048,
+                    "music off pauses silently without advancing or resetting its position");
+                music.Configure(true,25);yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(source.isPlaying&&source.timeSamples>stopped&&source.timeSamples<stopped+clip.frequency,
+                    "reenabling music resumes the paused track instead of restarting it");
+                music.Configure(true,0);stopped=source.timeSamples;yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(!source.isPlaying&&source.volume==0&&Math.Abs(source.timeSamples-stopped)<=2048,
+                    "zero music volume pauses the same playhead");
+                music.Configure(true,25);before=source.timeSamples;RestoreMusicSettings();RenderTab();RestoreMusicSettings();
+                yield return new WaitForSecondsRealtime(.04f);
+                UiCheck(source.isPlaying&&source.clip==clip&&source.timeSamples>=before-2048,
+                    "repeated settings restoration and menu rendering preserve the playing music");
+                effects.Configure(true,50,false);effects.Play(GameCue.Buy);
+                UiCheck(source.isPlaying&&effects.OutputSource.isPlaying&&effects.OutputSource.clip!=source.clip,
+                    "music and a transaction sound play through independent audio sources");
+                effects.Configure(false,50,true);before=source.timeSamples;yield return new WaitForSecondsRealtime(.04f);
+                UiCheck(source.isPlaying&&source.timeSamples>before&&!effects.OutputSource.isPlaying,
+                    "muting effects and reducing motion leave the music running");
+                appPaused=true;UpdateFeedbackActivity();stopped=source.timeSamples;yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(music.IsSuspended&&!source.isPlaying&&source.volume==0&&Math.Abs(source.timeSamples-stopped)<=2048,
+                    "background suspension pauses music and preserves its playback position");
+                appPaused=false;UpdateFeedbackActivity();yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(!music.IsSuspended&&source.isPlaying&&source.timeSamples>stopped&&source.timeSamples<stopped+clip.frequency,
+                    "foreground return resumes music from the saved playhead");
+                music.enabled=false;stopped=source.timeSamples;music.enabled=true;
+                UiCheck(source.isPlaying&&source.timeSamples>=stopped-2048,
+                    "disabling and reenabling the music component preserves the track");
+                source.timeSamples=clip.samples-clip.frequency/10;yield return new WaitForSecondsRealtime(.25f);
+                UiCheck(source.isPlaying&&source.timeSamples>=0&&source.timeSamples<clip.frequency,
+                    "music automatically loops across the end of the track");
+
+                UiFixture(Market.Create());clockSettings.onClick.Invoke();
+                byte[] saved=File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory,"game-unity-v1.bin"));byte[] unchanged=SaveCodec.Encode(state);
+                bool levels=true;
+                foreach(int volume in new[]{0,25,50,75,100}) {
+                    UiButton("MusicVolume-"+volume).onClick.Invoke();
+                    levels&=music.VolumePercent==volume&&GameRuntime.GetInt(MusicVolumeKey)==volume;
+                }
+                UiCheck(levels,"all five music volume controls apply and save their selected level");
+                UiButton("MusicVolume-75").onClick.Invoke();UiButton("MusicEnabled").onClick.Invoke();
+                music.Configure(true,25);RestoreMusicSettings();
+                UiCheck(!music.MusicEnabled&&music.VolumePercent==75&&!source.isPlaying&&GameRuntime.GetInt(MusicKey)==0,
+                    "saved music enable and volume preferences restore through the normal settings path");
+                UiButton("MusicEnabled").onClick.Invoke();UiButton("MusicVolume-25").onClick.Invoke();
+                UiCheck(saved.SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory,"game-unity-v1.bin")))&&unchanged.SequenceEqual(SaveCodec.Encode(state)),
+                    "music settings never modify saved game progress or game state");
+                effects.CancelAnimations();Canvas.ForceUpdateCanvases();scroll.StopMovement();
+                var card=content.GetComponentsInChildren<RectTransform>().First(rect=>rect.name=="MusicSettingsCard");
+                var bounds=RectTransformUtility.CalculateRelativeRectTransformBounds(scroll.viewport,card);
+                content.anchoredPosition+=new Vector2(0,scroll.viewport.rect.center.y-bounds.center.y);
+                yield return new WaitForEndOfFrame();
+                UiCheck(UiOnScreen(card)&&new[]{"MusicEnabled","MusicVolume-0","MusicVolume-100"}
+                    .All(name=>UiOnScreen((RectTransform)UiButton(name).transform)),"music settings and all volume choices fit on screen after scrolling");
+                UiCapture("29-music-settings");
+            } finally {
+                for(int i=0;i<keys.Length;i++){if(existed[i])GameRuntime.SetInt(keys[i],preferences[i]);else GameRuntime.DeleteKey(keys[i]);}
+                RestoreMusicSettings();RestoreFeedbackSettings();appPaused=paused;appFocused=focused;UpdateFeedbackActivity();
                 UiFixture(original,originalTab);marketClock.Reset();marketWasRunning=false;
             }
         }

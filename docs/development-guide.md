@@ -13,7 +13,7 @@
 | Windows 앱 | 에디터의 Windows 빌드 지원 |
 | 설치 EXE | Windows 앱 빌드와 **Inno Setup 6 이상** |
 | Unity 없이 코어 검사 | **.NET 10 SDK** |
-| 정보 카탈로그·효과음 생성 및 검사 | Python 3 |
+| 정보 카탈로그·효과음·배경음악 생성 및 검사 | Python 3 |
 | 이전 웹 규칙 검사 | Node.js |
 
 검증한 로컬 Android 도구 조합은 NDK r27c와 Unity 배포 OpenJDK 17입니다. 필요한 경로는 개발 환경에 맞춰 설정합니다. 에디터와 배치 빌드로 같은 Unity 프로젝트를 동시에 열지 않습니다.
@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.21.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
+빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.22.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.21.0-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.22.0-Setup-x64.exe
 ```
 
 ## Android APK
@@ -86,6 +86,19 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 결과 JSON과 PNG는 `build/ui-verification-*`에 생성됩니다. 화면 캡처에는 `-Visible`을 사용합니다. 검증 빌드는 `MoneyTownVerification`이라는 별도 제품 설정과 임시 데이터 경로를 사용합니다. 화면의 `Development Build` 표시는 원본 그대로 보존합니다.
 
 게임 소개 캡처를 갱신할 때는 통과한 실행의 PNG를 `assets/screenshots/버전/`에 복사하고 [갤러리의 촬영 정보](gallery.md#촬영-정보)를 함께 바꿉니다. 실제 게임 화면과 별도 브랜드 일러스트를 구분합니다.
+
+## 배경음악 수정
+
+v0.22.0의 원곡 **‘After the Bell / 장 마감의 여유’**는 88 BPM, 32마디, 약 87.27초이며 따뜻한 건반·베이스·가벼운 드럼을 사용합니다. `unity/Assets/Resources/Audio/town-lounge.wav`를 PCM 스트리밍으로 불러오고 `GameMusic.cs`의 독립 2D `AudioSource`로 반복합니다. 효과음이 재생되거나 메뉴가 바뀌어도 음악을 다시 시작하지 않습니다.
+
+`FeedbackScreen.cs`의 **설정 > 배경음악**은 켜기/끄기와 음량 0·25·50·75·100%(기본 켜짐·25%)를 제공합니다. 기기 설정 키는 `MoneyTown.Music.Enabled`, `MoneyTown.Music.Volume`입니다. 효과음·동작 줄이기와 독립적이며 게임 저장 형식은 바꾸지 않습니다. 꺼짐·0음량·앱 중단 때 `Pause`, 복귀 때 `UnPause`와 0.5초 페이드인을 사용합니다.
+
+```powershell
+python scripts/generate-bgm.py
+python scripts/generate-bgm.py --check
+```
+
+생성 코드와 음악 원본을 함께 관리합니다. [음악 구성·파일 사양·루프 검사](music-assets.md)를 참고하세요. 파형 검증 외에 Unity Player에서 루프 경계, 효과음과 동시 재생, 음소거·음량 변경, 메뉴 전환, 배경 복귀와 설정 재적용을 확인합니다. 새 버전의 실행·설치 결과는 검증 완료 후 개발 노트에 기록합니다.
 
 ## 효과음과 애니메이션 수정
 

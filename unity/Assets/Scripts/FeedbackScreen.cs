@@ -8,18 +8,30 @@ namespace MoneyTown
     public sealed partial class GameScreen
     {
         const string SoundKey="MoneyTown.Feedback.Sound",VolumeKey="MoneyTown.Feedback.Volume",ReducedMotionKey="MoneyTown.Feedback.ReducedMotion";
+        const string MusicKey="MoneyTown.Music.Enabled",MusicVolumeKey="MoneyTown.Music.Volume";
         GameFeedback effects;
+        GameMusic music;
         void InitializeFeedback()
         {
             effects=gameObject.AddComponent<GameFeedback>();effects.Initialize();
-            RestoreFeedbackSettings();UpdateFeedbackActivity();
+            music=gameObject.AddComponent<GameMusic>();music.Initialize();
+            RestoreFeedbackSettings();RestoreMusicSettings();UpdateFeedbackActivity();
         }
         void RestoreFeedbackSettings()
         {
             int volume=GameRuntime.GetInt(VolumeKey,50);
             effects.Configure(GameRuntime.GetInt(SoundKey,1)==1,volume>=0&&volume<=100?volume:50,GameRuntime.GetInt(ReducedMotionKey)==1);
         }
-        void UpdateFeedbackActivity()=>effects?.SetSuspended(appPaused||!appFocused&&!GameRuntime.Verifying);
+        void RestoreMusicSettings()
+        {
+            int volume=GameRuntime.GetInt(MusicVolumeKey,25);
+            music.Configure(GameRuntime.GetInt(MusicKey,1)==1,volume>=0&&volume<=100?volume:25);
+        }
+        void UpdateFeedbackActivity()
+        {
+            bool suspended=appPaused||!appFocused&&!GameRuntime.Verifying;
+            effects?.SetSuspended(suspended);music?.SetSuspended(suspended);
+        }
         void BindButtonFeedback(Button button,Action action)
         {
             button.onClick.AddListener(()=>{
@@ -72,6 +84,32 @@ namespace MoneyTown
             Button(card,"동작 줄이기 · "+(effects.ReducedMotion?"켜짐":"꺼짐"),()=>SetFeedbackSettings(effects.SoundEnabled,effects.VolumePercent,!effects.ReducedMotion),Raised,60).name="FeedbackReducedMotion";
             Label(card,"동작 줄이기를 켜면 버튼·창·시세의 움직임을 끄고 물류센터를 정지 장면으로 표시합니다. 작업 시간과 보상은 같습니다.",18,Muted,84);
             Button(card,"효과음 미리듣기",()=>effects.Play(GameCue.Buy),Hex("266957"),58).name="FeedbackPreview";
+        }
+        void SetMusicSettings(bool enabled,int volume)
+        {
+            string[] keys={MusicKey,MusicVolumeKey};
+            int[] previous=keys.Select(key=>GameRuntime.GetInt(key)).ToArray();bool[] existed=keys.Select(GameRuntime.HasKey).ToArray();
+            try {
+                GameRuntime.SetInt(MusicKey,enabled?1:0);GameRuntime.SetInt(MusicVolumeKey,volume);GameRuntime.SavePreferences();
+            } catch(Exception) {
+                for(int i=0;i<keys.Length;i++){if(existed[i])GameRuntime.SetInt(keys[i],previous[i]);else GameRuntime.DeleteKey(keys[i]);}
+                Feedback("음악 설정을 저장하지 못했습니다. 다시 시도하세요.",true);return;
+            }
+            RestoreMusicSettings();RenderTab();effects.Play(GameCue.Success);
+        }
+        void DrawMusicSettings(Transform parent)
+        {
+            var card=Card(parent,20,10);card.name="MusicSettingsCard";
+            Label(card,"배경음악",27,Mint,44);
+            Label(card,"장 마감의 여유 · 88 BPM",22,Gold,36);
+            Button(card,"배경음악 · "+(music.MusicEnabled?"켜짐":"꺼짐"),()=>SetMusicSettings(!music.MusicEnabled,music.VolumePercent),Raised,60).name="MusicEnabled";
+            Label(card,"음악 음량 · "+music.VolumePercent+"%",21,Muted,36);
+            var row=Row(card,58,6);
+            foreach(int level in new[]{0,25,50,75,100}) {
+                int volume=level;
+                Button(row,volume+"%",()=>SetMusicSettings(music.MusicEnabled,volume),music.VolumePercent==volume?Hex("266957"):Raised,58).name="MusicVolume-"+volume;
+            }
+            Label(card,"따뜻한 건반과 가벼운 리듬의 연주곡입니다. 효과음과 따로 조절하며, 다른 화면에서도 이어집니다.",18,Muted,66);
         }
     }
 }

@@ -2,7 +2,18 @@
 
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
-**2026-10-16 촬영.** 소리 설정은 v0.21.0, 가격 조정 내역은 v0.20.1, 기본 화면은 v0.20.0입니다. 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+**2026-10-16 촬영.** 배경음악 설정은 v0.22.0, 효과음 설정은 v0.21.0, 가격 조정 내역은 v0.20.1, 기본 화면은 v0.20.0입니다. 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+
+<details open>
+<summary><strong>v0.22.0 배경음악 — 장 마감의 여유</strong></summary>
+
+상단 설정의 배경음악 카드에서 음악을 켜고 끄거나 음량을 조절합니다. 기본은 켜짐·25%이며 아래 효과음 설정과 독립적으로 동작합니다. [원곡 듣기](../unity/Assets/Resources/Audio/town-lounge.wav) · [음악 제작 자료](music-assets.md)
+
+<img src="../assets/screenshots/v0.22.0/music-settings.png" width="480" alt="배경음악 장 마감의 여유, 음악 켜짐과 25퍼센트 음량 설정" />
+
+원본은 `build/ui-verification-29772d8c363b4cb491beebb2e2362de9/29-music-settings.png`입니다. UI 195개 검사를 통과한 실제 Player 캡처이며 공개 이미지의 SHA-256이 원본과 같습니다.
+
+</details>
 
 <details open>
 <summary><strong>v0.21.0 소리와 애니메이션 설정</strong></summary>

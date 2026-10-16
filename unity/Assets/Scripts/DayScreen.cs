@@ -61,7 +61,7 @@ namespace MoneyTown
             Label(settings,"간격을 바꾸면 새 카운트다운을 시작합니다.\n같은 간격을 다시 누르면 남은 시간을 유지합니다.",20,Muted,80);
             Label(settings,"설정은 자동 저장됩니다. 앱을 다시 열면 선택한 간격부터 시작합니다.",20,Muted,72);
             Label(settings,"설정·도움말·결산·연습·백그라운드에서는 시간이 멈춥니다. ‘다음 날’도 선택한 간격을 유지합니다.",20,Muted,100);
-            DrawFeedbackSettings(content);
+            DrawMusicSettings(content);DrawFeedbackSettings(content);
             Height(tradeDock,108);tradeDock.gameObject.SetActive(true);
             Button(tradeDock,"설정 완료 · 게임으로 돌아가기",()=>{tab=clockReturnTab;RenderTab();scroll.verticalNormalizedPosition=1;},Hex("266957"),76);
         }
