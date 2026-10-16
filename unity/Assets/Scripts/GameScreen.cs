@@ -48,6 +48,7 @@ namespace MoneyTown
             InformationCatalog.Load(Resources.Load<TextAsset>("information-catalog").text,Resources.Load<TextAsset>("information-catalog-v1").text,Resources.Load<TextAsset>("information-catalog-v2").text);
             rounded=MakeRoundedSprite();
             PrepareVerification();
+            InitializeFeedback();
             try{store=new GameStore(GameRuntime.DataDirectory);state=store.Load();}
             catch(Exception){state=Market.Create();blocked=true;message="저장 읽기 실패. 자산 탭에서 복구하세요.";}
             if(store!=null&&store.PricesMigrated&&!blocked){message="가격 조정 완료 · 총자산 보존 · 내 자산 > 진행 관리";flashUntil=Time.unscaledTime+8;}
@@ -57,6 +58,7 @@ namespace MoneyTown
         }
         void Update()
         {
+            UpdateFeedbackActivity();
             if(safeArea!=null&&(lastSafe!=Screen.safeArea||lastSize!=new Vector2Int(Screen.width,Screen.height)))ApplySafeArea();
             if(status!=null)UpdateStatus();
             UpdateMarket();
@@ -127,7 +129,7 @@ namespace MoneyTown
             var colors=button.colors;colors.highlightedColor=new Color(.9f,1,1);colors.pressedColor=new Color(.65f,.78f,.86f);colors.disabledColor=new Color(.45f,.49f,.57f,.8f);button.colors=colors;
             var text=Label(rect,title,23,null,0,TextAnchor.MiddleCenter);Stretch(text.rectTransform);
             text.rectTransform.offsetMin=new Vector2(8,3);text.rectTransform.offsetMax=new Vector2(-8,-3);
-            button.onClick.AddListener(()=>action());return button;
+            BindButtonFeedback(button,action);return button;
         }
         MarketIcon Icon(Transform parent,int kind,Color color,float size)
         {
@@ -154,8 +156,8 @@ namespace MoneyTown
             var header=Row(safeArea,64);
             Flexible(Label(header,"MONEY TOWN",24,Mint,40).rectTransform);
             help=Button(header,"도움말",OpenHelp,Panel,64);Width((RectTransform)help.transform,82);
-            clockSettings=Button(header,"간격 설정",OpenClockSettings,Panel,64);Width((RectTransform)clockSettings.transform,108);
-            next=Button(header,"",()=>Act(()=>Market.NextDay(state),"전날 결산과 새로운 개장 시세를 확인하세요."),Raised,64);
+            clockSettings=Button(header,"설정",OpenClockSettings,Panel,64);Width((RectTransform)clockSettings.transform,108);
+            next=Button(header,"",()=>Act(()=>Market.NextDay(state),"전날 결산과 새로운 개장 시세를 확인하세요.",GameCue.Settlement),Raised,64);
             Width((RectTransform)next.transform,132);day=next.GetComponentInChildren<Text>();
             var wallet=Card(safeArea,12);Height(wallet,80);
             var walletRow=Row(wallet,56,18);
@@ -193,22 +195,24 @@ namespace MoneyTown
             clockSettings.interactable=!blocked&&tutorial==null&&!state.SettlementPending&&tab!=5;
         }
         void Feedback(string text,bool error=false)
-        {message=text;feedbackError=error;flashUntil=Time.unscaledTime+4;status.color=error?Red:Mint;UpdateSummary();}
+        {message=text;feedbackError=error;flashUntil=Time.unscaledTime+4;status.color=error?Red:Mint;UpdateSummary();if(error)effects?.Play(GameCue.Error);}
         void UpdateStatus()
         {
             bool visible=blocked||feedbackError||tutorial!=null||Time.unscaledTime<flashUntil;
             if(status.gameObject.activeSelf!=visible)status.gameObject.SetActive(visible);
             Height(status.rectTransform,blocked||feedbackError?56:34);
         }
-        void Act(Func<GameState> action,string success)
+        void Act(Func<GameState> action,string success,GameCue cue=GameCue.Success)
         {
             if(blocked||tutorial!=null||state.SettlementPending)return;
             GameState changed;
             try{changed=action();}
             catch(Exception ex){Feedback(ex is OverflowException?"거래 금액이 한도를 초과했습니다.":ex.Message,true);return;}
-            try{store.Save(changed);if(changed.Day!=state.Day){marketClock.Reset();scroll.verticalNormalizedPosition=1;}state=changed;Feedback(success);}
+            bool committed=false;
+            try{store.Save(changed);if(changed.Day!=state.Day){marketClock.Reset();scroll.verticalNormalizedPosition=1;}state=changed;Feedback(success);committed=true;}
             catch(Exception){Feedback("저장 실패로 행동을 취소했습니다. 저장 공간을 확인하세요.",true);}
             RenderTab();
+            if(committed)CompleteFeedback(cue);
         }
         static void Clear(Transform parent)
         {foreach(Transform child in parent){child.gameObject.SetActive(false);Destroy(child.gameObject);}}
@@ -309,8 +313,8 @@ namespace MoneyTown
             var all=Button(row,"보유",()=>{if(state.Stocks[selected].Quantity>0)SetQuantity(state.Stocks[selected].Quantity);else Feedback("보유한 주식이 없습니다.",true);},Raised,74);Width((RectTransform)all.transform,78);
             estimate=Label(tradeDock,"",17,Muted,24,TextAnchor.MiddleCenter);
             var buttons=Row(tradeDock,80);
-            sell=Button(buttons,"",()=>Act(()=>Market.Trade(state,selected,Quantity(),false),Market.Companies[selected].Name+" "+Quantity()+"주 매도 완료"),Hex("2861A2"),80);
-            buy=Button(buttons,"",()=>Act(()=>Market.Trade(state,selected,Quantity(),true),Market.Companies[selected].Name+" "+Quantity()+"주 매수 완료"),Hex("BD4F61"),80);
+            sell=Button(buttons,"",()=>Act(()=>Market.Trade(state,selected,Quantity(),false),Market.Companies[selected].Name+" "+Quantity()+"주 매도 완료",GameCue.Sell),Hex("2861A2"),80);
+            buy=Button(buttons,"",()=>Act(()=>Market.Trade(state,selected,Quantity(),true),Market.Companies[selected].Name+" "+Quantity()+"주 매수 완료",GameCue.Buy),Hex("BD4F61"),80);
             sellLabel=sell.GetComponentInChildren<Text>();buyLabel=buy.GetComponentInChildren<Text>();Estimate();
         }
         void DrawTradingHolding()

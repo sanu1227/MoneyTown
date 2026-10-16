@@ -13,7 +13,7 @@
 | Windows 앱 | 에디터의 Windows 빌드 지원 |
 | 설치 EXE | Windows 앱 빌드와 **Inno Setup 6 이상** |
 | Unity 없이 코어 검사 | **.NET 10 SDK** |
-| 정보 카탈로그 생성·검사 | Python 3 |
+| 정보 카탈로그·효과음 생성 및 검사 | Python 3 |
 | 이전 웹 규칙 검사 | Node.js |
 
 검증한 로컬 Android 도구 조합은 NDK r27c와 Unity 배포 OpenJDK 17입니다. 필요한 경로는 개발 환경에 맞춰 설정합니다. 에디터와 배치 빌드로 같은 Unity 프로젝트를 동시에 열지 않습니다.
@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-결과는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.20.1-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다.
+빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.21.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.20.1-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.21.0-Setup-x64.exe
 ```
 
 ## Android APK
@@ -86,6 +86,19 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 결과 JSON과 PNG는 `build/ui-verification-*`에 생성됩니다. 화면 캡처에는 `-Visible`을 사용합니다. 검증 빌드는 `MoneyTownVerification`이라는 별도 제품 설정과 임시 데이터 경로를 사용합니다. 화면의 `Development Build` 표시는 원본 그대로 보존합니다.
 
 게임 소개 캡처를 갱신할 때는 통과한 실행의 PNG를 `assets/screenshots/버전/`에 복사하고 [갤러리의 촬영 정보](gallery.md#촬영-정보)를 함께 바꿉니다. 실제 게임 화면과 별도 브랜드 일러스트를 구분합니다.
+
+## 효과음과 애니메이션 수정
+
+v0.21.0의 효과음은 `unity/Assets/Resources/Audio/`에 있으며 `GameFeedback.cs`가 재생과 버튼·금액·지면의 움직임을 담당합니다. `FeedbackScreen.cs`는 화면 이벤트를 연결하고 **설정 > 소리와 애니메이션**을 제공합니다. 음량은 0·25·50·75·100%(기본 50%)이며 효과음과 동작 줄이기를 따로 켜고 끕니다. 설정은 `MoneyTown.Feedback.Sound`, `MoneyTown.Feedback.Volume`, `MoneyTown.Feedback.ReducedMotion` 기기 설정으로 저장합니다.
+
+```powershell
+python scripts/generate-sfx.py
+python scripts/generate-sfx.py --check
+```
+
+표준 라이브러리만 사용합니다. 검사 명령은 파일을 수정하지 않고 8개 WAV·메타·미리듣기의 재현 여부와 PCM 포맷·샘플 수·볼륨·끝단을 확인합니다. [원본 효과음 사양과 미리듣기](audio-assets.md)
+
+파형 검사와 게임 내 재생 검증은 구분합니다. Unity에서 각 이벤트·무음·음량·설정 복원·동작 줄이기·백그라운드 복귀를 확인합니다. 동작 줄이기에서도 알바는 정지 장면으로 약 4.2초를 진행하고 동일한 하루·보상을 적용해야 합니다. 새 버전의 빌드와 실제 Player 검사 결과는 검증이 끝난 뒤 개발 노트에 기록합니다.
 
 ## 정보 콘텐츠 수정
 

@@ -2,7 +2,18 @@
 
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
-**2026-10-16 촬영.** 기본 화면은 v0.20.0, 아래 가격 조정 내역은 v0.20.1입니다. 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+**2026-10-16 촬영.** 소리 설정은 v0.21.0, 가격 조정 내역은 v0.20.1, 기본 화면은 v0.20.0입니다. 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+
+<details open>
+<summary><strong>v0.21.0 소리와 애니메이션 설정</strong></summary>
+
+상단 설정에서 아래로 스크롤하면 효과음 켜기/끄기, 다섯 단계 음량, 동작 줄이기와 미리듣기를 사용할 수 있습니다. [원본 효과음 모음](../assets/audio/preview.wav)
+
+<img src="../assets/screenshots/v0.21.0/feedback-settings.png" width="480" alt="효과음 켜짐, 음량 50%, 동작 줄이기 꺼짐과 미리듣기 버튼" />
+
+원본은 `build/ui-verification-98d9b91da0c045e0a59b261dcbe27479/28-feedback-settings.png`입니다. UI 178개 검사를 통과한 실제 Player 캡처이며 공개 이미지의 SHA-256이 원본과 같습니다.
+
+</details>
 
 <details open>
 <summary><strong>v0.20.1 가격 조정 — 기존 진행의 총자산 보존</strong></summary>

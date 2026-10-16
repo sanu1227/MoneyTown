@@ -574,6 +574,132 @@ namespace MoneyTown
                 using(var generator=new TextGenerator()){generator.Populate(label.text,label.GetGenerationSettings(label.rectTransform.rect.size));return generator.characterCountVisible<label.text.Length;}
             }).Select(label=>label.text).ToArray();
             UiCheck(compactOffers.Length==Intelligence.DailyCount&&clipped.Length==0,"compact information cards preserve readable grade, reliability, price and characteristics: "+string.Join(" / ",clipped));
+            var feedbackChecks=VerifyFeedbackUi();
+            while(feedbackChecks.MoveNext())yield return feedbackChecks.Current;
+        }
+        IEnumerator VerifyFeedbackUi()
+        {
+            var original=state.Copy();int originalTab=tab;bool paused=appPaused,focused=appFocused;
+            string[] keys={SoundKey,VolumeKey,ReducedMotionKey};bool[] existed=keys.Select(GameRuntime.HasKey).ToArray();
+            int[] preferences=keys.Select(key=>GameRuntime.GetInt(key)).ToArray();RectTransform target=null;
+            try {
+                appPaused=false;appFocused=true;UpdateFeedbackActivity();effects.CancelAnimations();
+                UiCheck(effects.SoundEnabled&&effects.VolumePercent==50&&!effects.ReducedMotion&&
+                    effects.OutputSource!=null&&!effects.OutputSource.playOnAwake&&!effects.OutputSource.loop,
+                    "feedback starts enabled at fifty percent with normal motion and no automatic audio loop");
+                foreach(GameCue cue in Enum.GetValues(typeof(GameCue))) {
+                    var clip=Resources.Load<AudioClip>("Audio/"+cue.ToString().ToLowerInvariant());
+                    UiCheck(clip!=null&&clip.loadState==AudioDataLoadState.Loaded&&clip.channels==1&&clip.samples>0,
+                        "feedback clip loads as nonempty mono audio: "+cue);
+                    var samples=new float[clip.samples*clip.channels];
+                    UiCheck(clip.GetData(samples,0)&&samples.All(x=>!float.IsNaN(x)&&!float.IsInfinity(x)&&Math.Abs(x)<=1)
+                        &&samples.Any(x=>Math.Abs(x)>.001f),"feedback clip has finite audible sample data: "+cue);
+                }
+                long played=effects.PlayedCount;effects.Play(GameCue.Buy);
+                UiCheck(effects.PlayedCount==played+1&&effects.LastCue==GameCue.Buy&&effects.OutputSource.isPlaying
+                    &&effects.OutputSource.clip==Resources.Load<AudioClip>("Audio/buy"),"audio source plays the selected buy clip");
+                foreach(bool mute in new[]{true,false}) {
+                    effects.Configure(!mute,mute?50:0,false);played=effects.PlayedCount;effects.Play(GameCue.Sell);
+                    UiCheck(effects.PlayedCount==played&&!effects.OutputSource.isPlaying,"sound off or zero volume suppresses output: "+mute);
+                }
+                effects.Configure(true,50,false);effects.Play(GameCue.Buy);played=effects.PlayedCount;
+                appPaused=true;UpdateFeedbackActivity();effects.Play(GameCue.Sell);
+                UiCheck(effects.IsSuspended&&effects.PlayedCount==played&&!effects.OutputSource.isPlaying,"app suspension stops audio and rejects new cues");
+                appPaused=false;UpdateFeedbackActivity();
+                var targetObject=new GameObject("FeedbackVerificationTarget",typeof(RectTransform),typeof(CanvasGroup));
+                target=targetObject.GetComponent<RectTransform>();target.SetParent(safeArea.parent,false);
+                target.localScale=new Vector3(1.2f,.8f,1);target.anchoredPosition=new Vector2(13,17);
+                var group=targetObject.GetComponent<CanvasGroup>();group.alpha=.7f;
+                Vector3 scale=target.localScale;Vector2 position=target.anchoredPosition;byte[] unchanged=SaveCodec.Encode(state);
+                foreach(FeedbackMotion motion in Enum.GetValues(typeof(FeedbackMotion))) {
+                    effects.Animate(target,motion);
+                    UiCheck(effects.ActiveMotions==1,"feedback motion starts once: "+motion);
+                    yield return new WaitForSecondsRealtime(.35f);
+                    UiCheck(effects.ActiveMotions==0&&Vector3.Distance(target.localScale,scale)<.0001f&&
+                        Vector2.Distance(target.anchoredPosition,position)<.0001f&&Math.Abs(group.alpha-.7f)<.0001f,
+                        "feedback motion restores scale opacity and position: "+motion);
+                }
+                effects.Animate(target,FeedbackMotion.Reveal);effects.Animate(target,FeedbackMotion.Press);
+                effects.CancelAnimations();
+                UiCheck(effects.ActiveMotions==0&&target.localScale==scale&&group.alpha==.7f,
+                    "replacing and cancelling a motion restores its original presentation");
+                effects.Animate(target,FeedbackMotion.Reveal);target.gameObject.SetActive(false);
+                UiCheck(effects.ActiveMotions==0&&target.localScale==scale&&group.alpha==.7f,"hidden motion targets cancel immediately and restore opacity");
+                target.gameObject.SetActive(true);effects.Configure(true,50,true);effects.Animate(target,FeedbackMotion.Reveal);
+                UiCheck(effects.ActiveMotions==0&&target.localScale==scale&&group.alpha==.7f&&unchanged.SequenceEqual(SaveCodec.Encode(state)),
+                    "reduced motion keeps presentation still and feedback never changes game state");
+                effects.Configure(true,50,false);Destroy(target.gameObject);target=null;
+
+                UiFixture(Market.Create());clockSettings.onClick.Invoke();
+                bool levels=true;
+                foreach(int volume in new[]{0,25,50,75,100}) {
+                    UiButton("FeedbackVolume-"+volume).onClick.Invoke();
+                    levels&=effects.VolumePercent==volume&&GameRuntime.GetInt(VolumeKey)==volume&&Math.Abs(effects.OutputSource.volume-volume/100f)<.001f;
+                }
+                UiCheck(levels,"all five volume buttons apply and save their exact level");
+                UiButton("FeedbackVolume-75").onClick.Invoke();UiButton("FeedbackReducedMotion").onClick.Invoke();UiButton("FeedbackSound").onClick.Invoke();
+                effects.Configure(true,50,false);RestoreFeedbackSettings();
+                UiCheck(!effects.SoundEnabled&&effects.VolumePercent==75&&effects.ReducedMotion&&GameRuntime.GetInt(SoundKey)==0&&GameRuntime.GetInt(ReducedMotionKey)==1,
+                    "saved sound volume and reduced-motion preferences restore through the normal settings path");
+                UiButton("FeedbackSound").onClick.Invoke();UiButton("FeedbackVolume-50").onClick.Invoke();UiButton("FeedbackReducedMotion").onClick.Invoke();
+                byte[] saved=File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory,"game-unity-v1.bin"));
+                UiButton("FeedbackPreview").onClick.Invoke();
+                UiCheck(effects.LastCue==GameCue.Buy&&effects.OutputSource.isPlaying&&saved.SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory,"game-unity-v1.bin"))),
+                    "sound preview plays without writing game progress");
+                effects.CancelAnimations();Canvas.ForceUpdateCanvases();scroll.verticalNormalizedPosition=0;
+                yield return new WaitForEndOfFrame();
+                UiCheck(new[]{"FeedbackSound","FeedbackReducedMotion","FeedbackPreview","FeedbackVolume-0","FeedbackVolume-100"}
+                    .All(name=>UiOnScreen((RectTransform)UiButton(name).transform)),"feedback settings controls fit on screen after scrolling");
+                UiCapture("28-feedback-settings");UiButton("설정 완료 · 게임으로 돌아가기").onClick.Invoke();
+
+                UiFixture(Market.Create());buy.onClick.Invoke();
+                UiCheck(effects.LastCue==GameCue.Buy&&state.Stocks[0].Quantity==1&&state.Trades.Length==1&&state.Cash==989990
+                    &&SaveCodec.Encode(state).SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory,"game-unity-v1.bin"))),
+                    "one buy click saves one trade before its completion cue");
+                sell.onClick.Invoke();UiCheck(effects.LastCue==GameCue.Sell&&state.Stocks[0].Quantity==0&&state.Trades.Length==2&&state.Cash==999980,
+                    "sell completion cue matches exactly one saved sale");
+                unchanged=SaveCodec.Encode(state);played=effects.PlayedCount;
+                Act(()=>Market.Trade(state,0,0,true),"invalid feedback fixture",GameCue.Buy);
+                UiCheck(effects.LastCue==GameCue.Error&&effects.PlayedCount==played+1&&unchanged.SequenceEqual(SaveCodec.Encode(state)),
+                    "invalid trade emits only an error cue and preserves game state");
+                string failed=Path.Combine(GameRuntime.DataDirectory,"failed-feedback");var failingStore=new GameStore(failed);
+                Directory.CreateDirectory(Path.Combine(failed,"game-unity-v1.bin.tmp"));var realStore=store;played=effects.PlayedCount;
+                try{store=failingStore;Act(()=>Market.Trade(state,0,1,true),"unsaved feedback fixture",GameCue.Buy);}
+                finally{store=realStore;}
+                UiCheck(effects.LastCue==GameCue.Error&&effects.PlayedCount==played+1&&unchanged.SequenceEqual(SaveCodec.Encode(state))
+                    &&unchanged.SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory,"game-unity-v1.bin")))
+                    &&!File.Exists(Path.Combine(failed,"game-unity-v1.bin")),"failed trade save emits no completion cue and leaves both state and saved progress unchanged");
+                selected=2;RenderTab();played=effects.PlayedCount;buy.onClick.Invoke();
+                UiCheck(!buy.interactable&&effects.PlayedCount==played&&unchanged.SequenceEqual(SaveCodec.Encode(state)),
+                    "disabled buy callback emits no sound and cannot change holdings");
+                var rich=Market.Create();rich.Cash=rich.DayStartAssets=100000000;UiFixture(rich,1);
+                var offer=Intelligence.CompanyOffers(state,0).First();OpenClue(state.Day,offer.Index);
+                GetComponentsInChildren<Button>().First(button=>button.name.StartsWith("기업 분석 구매",StringComparison.Ordinal)).onClick.Invoke();
+                UiCheck(effects.LastCue==GameCue.Paper&&state.Clues.Length==1&&state.Cash==rich.Cash-offer.Price,
+                    "information purchase completion uses the paper cue after one charge");
+                next.onClick.Invoke();
+                UiCheck(effects.LastCue==GameCue.Settlement&&state.Day==2&&state.SettlementPending&&store.Load().SettlementPending,
+                    "next-day completion cue follows the saved pending settlement");
+
+                UiFixture(Market.Create(),2);effects.Configure(true,50,true);StartWarehouseWork();
+                UiCheck(effects.LastCue==GameCue.Work&&warehouseWorking&&state.Day==2&&state.Cash==1050000,
+                    "warehouse work cue follows saved wages and one day advance");
+                played=effects.PlayedCount;StartWarehouseWork();
+                UiCheck(effects.PlayedCount==played&&state.Day==2&&state.Cash==1050000,"repeated work start produces neither duplicate pay nor another work cue");
+                yield return null;
+                var scene=GetComponentInChildren<WarehouseScene>();
+                var fill=warehouseOverlay.GetComponentsInChildren<RectTransform>().First(rect=>rect.name=="Fill");
+                UiCheck(scene.Progress==1&&fill.anchorMax.x<1,"reduced-motion warehouse keeps the scene still while the timed progress bar remains incomplete");
+                double started=Time.realtimeSinceStartupAsDouble;
+                while(warehouseWorking&&Time.realtimeSinceStartupAsDouble-started<7)yield return null;
+                UiCheck(!warehouseWorking&&effects.LastCue==GameCue.Success&&state.Day==2&&state.Cash==1050000&&state.SettlementPending,
+                    "warehouse finish uses success feedback without paying again or skipping work duration");
+            } finally {
+                effects.CancelAnimations();if(target!=null)Destroy(target.gameObject);
+                for(int i=0;i<keys.Length;i++){if(existed[i])GameRuntime.SetInt(keys[i],preferences[i]);else GameRuntime.DeleteKey(keys[i]);}
+                RestoreFeedbackSettings();appPaused=paused;appFocused=focused;UpdateFeedbackActivity();
+                UiFixture(original,originalTab);marketClock.Reset();marketWasRunning=false;
+            }
         }
 #endif
     }

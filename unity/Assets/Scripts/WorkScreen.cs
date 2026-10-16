@@ -29,6 +29,7 @@ namespace MoneyTown
             try{store.Save(changed);}
             catch(Exception){Feedback("저장 실패로 알바를 취소했습니다. 저장 공간을 확인하세요.",true);return;}
             state=changed;warehouseWorking=true;marketClock.Reset();marketWasRunning=false;
+            effects?.Play(GameCue.Work);
             safeArea.gameObject.SetActive(false);
             StartCoroutine(AnimateWarehouseWork());
         }
@@ -48,17 +49,20 @@ namespace MoneyTown
             var track=Rect("ShiftProgress",panel);Height(track,12);Surface(track,Raised);
             var fill=Rect("Fill",track);Stretch(fill);Surface(fill,Mint).raycastTarget=false;
             Label(panel,"근무를 마치면 다음 날 결산을 확인합니다",18,Muted,46,TextAnchor.MiddleCenter);
-            float elapsed=0;
+            float elapsed=0;int soundStage=0;
             while(elapsed<4.2f) {
                 if(!appPaused&&(appFocused||GameRuntime.Verifying))elapsed+=Time.unscaledDeltaTime;
-                scene.Progress=Mathf.Clamp01(elapsed/4.2f);scene.SetVerticesDirty();
-                fill.anchorMax=new Vector2(scene.Progress,1);
+                int currentStage=Math.Min(2,(int)(elapsed/1.4f));
+                if(currentStage>soundStage){soundStage=currentStage;effects?.Play(GameCue.Work);}
+                scene.Progress=effects!=null&&effects.ReducedMotion?1:Mathf.Clamp01(elapsed/4.2f);scene.SetVerticesDirty();
+                fill.anchorMax=new Vector2(Mathf.Clamp01(elapsed/4.2f),1);
                 stage.text=elapsed<1.4f?"입고된 상자를 분류하고 있어요":elapsed<3.4f?"상자를 옮겨 출고 준비 중이에요":"근무 완료! 일당 "+Signed(Market.WarehouseWage);
                 yield return null;
             }
             warehouseOverlay.gameObject.SetActive(false);Destroy(warehouseOverlay.gameObject);warehouseOverlay=null;
             warehouseWorking=false;safeArea.gameObject.SetActive(true);
             Feedback("물류센터 일당 "+Money(Market.WarehouseWage)+"을 받았습니다. 다음 날 결산을 확인하세요.");RenderTab();scroll.verticalNormalizedPosition=1;
+            CompleteFeedback(GameCue.Success);
         }
     }
 

@@ -20,8 +20,8 @@ namespace MoneyTown
         Text settlementTitle,settlementNotice;
         double lastMarketTime;
         bool MarketRunning => state!=null&&!blocked&&!resetPending&&tutorial==null&&tab<3&&!state.SettlementPending&&appFocused&&!appPaused;
-        void OnApplicationFocus(bool focused){appFocused=focused;marketWasRunning=false;lastMarketTime=Time.realtimeSinceStartupAsDouble;}
-        void OnApplicationPause(bool paused){appPaused=paused;marketWasRunning=false;lastMarketTime=Time.realtimeSinceStartupAsDouble;}
+        void OnApplicationFocus(bool focused){appFocused=focused;marketWasRunning=false;lastMarketTime=Time.realtimeSinceStartupAsDouble;UpdateFeedbackActivity();}
+        void OnApplicationPause(bool paused){appPaused=paused;marketWasRunning=false;lastMarketTime=Time.realtimeSinceStartupAsDouble;UpdateFeedbackActivity();}
         void Watch(Action refresh){liveQuotes.Add(refresh);refresh();}
         void RestoreMarketInterval()
         {
@@ -48,7 +48,7 @@ namespace MoneyTown
         }
         void DrawClockSettings()
         {
-            Label(content,"시세 갱신 간격",32,null,58);
+            Label(content,"게임 설정",32,null,58);
             var settings=Card(content,22,14);
             Label(settings,"현재 설정 · "+MarketClock.IntervalText(marketClock.Interval),25,Mint,44);
             Label(settings,"다음 갱신까지 "+marketClock.RemainingText,30,Gold,56);
@@ -61,6 +61,7 @@ namespace MoneyTown
             Label(settings,"간격을 바꾸면 새 카운트다운을 시작합니다.\n같은 간격을 다시 누르면 남은 시간을 유지합니다.",20,Muted,80);
             Label(settings,"설정은 자동 저장됩니다. 앱을 다시 열면 선택한 간격부터 시작합니다.",20,Muted,72);
             Label(settings,"설정·도움말·결산·연습·백그라운드에서는 시간이 멈춥니다. ‘다음 날’도 선택한 간격을 유지합니다.",20,Muted,100);
+            DrawFeedbackSettings(content);
             Height(tradeDock,108);tradeDock.gameObject.SetActive(true);
             Button(tradeDock,"설정 완료 · 게임으로 돌아가기",()=>{tab=clockReturnTab;RenderTab();scroll.verticalNormalizedPosition=1;},Hex("266957"),76);
         }
@@ -76,6 +77,7 @@ namespace MoneyTown
                 try {
                     var changed=Market.Intraday(state);store.Save(changed);state=changed;
                     UpdateSummary();foreach(var refresh in liveQuotes)refresh();Estimate();
+                    AnimateQuote();
                 } catch(Exception) {Feedback("시세 갱신을 취소했습니다. 저장 공간과 자산 한도를 확인하세요.",true);}
             }
             if(tradeClock!=null) {
@@ -129,6 +131,7 @@ namespace MoneyTown
             scroll.StopMovement();scroll.verticalNormalizedPosition=1;
             safeArea.gameObject.SetActive(!visible);settlementOverlay.gameObject.SetActive(visible);
             if(visible){showAllSettlementNews=false;showSettlementDetails=false;}
+            if(visible)effects?.Animate(settlementWindow,FeedbackMotion.Reveal);
         }
         void ReportLine(Transform parent,string title,string amount,Color? tint=null)
         {

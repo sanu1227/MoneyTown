@@ -13,9 +13,10 @@
 | 어떤 기능이 남았는지 | [개발 계획](roadmap.md) |
 | 지금까지 무엇을 했는지 | [날짜별 개발 노트](development-log.md) |
 | 정보 상품의 실제 본문 | [등급별 목록](information-catalog/README.md), [전체 CSV](information-catalog.csv), [매체별 문체 샘플](information-catalog/style-samples.md) |
+| 효과음 원본과 미리듣기 | [효과음 사양·생성·검사](audio-assets.md) |
 | 정보와 주가의 연결을 측정하는 방법 | [사건 연관성 측정](../tests/market-correlation/README.md) |
 | 전략별 결과를 비교하는 방법 | [전략 비교 도구](../tests/strategy-comparison/README.md) |
 | 참고한 게임과 개발 자료 | [참고 자료 조사](references.md) |
 | 앞으로 기록하는 방식 | [프로젝트 개발 규칙](../AGENTS.md) |
 
-현재 소개 기준은 **v0.20.1**입니다. 과거 개발 노트와 참고 자료에는 당시의 종목 수·검사 수·설정이 남아 있습니다. 현재 기능은 프로젝트 README와 플레이 가이드, 변경 시점은 개발 노트를 기준으로 확인하세요.
+현재 소개 기준은 **v0.21.0**입니다. 빌드·실행·설치 검증 결과는 README와 개발 노트에 기록합니다. 과거 개발 노트와 참고 자료에는 당시의 종목 수·검사 수·설정이 남아 있습니다. 현재 기능은 프로젝트 README와 플레이 가이드, 변경 시점은 개발 노트를 기준으로 확인하세요.
