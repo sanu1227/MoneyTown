@@ -28,6 +28,7 @@ namespace MoneyTown
         public long Day, Seed, Cash, Realized, DepositDue;
         public int EventEdition = InformationCatalog.CurrentEdition;
         public int MarketVersion = Market.CurrentMarketVersion;
+        public int StoryUnlocked = 1, StorySeen;
         public long TickSeed,TickCount,DayStartAssets,DayStartRealized,DayFees,DayInformationCost,DayInterest;
         public long PriceMigrationDay,PriceMigrationCash,PriceMigrationAssets,PriceMigrationProfit;
         public DayReport LastReport;
@@ -130,7 +131,7 @@ namespace MoneyTown
             InfoMarket.Validate(s);
             Intelligence.Validate(s);
             Require(s.Clues.All(c=>!c.BeforePriceMigration||s.PriceMigrationDay>0&&c.IssuedDay<=s.PriceMigrationDay),damaged);
-            ValidateDay(s);ValidateHistory(s);Total(s); return s;
+            ValidateDay(s);ValidateHistory(s);Story.Validate(s);Total(s); return s;
         }
         public static Quote GetQuote(GameState s, int index, long quantity)
         {

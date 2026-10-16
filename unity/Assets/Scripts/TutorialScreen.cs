@@ -39,7 +39,7 @@ namespace MoneyTown
             if(tutorial!=null&&!SaveTutorialProgress(tutorial.Step,2)){RenderTab();return;}
             tutorial=null;tutorialHint="";tab=help?3:0;RenderTab();scroll.verticalNormalizedPosition=1;
         }
-        void OpenHelp() {if(state.SettlementPending)return;if(tutorial!=null){LeaveTutorial(true);return;}tab=3;resetPending=false;RenderTab();scroll.verticalNormalizedPosition=1;}
+        void OpenHelp() {if(StoryActive||state.SettlementPending)return;if(tutorial!=null){LeaveTutorial(true);return;}tab=3;resetPending=false;RenderTab();scroll.verticalNormalizedPosition=1;}
         void AdvanceTutorial(int expectedStep,int answer=-1)
         {
             if(tutorial==null||tutorial.Step!=expectedStep)return;
@@ -140,6 +140,7 @@ namespace MoneyTown
             int step=SavedTutorialStep;
             if(step>0&&step<TutorialSession.Count)Button(practice,"이어서 연습 · "+(step+1)+" / "+TutorialSession.Count,()=>StartTutorial(false),Hex("266957"));
             Button(practice,step==0?"튜토리얼 시작":"처음부터 연습",()=>StartTutorial(true),Raised);
+            DrawStoryLibrary(content);
             LessonNote("현금과 총자산","현금은 지금 쓸 수 있는 돈입니다. 총자산은 현금에 보유 주식의 현재 가치와 예금 원금을 더한 금액입니다.",6);
             LessonNote("주식을 사고팔기","거래소의 ‘종목 선택’을 눌러 "+Market.Companies.Length+"개 기업을 둘러보고 종목과 수량을 고르세요. 버튼 금액에는 0.1% 수수료가 포함되며 1원 미만은 올림합니다.",9);
             LessonNote("봉인 정보와 기업 분석","봉인 정보는 대상을 숨기고 판매합니다. 1~10등급 중 10등급이 가장 구체적이고 비쌉니다. 기업 분석은 원하는 기업을 지정하는 고가 정보입니다.");

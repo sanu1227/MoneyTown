@@ -7,7 +7,7 @@ namespace MoneyTown
 {
     public static class SaveCodec
     {
-        public const int CurrentVersion=11;
+        public const int CurrentVersion=12;
         public const int MaximumBytes=2*1024*1024;
         public static byte[] Encode(GameState s)
         {
@@ -62,6 +62,7 @@ namespace MoneyTown
                     writer.Write(s.PriceMigrationDay);writer.Write(s.PriceMigrationCash);
                     writer.Write(s.PriceMigrationAssets);writer.Write(s.PriceMigrationProfit);
                     foreach(var clue in s.Clues)writer.Write(clue.BeforePriceMigration);
+                    writer.Write(s.StoryUnlocked);writer.Write(s.StorySeen);
                 }
                 var body = buffer.ToArray();
                 if(body.Length>MaximumBytes-32)throw new InvalidDataException("저장 파일 크기 한도를 초과했습니다.");
@@ -147,7 +148,7 @@ namespace MoneyTown
                     for(int i=0;i<reports;i++)s.DayReports[i]=ReadReport(reader,version);
                     s.Goals=(GoalFlags)reader.ReadInt32();
                 } else {
-                    Market.ImportHistory(s);Market.Validate(s);Progress.Record(s);
+                    Market.ImportHistory(s);Market.Validate(s);Progress.Record(s,false);
                 }
                 // Newly listed companies start now; never invent their old prices or holdings.
                 for(int i=companies;i<s.Stocks.Length;i++) {
@@ -158,6 +159,9 @@ namespace MoneyTown
                     s.PriceMigrationAssets=reader.ReadInt64();s.PriceMigrationProfit=reader.ReadInt64();
                     foreach(var clue in s.Clues)clue.BeforePriceMigration=ReadFlag(reader);
                     if(s.PriceMigrationDay==0&&s.Clues.Any(c=>c.BeforePriceMigration))throw new InvalidDataException("가격 전환 기록이 손상되었습니다.");
+                }
+                if(version>=12) {
+                    s.StoryUnlocked=reader.ReadInt32();s.StorySeen=reader.ReadInt32();
                 }
                 if (buffer.Position != buffer.Length) throw new InvalidDataException("알 수 없는 저장 데이터가 있습니다.");
                 if (version == 1) { Market.Validate(s); InfoMarket.ImportLegacyReports(s); }

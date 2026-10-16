@@ -5,7 +5,7 @@ namespace MoneyTown
 {
     public static class Progress
     {
-        public static void Record(GameState state)
+        public static void Record(GameState state, bool recordStory = true)
         {
             if (state.Trades.Length > 0 || state.Stocks.Any(stock => stock.Quantity > 0) || state.Realized != 0)
                 state.Goals |= GoalFlags.FirstTrade;
@@ -15,6 +15,7 @@ namespace MoneyTown
             if (assets >= 2000000) state.Goals |= GoalFlags.AssetsTwoMillion;
             if (assets >= 10000000) state.Goals |= GoalFlags.AssetsTenMillion;
             if (state.Stocks.Count(stock => stock.Quantity > 0) >= 3) state.Goals |= GoalFlags.Diversified;
+            if (recordStory) Story.Record(state);
         }
 
         public static bool FundsExhausted(GameState state)

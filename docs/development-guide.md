@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.24.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
+빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.25.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.24.0-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.25.0-Setup-x64.exe
 ```
 
 ## Android APK
@@ -87,9 +87,17 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 
 게임 소개 캡처를 갱신할 때는 통과한 실행의 PNG를 `assets/screenshots/버전/`에 복사하고 [갤러리의 촬영 정보](gallery.md#촬영-정보)를 함께 바꿉니다. 실제 게임 화면과 별도 브랜드 일러스트를 구분합니다.
 
+## 이야기와 일러스트 수정
+
+장별 제목·해금 안내·세 페이지 대사·이미지 이름은 [`StoryChapters.cs`](../unity/Assets/Scripts/StoryChapters.cs)에 있습니다. 실제 해금 금액과 순차 확인 규칙은 [`Core/Story.cs`](../unity/Assets/Scripts/Core/Story.cs), 표시 우선순위·저장 재시도·다시 보기·움직임은 [`StoryScreen.cs`](../unity/Assets/Scripts/StoryScreen.cs)에서 관리합니다. 장 배열의 순서와 `Story.Thresholds`의 순서를 맞춥니다. 전체 구성은 [성장 이야기](story.md)를 참고하세요.
+
+이미지는 `unity/Assets/Resources/StoryArt/`의 PNG 6장과 `.meta`입니다. `ArtName`에는 확장자를 제외한 파일명을 넣으며 Unity가 `Resources.Load<Texture2D>`로 읽습니다. 한국어 문장은 이미지에 넣지 않고 UI 텍스트로 표시합니다. 원본·크기·해시·생성 프롬프트와 임포트 설정은 [일러스트 제작 기록](story-art.md)에 보관합니다.
+
+[`Core/StoryChecks.cs`](../unity/Assets/Scripts/Core/StoryChecks.cs)는 해금 경계·총자산·자산 하락·확인 순서·이전 저장 호환성을 검사합니다. [`StoryVerificationScreen.cs`](../unity/Assets/Scripts/StoryVerificationScreen.cs)는 Unity Player에서 화면 우선순위·시세 차단·저장 실패 재시도·다시 보기·본문 배치·그림·동작 줄이기를 확인합니다. 위 코어·Verification 명령에 포함되며, 이미지 자체 확인과 실제 화면 캡처를 함께 점검합니다.
+
 ## 배경음악 수정
 
-v0.24.0은 `unity/Assets/Resources/Audio/`의 `town-lounge.wav`, `market-morning.wav`, `newsroom-bossa.wav`, `city-evening.wav`를 PCM 스트리밍으로 불러옵니다. `GameMusic.cs`의 독립 2D `AudioSource`에서 한 곡씩 재생하고, 네 곡을 한 번씩 들은 뒤 다시 섞습니다. 한 바퀴의 마지막 곡과 다음 바퀴 첫 곡도 다르게 고릅니다. 효과음이 재생되거나 메뉴가 바뀌어도 음악을 다시 시작하지 않습니다.
+v0.25.0은 `unity/Assets/Resources/Audio/`의 `town-lounge.wav`, `market-morning.wav`, `newsroom-bossa.wav`, `city-evening.wav`를 PCM 스트리밍으로 불러옵니다. `GameMusic.cs`의 독립 2D `AudioSource`에서 한 곡씩 재생하고, 네 곡을 한 번씩 들은 뒤 다시 섞습니다. 한 바퀴의 마지막 곡과 다음 바퀴 첫 곡도 다르게 고릅니다. 효과음이 재생되거나 메뉴가 바뀌어도 음악을 다시 시작하지 않습니다.
 
 `FeedbackScreen.cs`의 **설정 > 배경음악**은 현재 곡·다음 곡·켜기/끄기와 음량 0·25·50·75·100%(기본 켜짐·25%)를 제공합니다. 기기 설정 키는 `MoneyTown.Music.Enabled`, `MoneyTown.Music.Volume`입니다. 효과음·동작 줄이기와 독립적이며 게임 저장 형식은 바꾸지 않습니다. 꺼짐·0음량·앱 중단 때 `Pause`, 복귀 때 같은 위치에서 `UnPause`와 0.5초 페이드인을 사용합니다. 곡 종료 전에는 0.5초 페이드아웃을 적용합니다. `NextTrack()`과 `SelectTrack(int)`는 무음·중단 상태를 유지하며 선곡만 바꿉니다. 직접 선택한 곡이 끝나면 랜덤 순서로 복귀합니다. `MusicSelectionCard`는 네 곡의 버튼과 현재 선택 표시를 제공하며 현재 곡을 다시 눌러도 재생 위치를 유지합니다.
 
@@ -141,7 +149,8 @@ dotnet run --project tests/strategy-comparison/StrategyComparison.csproj
 - v0.20.0은 새 게임의 초기 가격을 1천~600만원으로 구분했습니다. v0.20.1은 저장 형식 **11**에서 지원하는 이전 형식 **1~10 전체**의 현재가를 새 기준가로 한 번 맞춥니다. v0.20.0에서 새로 생성한 형식 10 저장도 구별할 표식이 없어 동일하게 적용합니다.
 - 기업별 `V = 기존 현재가 × 보유 수량`, `새 수량 = V / 새 기준가`의 내림값, `R = V % 새 기준가`로 계산합니다. `R`은 무수수료 현금 정산하고 `floor(기존 원가 × R / V)`만큼 원가를 차감합니다. 평가액 0은 별도로 처리합니다. 실현손익과 `DayStartRealized`에 정산 손익을 함께 반영해 총자산·총손익·당일 손익을 보존합니다. 중간 곱셈은 `BigInteger`를 사용합니다.
 - 차트는 동일 비율로 새 가격 기준에 맞추며 기존 거래·결산·구매 가격 스냅샷은 원본으로 남깁니다. 과거 자료는 가격 기준 조정 이전임을 안내합니다. 날짜·예금 원금/만기·시장 난수는 유지하며 진행을 초기화하지 않습니다.
-- 이전 파일을 먼저 검증하고 `before-price-update` 원본 사본을 남긴 뒤 원자적 저장이 성공한 경우에만 조정 상태를 적용합니다. 형식 11로 적용 상태를 저장해 재실행 시 중복 정산을 막습니다. 정산 금액·실현손익의 한도를 넘거나 저장이 실패하면 원본을 보존하며, 자산이나 손익을 잘라 한도에 맞추지 않습니다. 검증에서는 총자산 보존·정산 원가·중복 방지·원본 사본·저장 실패 경로를 함께 확인합니다.
+- 이전 파일을 먼저 검증하고 `before-price-update` 원본 사본을 남긴 뒤 원자적 저장이 성공한 경우에만 조정 상태를 적용합니다. v0.20.1에서는 형식 11로 적용 상태를 저장해 재실행 시 중복 정산을 막았습니다. 현재는 같은 이전 내역을 형식 12에 보존합니다. 정산 금액·실현손익의 한도를 넘거나 저장이 실패하면 원본을 보존하며, 자산이나 손익을 잘라 한도에 맞추지 않습니다. 검증에서는 총자산 보존·정산 원가·중복 방지·원본 사본·저장 실패 경로를 함께 확인합니다.
+- v0.25.0의 현재 저장 형식 **12**는 기존 형식 11 본문 뒤에 이야기 해금 수·확인 수를 추가합니다. 형식 1~11은 도입부 미확인으로 읽고 화면 시작·복구 시 현재 총자산으로 해금합니다. 형식 11은 가격을 다시 환산하지 않으며, 1~10의 기존 가격 이전 조건도 유지합니다. 해금·확인은 저장 성공 후에만 화면 상태에 반영합니다.
 - Android·Unity 에디터·PC의 저장은 별개일 수 있습니다. 이전 Kotlin·웹 저장은 자동 이전하지 않습니다.
 - 소스에는 Unity `Assets`·`.meta`·`Packages`·`ProjectSettings`와 콘텐츠·검증·문서를 포함합니다. 캐시·로그·개인 설정·서명 키·빌드 결과는 제외합니다.
 - 기능별 검증과 개발 노트를 마친 뒤 한국어 메시지로 커밋하고 `origin`에 일반 push합니다. 자세한 규칙은 [AGENTS.md](../AGENTS.md)를 따릅니다.

@@ -19,7 +19,7 @@ namespace MoneyTown
         RectTransform settlementOverlay,settlementWindow;
         Text settlementTitle,settlementNotice;
         double lastMarketTime;
-        bool MarketRunning => state!=null&&!blocked&&!resetPending&&tutorial==null&&tab<3&&!state.SettlementPending&&appFocused&&!appPaused;
+        bool MarketRunning => state!=null&&!StoryActive&&!blocked&&!resetPending&&tutorial==null&&tab<3&&!state.SettlementPending&&appFocused&&!appPaused;
         void OnApplicationFocus(bool focused){appFocused=focused;marketWasRunning=false;lastMarketTime=Time.realtimeSinceStartupAsDouble;UpdateFeedbackActivity();}
         void OnApplicationPause(bool paused){appPaused=paused;marketWasRunning=false;lastMarketTime=Time.realtimeSinceStartupAsDouble;UpdateFeedbackActivity();}
         void Watch(Action refresh){liveQuotes.Add(refresh);refresh();}
@@ -30,7 +30,7 @@ namespace MoneyTown
         }
         void OpenClockSettings()
         {
-            if(blocked||tutorial!=null||state.SettlementPending||tab==5)return;
+            if(StoryActive||blocked||tutorial!=null||state.SettlementPending||tab==5)return;
             clockReturnTab=tab;SwitchTab(5);
         }
         void SelectMarketInterval(int seconds)
@@ -78,6 +78,7 @@ namespace MoneyTown
                     var changed=Market.Intraday(state);store.Save(changed);state=changed;
                     UpdateSummary();foreach(var refresh in liveQuotes)refresh();Estimate();
                     AnimateQuote();
+                    TryShowStory();
                 } catch(Exception) {Feedback("시세 갱신을 취소했습니다. 저장 공간과 자산 한도를 확인하세요.",true);}
             }
             if(tradeClock!=null) {

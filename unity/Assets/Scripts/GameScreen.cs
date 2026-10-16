@@ -53,12 +53,13 @@ namespace MoneyTown
             catch(Exception){state=Market.Create();blocked=true;message="저장 읽기 실패. 자산 탭에서 복구하세요.";}
             if(store!=null&&store.PricesMigrated&&!blocked){message="가격 조정 완료 · 총자산 보존 · 내 자산 > 진행 관리";flashUntil=Time.unscaledTime+8;}
             else if(state.SettlementPending)message="전날 결산과 새로운 개장 시세를 확인하세요.";
-            RestoreTutorial();BuildScreen();UpdateSummary();RenderTab();
+            RestoreStoryProgress();RestoreTutorial();BuildScreen();UpdateSummary();RenderTab();
             StartVerification();
         }
         void Update()
         {
             UpdateFeedbackActivity();
+            TryShowStory();UpdateStoryAnimation();
             if(safeArea!=null&&(lastSafe!=Screen.safeArea||lastSize!=new Vector2Int(Screen.width,Screen.height)))ApplySafeArea();
             if(status!=null)UpdateStatus();
             UpdateMarket();
@@ -71,6 +72,7 @@ namespace MoneyTown
             safeArea.anchorMax=new Vector2(lastSafe.xMax/Screen.width,lastSafe.yMax/Screen.height);
             safeArea.offsetMin=safeArea.offsetMax=Vector2.zero;
             PositionSettlementWindow();
+            PositionStoryWindow();
         }
         static Sprite MakeRoundedSprite()
         {
@@ -179,9 +181,10 @@ namespace MoneyTown
                 navIcons[i]=Icon(body,kinds[i],Muted,30);Label(body,titles[i],19,Muted,30,TextAnchor.MiddleCenter);
             }
             BuildSettlementWindow(root.transform);
+            BuildStoryWindow(root.transform);
             if(FindFirstObjectByType<EventSystem>()==null)new GameObject("EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));
         }
-        void SwitchTab(int index){if(tutorial!=null||state.SettlementPending)return;tab=index;resetPending=false;choosingCompany=false;if(index==1){openedInfo=null;openedClue=null;}RenderTab();scroll.verticalNormalizedPosition=1;}
+        void SwitchTab(int index){if(StoryActive||tutorial!=null||state.SettlementPending)return;tab=index;resetPending=false;choosingCompany=false;if(index==1){openedInfo=null;openedClue=null;}RenderTab();scroll.verticalNormalizedPosition=1;}
         void UpdateSummary()
         {
             var shown=tutorial==null?state:tutorial.State;
@@ -204,7 +207,7 @@ namespace MoneyTown
         }
         void Act(Func<GameState> action,string success,GameCue cue=GameCue.Success)
         {
-            if(blocked||tutorial!=null||state.SettlementPending)return;
+            if(StoryActive||blocked||tutorial!=null||state.SettlementPending)return;
             GameState changed;
             try{changed=action();}
             catch(Exception ex){Feedback(ex is OverflowException?"거래 금액이 한도를 초과했습니다.":ex.Message,true);return;}
@@ -240,6 +243,7 @@ namespace MoneyTown
             else if(tab==6)DrawHistory();
             else if(tab==0){Trading();BuildTradeDock();}else if(tab==1)Information();else Assets();
             Canvas.ForceUpdateCanvases();LayoutRebuilder.ForceRebuildLayoutImmediate(safeArea);LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+            TryShowStory();
         }
         void CompanyStrip()
         {

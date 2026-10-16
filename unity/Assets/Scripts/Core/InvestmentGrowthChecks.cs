@@ -53,7 +53,7 @@ namespace MoneyTown
             var migrated=SaveCodec.Decode(CoreChecks.LegacyBytes(old,9));
             Check(migrated.MarketVersion==3&&migrated.Clues.Single().MarketVersion==3
                 &&Article(migrated.Clues.Single())==Article(record),"Version-nine migration rewrote a paid report.");
-            Check(SaveCodec.Encode(old).SequenceEqual(SaveCodec.Encode(migrated))
+            Check(CoreChecks.LegacyBytes(old,11).SequenceEqual(CoreChecks.LegacyBytes(migrated,11))
                 &&migrated.LastReport.WorkIncome==50000&&migrated.DayReports.Last().WorkIncome==50000
                 &&migrated.Stocks[1].Quantity==3,"Version-nine migration changed assets, wages or history.");
         }
@@ -84,8 +84,8 @@ namespace MoneyTown
             var state=Market.Create(42);state.Cash=state.DayStartAssets=1000000000;
             state=Intelligence.Buy(state,Intelligence.DailyCount+2,state.Day);
             byte[] bytes=SaveCodec.Encode(state);var restored=SaveCodec.Decode(bytes);
-            Check(BitConverter.ToInt32(bytes,4)==11&&restored.MarketVersion==4&&restored.Clues.Single().MarketVersion==4
-                &&bytes.SequenceEqual(SaveCodec.Encode(restored)),"Version-eleven save lost the active or purchased price model.");
+            Check(BitConverter.ToInt32(bytes,4)==SaveCodec.CurrentVersion&&restored.MarketVersion==4&&restored.Clues.Single().MarketVersion==4
+                &&bytes.SequenceEqual(SaveCodec.Encode(restored)),"Current save lost the active or purchased price model.");
             foreach(int invalid in new[]{-1,0,1,2,5,int.MaxValue}) {
                 var broken=state.Copy();broken.MarketVersion=invalid;Reject(()=>SaveCodec.Encode(broken));
                 // Authenticate the corrupt body so decoding must reject the model, not only its checksum.

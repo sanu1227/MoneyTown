@@ -107,7 +107,7 @@ namespace MoneyTown
             CheckIntraday();CheckSettlement();CheckDayMigration();CheckMarketIntervals();
             CheckArticleEditions();
             CheckMediaVoices();
-            return 30 + StorageChecks.Run() + PurchaseGuidanceChecks.Run() + OrderGuidanceChecks.Run() + HistoryChecks.Run() + ProgressChecks.Run() + ExpansionChecks.Run() + CorrelationChecks.Run() + WarehouseChecks.Run() + InvestmentGrowthChecks.Run() + PriceProgressionChecks.Run() + PriceMigrationChecks.Run();
+            return 30 + StorageChecks.Run() + PurchaseGuidanceChecks.Run() + OrderGuidanceChecks.Run() + HistoryChecks.Run() + ProgressChecks.Run() + ExpansionChecks.Run() + CorrelationChecks.Run() + WarehouseChecks.Run() + InvestmentGrowthChecks.Run() + PriceProgressionChecks.Run() + PriceMigrationChecks.Run() + StoryChecks.Run();
         }
         static void CheckMediaVoices()
         {
@@ -421,8 +421,8 @@ namespace MoneyTown
         }
         internal static byte[] LegacyBytes(GameState s,int version)
         {
-            // Frozen file layouts through v10, independent of the current save writer.
-            if(version<1||version>10||version<8&&s.Clues.Any(c=>c.Version>2||c.ContentEdition>2))throw new ArgumentException("Legacy fixture contains current information.");
+            // Frozen file layouts through v11, independent of the current save writer.
+            if(version<1||version>11||version<8&&s.Clues.Any(c=>c.Version>2||c.ContentEdition>2))throw new ArgumentException("Legacy fixture contains current information.");
             int companies=version>=8?s.Stocks.Length:6;
             using(var buffer=new MemoryStream()) {
                 using(var writer=new BinaryWriter(buffer,System.Text.Encoding.UTF8,true)) {
@@ -470,6 +470,11 @@ namespace MoneyTown
                         }
                         writer.Write(s.DayReports.Length);foreach(var report in s.DayReports)WriteLegacyReport(writer,report,version);
                         writer.Write((int)s.Goals);
+                    }
+                    if(version>=11) {
+                        writer.Write(s.PriceMigrationDay);writer.Write(s.PriceMigrationCash);
+                        writer.Write(s.PriceMigrationAssets);writer.Write(s.PriceMigrationProfit);
+                        foreach(var clue in s.Clues)writer.Write(clue.BeforePriceMigration);
                     }
                 }
                 byte[] body=buffer.ToArray();

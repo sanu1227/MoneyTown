@@ -2,7 +2,20 @@
 
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
-**2026-10-16 촬영.** 곡 직접 선택은 v0.24.0, 음악 랜덤 재생은 v0.23.0, 이전 음악 설정은 v0.22.0, 효과음 설정은 v0.21.0, 가격 조정 내역은 v0.20.1, 기본 화면은 v0.20.0입니다. 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+**2026-10-16 촬영.** 스토리는 v0.25.0, 곡 직접 선택은 v0.24.0, 음악 랜덤 재생은 v0.23.0, 이전 음악 설정은 v0.22.0, 효과음 설정은 v0.21.0, 가격 조정 내역은 v0.20.1, 기본 화면은 v0.20.0입니다. 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+
+<details open>
+<summary><strong>v0.25.0 성장 이야기 — 작은 방에서 더 넓은 세상으로</strong></summary>
+
+도입부와 총자산 200만원·1천만원·1억원·10억원·100억원에 열리는 이야기입니다. 장마다 전용 일러스트를 천천히 움직이고 본문을 부드럽게 표시합니다. 도움말의 ‘나의 이야기’에서 해금한 장을 다시 감상할 수 있습니다. [이야기 구성](story.md) · [일러스트 원본과 제작 자료](story-art.md)
+
+<img src="../assets/screenshots/v0.25.0/story-intro.png" width="480" alt="작은 방에서 도시를 바라보는 주인공과 세계 최고의 부자가 되는 이야기라는 도입부" />
+<img src="../assets/screenshots/v0.25.0/story-milestone.png" width="480" alt="총자산 200만원 달성 후 두 배가 된 가능성 이야기" />
+<img src="../assets/screenshots/v0.25.0/story-library.png" width="480" alt="도움말의 나의 이야기 목록과 각 장의 해금 기준" />
+
+원본은 `build/ui-verification-0962a6d5914c4a3fb4062eff3215d7fa/`의 `32-story-intro.png`, `33-story-milestone.png`, `34-story-library.png`입니다. UI 256개 검사를 통과한 실제 Player 캡처이며 공개 이미지 3개의 SHA-256이 각각 원본과 같습니다. 360×800에서도 256개 검사와 글자 배치를 확인했습니다.
+
+</details>
 
 <details open>
 <summary><strong>v0.24.0 배경음악 — 원하는 곡 직접 선택</strong></summary>

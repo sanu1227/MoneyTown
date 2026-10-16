@@ -31,8 +31,9 @@ namespace MoneyTown
                     return;
                 }
                 state = recovered; blocked = false; resetPending = false;
+                bool storyRestored=RestoreStoryProgress();
                 marketClock.Reset(); marketWasRunning = false;
-                Feedback("백업의 " + state.Day + "일차 진행을 복구했습니다.");
+                Feedback(storyRestored?"백업의 " + state.Day + "일차 진행을 복구했습니다.":message,!storyRestored);
                 RenderTab(); scroll.verticalNormalizedPosition = 1;
             }, Hex("266957"), 68);
             Label(parent, "아래 ‘새 게임 시작’은 복구 대신 처음부터 시작합니다.", 18, Muted, 58);

@@ -31,22 +31,32 @@ v0.19.0의 가격 모델 4는 사건·성장·수급의 합과 기존 개장 최
 | 연출 이벤트 연결·소리와 애니메이션 설정 | [`FeedbackScreen.cs`](../unity/Assets/Scripts/FeedbackScreen.cs) |
 | 원본 효과음 생성·파형 검사 | [`generate-sfx.py`](../scripts/generate-sfx.py), [효과음 자료](audio-assets.md) |
 | 원곡 배경음악 생성·루프 검사 | [`generate-bgm.py`](../scripts/generate-bgm.py), [음악 자료](music-assets.md) |
+| 이야기 해금·확인 순서 | [`Core/Story.cs`](../unity/Assets/Scripts/Core/Story.cs), [`Core/Progress.cs`](../unity/Assets/Scripts/Core/Progress.cs) |
+| 이야기 화면·대사·일러스트 연결 | [`StoryScreen.cs`](../unity/Assets/Scripts/StoryScreen.cs), [`StoryChapters.cs`](../unity/Assets/Scripts/StoryChapters.cs), [일러스트 자료](story-art.md) |
 | 차트·아이콘·종이 표현 | [`PriceChart.cs`](../unity/Assets/Scripts/PriceChart.cs), [`MarketIcon.cs`](../unity/Assets/Scripts/MarketIcon.cs), [`PaperSheet.cs`](../unity/Assets/Scripts/PaperSheet.cs) |
 | 거래·가격·날짜 규칙 | [`Core/Market.cs`](../unity/Assets/Scripts/Core/Market.cs), [`Core/TradingDay.cs`](../unity/Assets/Scripts/Core/TradingDay.cs) |
 | 주문 가능 여부와 최대 매수 | [`Core/OrderGuidance.cs`](../unity/Assets/Scripts/Core/OrderGuidance.cs) |
 | 정보 생성·구매·본문 | [`Core/Intelligence.cs`](../unity/Assets/Scripts/Core/Intelligence.cs), [`Core/InfoMarket.cs`](../unity/Assets/Scripts/Core/InfoMarket.cs), [`Core/ClueContent.cs`](../unity/Assets/Scripts/Core/ClueContent.cs) |
 | 저장과 백업 | [`Core/GameStore.cs`](../unity/Assets/Scripts/Core/GameStore.cs) |
-| 자동 UI 검사와 촬영 | [`VerificationScreen.cs`](../unity/Assets/Scripts/VerificationScreen.cs) |
+| 자동 UI 검사와 촬영 | [`VerificationScreen.cs`](../unity/Assets/Scripts/VerificationScreen.cs), [`StoryVerificationScreen.cs`](../unity/Assets/Scripts/StoryVerificationScreen.cs) |
 
 v0.21.0의 `GameFeedback`은 `Resources/Audio`의 효과음 8종을 2D `AudioSource`로 재생하고 `RectTransform`·`CanvasGroup`으로 눌림·크기 강조·등장 움직임을 처리합니다. 연속 입력은 소리를 중첩하지 않고 최근 소리로 바꿉니다. `FeedbackScreen`은 버튼·행동 결과·지면·시세 이벤트와 설정을 연결하며 경제 상태를 계산하지 않습니다.
 
-효과음 켜기/끄기, 음량 0·25·50·75·100%(기본 50%), 동작 줄이기는 `GameRuntime`을 통해 기기 설정에 저장합니다. 게임 저장 형식 11과 별개입니다. 동작 줄이기는 화면 움직임을 중단하고 알바를 정지 장면으로 표시하지만 기존 약 4.2초 작업 흐름과 보상 규칙은 유지합니다. 앱 비활성화 때는 소리와 진행 중인 움직임을 멈춥니다.
+효과음 켜기/끄기, 음량 0·25·50·75·100%(기본 50%), 동작 줄이기는 `GameRuntime`을 통해 기기 설정에 저장합니다. 게임 진행 파일과 별개입니다. 동작 줄이기는 화면 움직임을 중단하고 알바를 정지 장면으로 표시하지만 기존 약 4.2초 작업 흐름과 보상 규칙은 유지합니다. 앱 비활성화 때는 소리와 진행 중인 움직임을 멈춥니다.
 
 v0.24.0의 `GameMusic`은 `Resources/Audio`의 원곡 4곡을 PCM 스트리밍으로 읽어 별도 2D `AudioSource`에서 재생합니다. 독립 `System.Random`으로 Fisher–Yates 셔플을 수행해 한 바퀴마다 모든 곡을 한 번씩 재생하고, 다음 바퀴 첫 곡이 직전 곡과 같으면 순서를 교환합니다. 시장·사건 난수와 Unity 전역 난수를 사용하지 않습니다. 곡 종료와 수동 `NextTrack()` 모두 같은 순서를 소비합니다. `SelectTrack(int)`는 원하는 곡을 직접 선택합니다. 남은 순서에 있으면 그 곡만 앞으로 옮겨 소비하고 나머지 대기곡은 보존합니다. 이미 재생한 곡의 명시적 재선택도 허용하며, 현재 곡과 잘못된 번호는 무시합니다. `GetTrackTitle(int)`는 목록용 제목을 제공합니다.
 
 메뉴 전환과 효과음 재생은 음악의 재생 위치를 바꾸지 않습니다. 초기에는 중단 상태로 생성하고 저장한 설정을 적용한 뒤 재생합니다. 꺼짐·0음량·앱 비활성화 때 일시정지하며, 복귀하면 같은 곡의 같은 위치에서 0.5초 페이드인합니다. 자연 종료 전에는 짧은 페이드아웃을 적용합니다. 중단 상태에서 다음 곡을 골라도 자동으로 켜지지 않습니다.
 
 배경음악은 기본 켜짐·25%이고 0·25·50·75·100%를 선택합니다. `FeedbackScreen`이 배경음악 카드를 효과음 카드 앞에 배치하고 `MoneyTown.Music.Enabled`·`MoneyTown.Music.Volume` 설정을 저장합니다. 음악·효과음의 AudioSource와 설정을 분리해 각각 음량을 조절하며 동작 줄이기는 음악 재생에 영향을 주지 않습니다.
+
+## 이야기 진행과 화면 순서
+
+`Story`는 프롤로그와 총자산 200만원·1천만원·1억원·10억원·100억원의 장을 관리합니다. `Progress.Record`가 현금·주식 평가액·예금 원금을 합산해 `StoryUnlocked`를 늘리고, 자산 하락에도 해금 기록을 유지합니다. `StorySeen`은 확인한 장 수입니다. `Next`는 가장 앞의 미확인 장을 반환하고 `Acknowledge`는 그 장만 확인한 복사본을 만듭니다. 여러 구간을 넘으면 순서대로 이어집니다.
+
+`StoryScreen`은 새 게임의 도입부를 튜토리얼보다 먼저 표시합니다. 성장 장면은 미확인 결산·물류센터 작업·튜토리얼이 끝난 뒤 표시하며 설정·도움말에서는 기다립니다. 이야기 중 일반 화면을 숨기고 거래·날짜·시세 갱신을 막습니다. 그림의 확대·이동과 본문 페이드는 앱 비활성화 때 멈추고, 동작 줄이기에서는 정지 그림과 완성된 본문을 사용합니다.
+
+마지막 페이지와 건너뛰기는 현재 자산의 해금 상태를 다시 계산하고 확인 진도를 저장한 뒤 창을 닫습니다. 저장 실패 시 현재 장과 페이지를 유지해 재시도할 수 있습니다. 초기 해금 저장이 실패했더라도 확인 저장의 재시도에서 해금을 함께 반영합니다. 페이지 단위로 저장하지 않으므로 중간 종료 후에는 해당 장 처음부터 이어집니다. 도움말의 다시 보기는 저장을 바꾸지 않습니다. [장 구성과 대사 관리](story.md)
 
 ## 정보 콘텐츠 흐름
 
@@ -66,8 +76,9 @@ flowchart TD
 
 ## 진행 보호와 검증
 
-- 저장은 체크섬·임시 파일 교체·백업을 사용합니다. v0.20.1의 내부 저장 형식은 11이며 현재 날짜의 가격 모델과 가격 기준 조정 내역을 기록합니다.
+- 저장은 체크섬·임시 파일 교체·백업을 사용합니다. v0.20.1의 형식 11은 현재 날짜의 가격 모델과 가격 기준 조정 내역을 기록했습니다. v0.25.0의 현재 형식 **12**는 그 본문 뒤에 `StoryUnlocked`·`StorySeen` 두 정수를 추가합니다.
 - `SaveCodec.Decode`는 이전 기록을 복원합니다. `GameStore.Load`는 형식 1~10을 `PriceMigration.Apply`로 한 번 환산하고 원본 사본을 보관한 뒤 원자적으로 저장합니다. 총자산은 그대로이며 정수 주식으로 바꾸고 남는 금액만 현금으로 정산합니다. 미리보기에서는 파일을 바꾸지 않습니다.
+- 형식 11·12는 가격 환산 대상이 아닙니다. 형식 1~11의 이야기 기본값은 해금 1장·확인 0장이며, 디코딩 단계에서 자산에 따라 해금하지 않습니다. 화면 시작·복구 시 현재 자산으로 추가 해금을 계산해 저장하고, 과거 최고자산은 추정하지 않습니다. `Market.Validate`·`Story.Validate`는 이야기 필드를 수정하지 않습니다.
 - 저장 형식 1~9의 현재 날짜는 가격 모델 3으로 읽습니다. 다음 개장 한 번은 기존 규칙을 적용하고, 이후 생성되는 날짜부터 모델 4를 사용합니다. 새 게임은 모델 4로 시작합니다. 이전 구매본의 가격 모델·본문·시세 범위와 과거 결산은 보존합니다.
 - 미확인 결산을 저장하므로 앱을 다시 열어도 결산 확인부터 이어갑니다.
 - `GameRuntime.Verifying`은 검증 전용 데이터 경로와 별도 설정을 사용합니다. 검증 앱은 본게임 저장을 건드리지 않습니다.

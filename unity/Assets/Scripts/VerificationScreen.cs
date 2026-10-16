@@ -70,8 +70,11 @@ namespace MoneyTown
                 "unchanged prices remain flat and only floor-bound prices cite the floor");
         }
         string UiText() => string.Join("\n", GetComponentsInChildren<Text>().Select(label => label.text));
-        void UiFixture(GameState fixture, int screen = 0)
+        void UiFixture(GameState fixture, int screen = 0, bool stories = false)
         {
+            CloseStoryScreen();
+            Story.Record(fixture);
+            if (!stories) fixture.StorySeen = fixture.StoryUnlocked;
             state = fixture; store.Save(state); blocked = false; tutorial = null;
             selected = 0; tab = screen; selectedReportDay = null; openedClue = null; openedInfo = null;
             quantityText = "1"; choosingCompany=showGoals=showManagement=feedbackError=false;flashUntil=0;
@@ -108,6 +111,20 @@ namespace MoneyTown
             // The native splash owns the backbuffer until it finishes, even after Start runs.
             while (!UnityEngine.Rendering.SplashScreen.isFinished) yield return null;
             yield return new WaitForEndOfFrame();
+            UiCheck(StoryActive && storyChapter == 0 && storyPage == 0 &&
+                UiLabel("StoryBody").text == "이건 내가 세계 최고의 부자가 되는 이야기이다",
+                "fresh game opens the requested exact introduction before the trading screen");
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
+            UpdateStoryAnimation();
+            yield return new WaitForEndOfFrame();
+            UiCheck(UiStoryFits() && !safeArea.gameObject.activeSelf &&
+                GetComponentsInChildren<RawImage>().Single(image => image.name == "StoryIllustration").texture != null,
+                "introduction illustration and all story controls fit the full-screen opening");
+            UiCapture("32-story-intro");
+            UiButton("StorySkip").onClick.Invoke();
+            UiCheck(!StoryActive && state.StorySeen == 1 && store.Load().StorySeen == 1 && safeArea.gameObject.activeSelf,
+                "skipping the introduction saves its acknowledgement and reveals the game once");
+            RestoreFeedbackSettings();
             CheckOpeningNewsCopy();
             UiCheck(!blocked && tutorial == null && state.Cash == 1000000, "isolated startup, no user preferences");
             navigation[2].onClick.Invoke();
@@ -249,7 +266,9 @@ namespace MoneyTown
             UiCheck(UiText().Contains("거래를 이어갈 자금이 없습니다") && state.Cash == 0, "exhausted funds guidance grants no money");
             yield return new WaitForEndOfFrame(); UiCapture("07-exhausted-funds");
             var good = Market.Trade(Market.Create(), 0, 1, true);
-            store.Save(good); store.Save(Market.Create());
+            Story.Record(good); good.StorySeen = good.StoryUnlocked;
+            var recoveryBase = Market.Create(); recoveryBase.StorySeen = recoveryBase.StoryUnlocked;
+            store.Save(good); store.Save(recoveryBase);
             File.WriteAllText(Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin"), "invalid synthetic save");
             try { store.Load(); throw new InvalidOperationException("Corruption was accepted."); }
             catch (InvalidDataException) { blocked = true; state = Market.Create(); }
@@ -578,6 +597,8 @@ namespace MoneyTown
             while(feedbackChecks.MoveNext())yield return feedbackChecks.Current;
             var musicChecks=VerifyMusicUi();
             while(musicChecks.MoveNext())yield return musicChecks.Current;
+            var storyChecks=VerifyStoryUi();
+            while(storyChecks.MoveNext())yield return storyChecks.Current;
         }
         IEnumerator VerifyFeedbackUi()
         {

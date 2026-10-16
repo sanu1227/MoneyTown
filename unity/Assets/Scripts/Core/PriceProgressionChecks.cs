@@ -62,7 +62,7 @@ namespace MoneyTown
             // Fixed v10 writer and old price constants do not read today's company price defaults.
             byte[] frozen=CoreChecks.LegacyBytes(old,10);var restored=SaveCodec.Decode(frozen);
             Check(BitConverter.ToInt32(frozen,4)==10&&restored.Cash==old.Cash&&Market.Total(restored)==Market.Total(old)
-                &&SaveCodec.Encode(restored).SequenceEqual(SaveCodec.Encode(old)),"Decoding a prior v10 save repriced assets or changed its records before migration.");
+                &&CoreChecks.LegacyBytes(restored,11).SequenceEqual(CoreChecks.LegacyBytes(old,11)),"Decoding a prior v10 save repriced assets or changed its records before migration.");
             for(int i=0;i<PreviousPrices.Length;i++) {
                 var stock=restored.Stocks[i];long gross=PreviousPrices[i]*(i+1),fee=(gross+999)/1000;
                 Check(stock.Price==PreviousPrices[i]&&stock.Quantity==i+1&&stock.Cost==gross+fee

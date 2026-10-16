@@ -73,7 +73,7 @@ namespace MoneyTown
                     File.WriteAllBytes(path,bytes);var converted=store.Load();
                     Check(store.PricesMigrated&&Market.Total(converted)==Market.Total(decoded)
                         &&converted.Stocks.Select(s=>s.Price).SequenceEqual(Market.Companies.Select(c=>c.Price)),"An older save did not convert safely.");
-                    byte[] saved=File.ReadAllBytes(path);Check(BitConverter.ToInt32(saved,4)==11,"Conversion was not committed as version eleven.");
+                    byte[] saved=File.ReadAllBytes(path);Check(BitConverter.ToInt32(saved,4)==SaveCodec.CurrentVersion,"Conversion was not committed in the current save format.");
                     Check(SaveCodec.Encode(store.Load()).SequenceEqual(saved)&&!store.PricesMigrated
                         &&SaveCodec.Encode(PriceMigration.Apply(converted)).SequenceEqual(saved),"A repeated load or apply converted values twice.");
                 });
