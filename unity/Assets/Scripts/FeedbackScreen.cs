@@ -34,7 +34,6 @@ namespace MoneyTown
         {
             bool suspended=appPaused||!appFocused&&!GameRuntime.Verifying;
             effects?.SetSuspended(suspended);music?.SetSuspended(suspended);
-            UpdateOpeningAudio();
             if(musicNowPlaying!=null&&musicNowPlaying.text!=music.CurrentTitle)musicNowPlaying.text=music.CurrentTitle;
             if(music!=null&&musicTrackButtons!=null&&shownMusicTrack!=music.CurrentTrackIndex)UpdateMusicSelection();
         }
@@ -80,8 +79,8 @@ namespace MoneyTown
         {
             var card=Card(parent,20,10);card.name="FeedbackSettings";
             Label(card,"소리와 애니메이션",27,Mint,44);
-            Button(card,"효과음·내레이션 · "+(effects.SoundEnabled?"켜짐":"꺼짐"),()=>SetFeedbackSettings(!effects.SoundEnabled,effects.VolumePercent,effects.ReducedMotion),Raised,60).name="FeedbackSound";
-            Label(card,"효과음·내레이션 음량 · "+effects.VolumePercent+"%",21,Muted,36);
+            Button(card,"효과음 · "+(effects.SoundEnabled?"켜짐":"꺼짐"),()=>SetFeedbackSettings(!effects.SoundEnabled,effects.VolumePercent,effects.ReducedMotion),Raised,60).name="FeedbackSound";
+            Label(card,"효과음 음량 · "+effects.VolumePercent+"%",21,Muted,36);
             var row=Row(card,58,6);
             foreach(int level in new[]{0,25,50,75,100}) {
                 int volume=level;

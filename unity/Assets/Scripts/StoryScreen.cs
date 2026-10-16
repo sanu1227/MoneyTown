@@ -6,20 +6,18 @@ namespace MoneyTown
 {
     public sealed partial class GameScreen
     {
-        RectTransform storyOverlay,storySafe,storyArt,storyDialogue,storyOpening;
-        RawImage storyIllustration;
+        RectTransform storyOverlay,storySafe,storyArt,storyDialogue;
+        RawImage storyIllustration,storyDetail;
         CanvasGroup storyTextGroup;
-        readonly CanvasGroup[] storyOpeningLines=new CanvasGroup[3];
-        Image storyOpeningShade,storyHeader;
-        Text storyBrand,storyOpeningNotice;
-        Button storyOpeningNext;
-        const float StoryOpeningDuration=5.25f;
-        static readonly float[] StoryOpeningPhraseTimes={.2f,1.3f,2.9f};
-        Text storyBody,storyTitle,storyRequirement,storyPageLabel,storyNotice;
+        readonly CanvasGroup[] storyCutGroups=new CanvasGroup[2];
+        Text storyBody,storyCaption,storyTitle,storyRequirement,storyPageLabel,storyNotice,storySoundWord;
         Button storyNext,storySkip;
         int storyChapter,storyPage;
         bool storyReplay;
         float storyMotionTime,storyPageTime;
+        static readonly Color StoryInk=new Color(.12f,.12f,.11f);
+        static readonly Color StoryPaper=new Color(.97f,.945f,.88f);
+        static readonly float[] StoryDetailFocus={.75f,.66f,.70f,.75f,.68f,.61f};
         bool StoryActive => storyOverlay!=null&&storyOverlay.gameObject.activeSelf;
         bool StoryOpeningActive => StoryActive&&storyChapter==0&&storyPage==0;
 
@@ -33,61 +31,82 @@ namespace MoneyTown
         }
         void BuildStoryWindow(Transform parent)
         {
-            storyOverlay=Rect("StoryOverlay",parent);Stretch(storyOverlay);Surface(storyOverlay,Background,false);
+            storyOverlay=Rect("StoryOverlay",parent);Stretch(storyOverlay);Surface(storyOverlay,StoryPaper,false);
             storyOverlay.gameObject.AddComponent<RectMask2D>();
-            storyArt=Rect("StoryArt",storyOverlay);Stretch(storyArt);
-            var art=Rect("StoryIllustration",storyArt);Stretch(art);
-            storyIllustration=art.gameObject.AddComponent<RawImage>();storyIllustration.raycastTarget=false;
-            var shade=Rect("StoryOpeningShade",storyOverlay);Stretch(shade);
-            storyOpeningShade=Surface(shade,Color.black,false);storyOpeningShade.raycastTarget=false;shade.gameObject.SetActive(false);
             storySafe=Rect("StorySafeArea",storyOverlay);PositionStoryWindow();
-            var top=Rect("StoryHeader",storySafe);top.anchorMin=new Vector2(0,1);top.anchorMax=Vector2.one;top.pivot=new Vector2(.5f,1);
-            top.offsetMin=new Vector2(22,-92);top.offsetMax=new Vector2(-22,-18);storyHeader=Surface(top,new Color(.04f,.08f,.13f,.88f));
-            storyBrand=Label(top,"MONEY TOWN  /  STORY",20,Mint,0);storyBrand.rectTransform.anchorMin=Vector2.zero;storyBrand.rectTransform.anchorMax=new Vector2(.56f,1);
-            storyBrand.rectTransform.offsetMin=new Vector2(16,0);storyBrand.rectTransform.offsetMax=Vector2.zero;
-            storySkip=Button(top,"이번 장 건너뛰기",SkipStory,Raised,0);storySkip.name="StorySkip";
-            var skip=(RectTransform)storySkip.transform;skip.anchorMin=new Vector2(.57f,0);skip.anchorMax=Vector2.one;skip.offsetMin=new Vector2(0,7);skip.offsetMax=new Vector2(-7,-7);
-            var panel=storyDialogue=Column(storySafe,24,10);panel.name="StoryDialogue";
-            panel.anchorMin=Vector2.zero;panel.anchorMax=new Vector2(1,0);panel.pivot=new Vector2(.5f,0);
-            panel.offsetMin=new Vector2(22,24);panel.offsetMax=new Vector2(-22,480);Surface(panel,new Color(.035f,.075f,.12f,.96f));
-            storyRequirement=Label(panel,"",19,Mint,28);
-            storyTitle=Label(panel,"",32,Gold,46);storyTitle.name="StoryTitle";
-            storyBody=Label(panel,"",27,Color.white,160,TextAnchor.UpperLeft);storyBody.name="StoryBody";
-            storyTextGroup=storyBody.gameObject.AddComponent<CanvasGroup>();
-            storyNotice=Label(panel,"",18,Red,48);storyNotice.name="StoryNotice";
-            var footer=Row(panel,76,12);
-            storyPageLabel=Label(footer,"",21,Muted,76);storyPageLabel.name="StoryPage";Width(storyPageLabel.rectTransform,100);
-            storyNext=Button(footer,"다음",AdvanceStory,Hex("266957"),76);storyNext.name="StoryNext";
-            BuildStoryOpening();
+            var header=Rect("StoryHeader",storySafe);header.anchorMin=new Vector2(0,1);header.anchorMax=Vector2.one;
+            header.offsetMin=new Vector2(28,-150);header.offsetMax=new Vector2(-28,-20);
+            var brand=Label(header,"MONEY TOWN  /  나의 이야기",18,StoryInk,0);
+            brand.rectTransform.anchorMin=new Vector2(0,1);brand.rectTransform.anchorMax=new Vector2(.76f,1);
+            brand.rectTransform.offsetMin=new Vector2(0,-28);brand.rectTransform.offsetMax=Vector2.zero;
+            storyPageLabel=Label(header,"",21,StoryInk,0,TextAnchor.MiddleRight);storyPageLabel.name="StoryPage";
+            storyPageLabel.rectTransform.anchorMin=new Vector2(.77f,1);storyPageLabel.rectTransform.anchorMax=Vector2.one;
+            storyPageLabel.rectTransform.offsetMin=new Vector2(0,-28);storyPageLabel.rectTransform.offsetMax=Vector2.zero;
+            storyTitle=Label(header,"",36,StoryInk,0);storyTitle.name="StoryTitle";storyTitle.fontStyle=FontStyle.Bold;
+            Stretch(storyTitle.rectTransform);storyTitle.rectTransform.offsetMin=new Vector2(0,42);storyTitle.rectTransform.offsetMax=new Vector2(0,-36);
+            storyRequirement=Label(header,"",19,Hex("6A6357"),0);storyRequirement.name="StoryRequirement";
+            storyRequirement.rectTransform.anchorMin=Vector2.zero;storyRequirement.rectTransform.anchorMax=new Vector2(1,0);
+            storyRequirement.rectTransform.offsetMin=new Vector2(0,8);storyRequirement.rectTransform.offsetMax=new Vector2(0,38);
+            var rule=Rect("StoryRule",header);rule.anchorMin=Vector2.zero;rule.anchorMax=new Vector2(1,0);
+            rule.offsetMin=Vector2.zero;rule.offsetMax=new Vector2(0,3);Surface(rule,StoryInk,false);
+
+            storyDialogue=Rect("StoryDialogue",storySafe);Stretch(storyDialogue);
+            storyDialogue.offsetMin=new Vector2(28,206);storyDialogue.offsetMax=new Vector2(-28,-174);
+            storyArt=BuildStoryCut(storyDialogue,0,new Vector2(0,.43f),Vector2.one,new Vector2(0,10),Vector2.zero);
+            storyIllustration=BuildStoryIllustration(storyArt,"StoryIllustration");
+            var lower=BuildStoryCut(storyDialogue,1,Vector2.zero,new Vector2(1,.43f),Vector2.zero,new Vector2(0,-10));
+            storyDetail=BuildStoryIllustration(lower,"StoryDetail");
+
+            var captionFrame=Rect("StoryCaptionFrame",storyArt);captionFrame.anchorMin=new Vector2(0,1);captionFrame.anchorMax=Vector2.one;
+            captionFrame.offsetMin=new Vector2(18,-102);captionFrame.offsetMax=new Vector2(-18,-18);Surface(captionFrame,StoryInk,false);
+            var captionPaper=Rect("StoryCaptionPaper",captionFrame);Stretch(captionPaper);
+            captionPaper.offsetMin=Vector2.one*3;captionPaper.offsetMax=-Vector2.one*3;Surface(captionPaper,StoryPaper,false);
+            storyCaption=Label(captionPaper,"",25,StoryInk,0);storyCaption.name="StoryCaption";
+            Stretch(storyCaption.rectTransform);storyCaption.rectTransform.offsetMin=new Vector2(16,7);storyCaption.rectTransform.offsetMax=new Vector2(-16,-7);
+
+            var bubble=Rect("StoryBubble",lower);bubble.anchorMin=Vector2.zero;bubble.anchorMax=new Vector2(1,0);
+            bubble.offsetMin=new Vector2(24,22);bubble.offsetMax=new Vector2(-24,164);
+            storyTextGroup=bubble.gameObject.AddComponent<CanvasGroup>();
+            var tail=Rect("StoryBubbleTail",bubble);tail.anchorMin=tail.anchorMax=new Vector2(.23f,1);
+            tail.sizeDelta=new Vector2(34,34);tail.anchoredPosition=new Vector2(0,-1);tail.localRotation=Quaternion.Euler(0,0,45);Surface(tail,StoryInk,false);
+            var bubbleFrame=Rect("StoryBubbleFrame",bubble);Stretch(bubbleFrame);Surface(bubbleFrame,StoryInk);
+            var bubblePaper=Rect("StoryBubblePaper",bubbleFrame);Stretch(bubblePaper);bubblePaper.offsetMin=Vector2.one*3;bubblePaper.offsetMax=-Vector2.one*3;Surface(bubblePaper,Color.white);
+            var tailPaper=Rect("StoryBubbleTailPaper",bubble);tailPaper.anchorMin=tailPaper.anchorMax=new Vector2(.23f,1);
+            tailPaper.sizeDelta=new Vector2(28,28);tailPaper.anchoredPosition=new Vector2(0,-1);tailPaper.localRotation=Quaternion.Euler(0,0,45);Surface(tailPaper,Color.white,false);
+            storyBody=Label(bubblePaper,"",29,StoryInk,0,TextAnchor.MiddleCenter);storyBody.name="StoryBody";
+            Stretch(storyBody.rectTransform);storyBody.rectTransform.offsetMin=new Vector2(18,12);storyBody.rectTransform.offsetMax=new Vector2(-18,-12);
+            storySoundWord=Label(lower,"",25,Color.white,0,TextAnchor.MiddleRight);storySoundWord.name="StorySoundWord";
+            storySoundWord.fontStyle=FontStyle.Bold;storySoundWord.rectTransform.anchorMin=new Vector2(.72f,1);storySoundWord.rectTransform.anchorMax=Vector2.one;
+            storySoundWord.rectTransform.offsetMin=new Vector2(0,-64);storySoundWord.rectTransform.offsetMax=new Vector2(-22,-18);
+            storySoundWord.rectTransform.localRotation=Quaternion.Euler(0,0,-8);
+            var ink=storySoundWord.gameObject.AddComponent<Outline>();ink.effectColor=StoryInk;ink.effectDistance=new Vector2(2,-2);
+
+            storyNotice=Label(storySafe,"",19,Hex("A02C2C"),0,TextAnchor.MiddleCenter);storyNotice.name="StoryNotice";
+            storyNotice.rectTransform.anchorMin=Vector2.zero;storyNotice.rectTransform.anchorMax=new Vector2(1,0);
+            storyNotice.rectTransform.offsetMin=new Vector2(28,126);storyNotice.rectTransform.offsetMax=new Vector2(-28,190);
+            var footer=Rect("StoryFooter",storySafe);footer.anchorMin=Vector2.zero;footer.anchorMax=new Vector2(1,0);
+            footer.offsetMin=new Vector2(28,28);footer.offsetMax=new Vector2(-28,116);
+            storySkip=BuildStoryButton(footer,"StorySkip","건너뛰기",SkipStory,0,.35f,StoryPaper);
+            storyNext=BuildStoryButton(footer,"StoryNext","다음",AdvanceStory,.38f,1,Hex("F3C853"));
             storyOverlay.gameObject.SetActive(false);
         }
-        void BuildStoryOpening()
+        RectTransform BuildStoryCut(Transform parent,int index,Vector2 min,Vector2 max,Vector2 insetMin,Vector2 insetMax)
         {
-            storyOpening=Rect("StoryOpening",storySafe);Stretch(storyOpening);
-            var lines=Column(storyOpening,0,16);lines.anchorMin=new Vector2(0,.5f);lines.anchorMax=new Vector2(1,.5f);
-            lines.offsetMin=new Vector2(36,-90);lines.offsetMax=new Vector2(-36,170);
-            string[] words={"이건 내가","세계 최고의 부자가","되는 이야기이다"};
-            for(int i=0;i<words.Length;i++) {
-                var line=Label(lines,words[i],i==1?48:30,i==1?Gold:Color.white,i==1?80:58,TextAnchor.MiddleCenter);
-                line.name="StoryOpeningLine-"+i;if(i==1)line.fontStyle=FontStyle.Bold;
-                storyOpeningLines[i]=line.gameObject.AddComponent<CanvasGroup>();
-            }
-            storyOpeningNotice=Label(storyOpening,"",18,Red,0,TextAnchor.MiddleCenter);storyOpeningNotice.name="StoryOpeningNotice";
-            var notice=storyOpeningNotice.rectTransform;notice.anchorMin=Vector2.zero;notice.anchorMax=new Vector2(1,0);
-            notice.offsetMin=new Vector2(30,128);notice.offsetMax=new Vector2(-30,196);
-            storyOpeningNext=Button(storyOpening,"문장 바로 보기",AdvanceStory,Hex("266957"),0);storyOpeningNext.name="StoryOpeningNext";
-            var button=(RectTransform)storyOpeningNext.transform;button.anchorMin=new Vector2(.18f,0);button.anchorMax=new Vector2(.82f,0);
-            button.offsetMin=new Vector2(0,40);button.offsetMax=new Vector2(0,108);
-            storyOpening.gameObject.SetActive(false);
+            var cut=Rect("StoryCut-"+index,parent);cut.anchorMin=min;cut.anchorMax=max;cut.offsetMin=insetMin;cut.offsetMax=insetMax;
+            Surface(cut,StoryInk,false);storyCutGroups[index]=cut.gameObject.AddComponent<CanvasGroup>();return cut;
         }
-        void UpdateStoryOpening()
+        RawImage BuildStoryIllustration(RectTransform cut,string name)
         {
-            if(!StoryOpeningActive)return;
-            float time=effects.ReducedMotion?StoryOpeningDuration:storyPageTime;
-            for(int i=0;i<storyOpeningLines.Length;i++)
-                storyOpeningLines[i].alpha=Mathf.SmoothStep(0,1,Mathf.Clamp01((time-StoryOpeningPhraseTimes[i])/.7f));
-            storyOpeningShade.color=new Color(0,0,0,1-.5f*Mathf.SmoothStep(0,1,Mathf.Clamp01((time-3f)/(StoryOpeningDuration-3f))));
-            storyOpeningNext.GetComponentInChildren<Text>().text=time<StoryOpeningDuration?"문장 바로 보기":"이야기 시작";
+            var rect=Rect(name,cut);Stretch(rect);rect.offsetMin=Vector2.one*4;rect.offsetMax=-Vector2.one*4;
+            var image=rect.gameObject.AddComponent<RawImage>();image.raycastTarget=false;return image;
+        }
+        Button BuildStoryButton(Transform parent,string name,string title,Action action,float left,float right,Color tint)
+        {
+            var frame=Rect(name+"Frame",parent);frame.anchorMin=new Vector2(left,0);frame.anchorMax=new Vector2(right,1);
+            frame.offsetMin=frame.offsetMax=Vector2.zero;Surface(frame,StoryInk);
+            var button=Button(frame,title,action,tint,0);button.name=name;var rect=(RectTransform)button.transform;
+            Stretch(rect);rect.offsetMin=Vector2.one*3;rect.offsetMax=-Vector2.one*3;
+            var label=button.GetComponentInChildren<Text>();label.color=StoryInk;label.fontStyle=FontStyle.Bold;return button;
         }
         void PositionStoryWindow()
         {
@@ -95,11 +114,17 @@ namespace MoneyTown
             storySafe.anchorMin=new Vector2(Screen.safeArea.xMin/Screen.width,Screen.safeArea.yMin/Screen.height);
             storySafe.anchorMax=new Vector2(Screen.safeArea.xMax/Screen.width,Screen.safeArea.yMax/Screen.height);
             storySafe.offsetMin=storySafe.offsetMax=Vector2.zero;
-            if(storyIllustration==null||storyIllustration.texture==null)return;
-            float screenAspect=Screen.width/(float)Screen.height;
-            float imageAspect=storyIllustration.texture.width/(float)storyIllustration.texture.height;
-            float width=Mathf.Min(1,screenAspect/imageAspect),height=Mathf.Min(1,imageAspect/screenAspect);
-            storyIllustration.uvRect=new UnityEngine.Rect((1-width)/2,(1-height)/2,width,height);
+            Canvas.ForceUpdateCanvases();
+            CropStoryIllustration(storyIllustration,1,new Vector2(.5f,.72f));
+            CropStoryIllustration(storyDetail,.72f,new Vector2(.45f,StoryDetailFocus[storyChapter]));
+        }
+        static void CropStoryIllustration(RawImage image,float zoom,Vector2 focus)
+        {
+            if(image==null||image.texture==null)return;
+            var bounds=image.rectTransform.rect;if(bounds.height<=0||bounds.width<=0)return;
+            float aspect=bounds.width/bounds.height,imageAspect=image.texture.width/(float)image.texture.height;
+            float width=Mathf.Min(1,aspect/imageAspect)*zoom,height=Mathf.Min(1,imageAspect/aspect)*zoom;
+            image.uvRect=new UnityEngine.Rect(Mathf.Clamp(focus.x-width/2,0,1-width),Mathf.Clamp(focus.y-height/2,0,1-height),width,height);
         }
         void TryShowStory()
         {
@@ -113,29 +138,27 @@ namespace MoneyTown
             if(StoryActive||blocked||warehouseWorking||state.SettlementPending||chapter<0||chapter>=state.StoryUnlocked)return;
             storyChapter=chapter;storyPage=0;storyReplay=replay;storyMotionTime=0;
             var entry=StoryChapters.All[chapter];
-            storyIllustration.texture=Resources.Load<Texture2D>("StoryArt/"+entry.ArtName);
+            storyIllustration.texture=storyDetail.texture=Resources.Load<Texture2D>("StoryArt/"+entry.ArtName);
             storyTitle.text=entry.Title;storyRequirement.text=(replay?"다시 보는 이야기 · ":"")+entry.Requirement;
-            storySkip.GetComponentInChildren<Text>().text=replay?"닫기":"이번 장 건너뛰기";
+            storySkip.GetComponentInChildren<Text>().text=replay?"닫기":"건너뛰기";
             storyNotice.text="";safeArea.gameObject.SetActive(false);storyOverlay.gameObject.SetActive(true);storyOverlay.SetAsLastSibling();
             marketWasRunning=false;scroll.StopMovement();PositionStoryWindow();ShowStoryPage();
         }
         void ShowStoryPage()
         {
-            var pages=StoryChapters.All[storyChapter].Pages;
-            storyBody.text=pages[storyPage];storyPageLabel.text=(storyPage+1).ToString("00")+" / "+pages.Length.ToString("00");
+            var pages=StoryChapters.All[storyChapter].Pages;string page=pages[storyPage];int split=page.IndexOf('\n');
+            storyCaption.text=split<0?"아직, 작은 방에서.":page.Substring(0,split);
+            storyBody.text=split<0?page:page.Substring(split+1);
+            storyPageLabel.text=(storyPage+1).ToString("00")+" / "+pages.Length.ToString("00");
+            storySoundWord.text=storyPage==0?"두근":"";
             storyNext.GetComponentInChildren<Text>().text=storyPage<pages.Length-1?"다음":storyReplay?"다시 보기 마치기":"이야기 마치기";
-            storyPageTime=0;storyTextGroup.alpha=effects.ReducedMotion?1:0;storyNotice.text="";storyOpeningNotice.text="";
-            bool opening=StoryOpeningActive;
-            storyDialogue.gameObject.SetActive(!opening);storyOpening.gameObject.SetActive(opening);storyOpeningShade.gameObject.SetActive(opening);
-            storyBrand.gameObject.SetActive(!opening);storyHeader.color=opening?Color.clear:new Color(.04f,.08f,.13f,.88f);
-            if(opening)BeginOpeningAudio();else StopOpeningAudio();
-            UpdateStoryOpening();
-            Canvas.ForceUpdateCanvases();UpdateStoryAnimation();
+            storyPageTime=0;storyNotice.text="";
+            ApplyStoryCutAnimation(effects.ReducedMotion ? .4f : 0);
+            Canvas.ForceUpdateCanvases();
         }
         void AdvanceStory()
         {
             if(!StoryActive)return;
-            if(StoryOpeningActive&&!effects.ReducedMotion&&storyPageTime<StoryOpeningDuration){storyPageTime=StoryOpeningDuration;UpdateStoryOpening();return;}
             if(storyPage<StoryChapters.All[storyChapter].Pages.Length-1){storyPage++;ShowStoryPage();}
             else FinishStory();
         }
@@ -144,32 +167,33 @@ namespace MoneyTown
         {
             if(!storyReplay) {
                 try {var changed=state.Copy();Story.Record(changed);changed=Story.Acknowledge(changed,storyChapter);store.Save(changed);state=changed;}
-                catch(Exception){storyOpeningNotice.text=storyNotice.text="이야기 진행을 저장하지 못했습니다.\n저장 공간을 확인한 뒤 다시 눌러 주세요.";effects.Play(GameCue.Error);return;}
+                catch(Exception){storyNotice.text="이야기 진행을 저장하지 못했습니다.\n저장 공간을 확인한 뒤 다시 눌러 주세요.";effects.Play(GameCue.Error);return;}
             }
             CloseStoryScreen();RenderTab();
         }
         void CloseStoryScreen()
         {
-            StopOpeningAudio();
             if(storyOverlay==null)return;
-            storyOverlay.gameObject.SetActive(false);storyArt.localScale=Vector3.one;storyArt.anchoredPosition=Vector2.zero;
-            storyOpening.gameObject.SetActive(false);storyOpeningShade.gameObject.SetActive(false);
-            storyTextGroup.alpha=1;storyMotionTime=storyPageTime=0;marketWasRunning=false;
+            storyOverlay.gameObject.SetActive(false);ApplyStoryCutAnimation(.4f);
+            storyMotionTime=storyPageTime=0;marketWasRunning=false;
             safeArea.gameObject.SetActive(!settlementOverlay.gameObject.activeSelf);
+        }
+        void ApplyStoryCutAnimation(float time)
+        {
+            for(int i=0;i<storyCutGroups.Length;i++) {
+                float progress=Mathf.SmoothStep(0,1,Mathf.Clamp01((time-i*.15f)/.25f));
+                storyCutGroups[i].alpha=progress;storyCutGroups[i].transform.localScale=Vector3.one*Mathf.Lerp(.975f,1,progress);
+            }
+            storyTextGroup.alpha=Mathf.Clamp01((time-.15f)/.25f);
         }
         void UpdateStoryAnimation()
         {
             if(!StoryActive)return;
-            if(effects.ReducedMotion){storyArt.localScale=Vector3.one;storyArt.anchoredPosition=Vector2.zero;storyTextGroup.alpha=1;
-                if(StoryOpeningActive)storyPageTime=StoryOpeningDuration;UpdateStoryOpening();return;}
+            if(effects.ReducedMotion){ApplyStoryCutAnimation(.4f);return;}
+            if(!UnityEngine.Rendering.SplashScreen.isFinished)return;
             if(appPaused||!appFocused&&!GameRuntime.Verifying)return;
-            if(StoryOpeningActive&&!UnityEngine.Rendering.SplashScreen.isFinished)return;
             float elapsed=Mathf.Min(Time.unscaledDeltaTime,.1f);
-            storyMotionTime+=elapsed;storyPageTime+=elapsed;
-            storyArt.localScale=Vector3.one*(1.02f+.025f*(.5f-.5f*Mathf.Cos(storyMotionTime*.2f)));
-            storyArt.anchoredPosition=new Vector2(6*Mathf.Sin(storyMotionTime*.15f),0);
-            storyTextGroup.alpha=Mathf.Clamp01(storyPageTime/.3f);
-            UpdateStoryOpening();
+            storyMotionTime+=elapsed;storyPageTime+=elapsed;ApplyStoryCutAnimation(storyPageTime);
         }
         void DrawStoryLibrary(Transform parent)
         {

@@ -2,14 +2,27 @@
 
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
-**v0.26.1 음성 개선:** 오프닝 목소리를 무료 로컬 신경망 남성 음성으로 교체했습니다. 화면 구성은 유지하고 새 음성에 맞춰 문구 타이밍을 조정했습니다. [현재 내레이션 듣기](../unity/Assets/Resources/Audio/story-opening.wav) · [제작·검증 자료](opening-audio.md)
+<details open>
+<summary><strong>v0.27.0 카툰 스토리 — 두 컷과 말풍선</strong></summary>
+
+아이보리 지면에 장면 컷과 확대 컷을 배치하고, 상황 캡션과 주인공의 짧은 독백을 나눴습니다. 내레이션은 제거했으며 배경음악과 일반 효과음은 유지합니다. 첫 페이지부터 ‘다음’을 한 번 누르면 넘어갑니다. [스토리 구성과 조작](story.md)
+
+<img src="../assets/screenshots/v0.27.0/comic-opening.png" width="480" alt="두 컷 만화의 첫 페이지와 세계 최고의 부자가 되는 이야기라는 말풍선" />
+<img src="../assets/screenshots/v0.27.0/comic-desk.png" width="480" alt="작은 방과 시작 자금 백만원을 설명하는 캡션과 독백" />
+<img src="../assets/screenshots/v0.27.0/comic-boardroom.png" width="480" alt="회의실의 사람들과 내가 놓친 조건을 돌아보는 말풍선" />
+
+2026-10-16, 격리된 테스트 데이터의 Windows 검증용 Unity Player에서 촬영했습니다. 원본은 `build/ui-verification-1d7f1dfc37f843e196f5561dac8485ae/`의 35·36·37번 PNG입니다. 480×960·360×800에서 각각 UI 267개를 통과했고, 공개 이미지 3개의 SHA-256은 각각 원본과 같습니다. 이미지 보정이나 UI 합성은 하지 않았습니다.
+
+</details>
+
+**과거 v0.26.1 음성 개선 (0.27.0에서 제거):** 오프닝 목소리를 무료 로컬 신경망 남성 음성으로 교체했습니다. 화면 구성은 유지하고 새 음성에 맞춰 문구 타이밍을 조정했습니다. [당시 내레이션](https://github.com/sanu1227/MoneyTown/blob/v0.26.1/unity/Assets/Resources/Audio/story-opening.wav) · [제작·검증 자료](opening-audio.md)
 
 **2026-10-16 촬영.** 내레이션 설정은 v0.26.0, 첫 문장 연출은 v0.25.1, 성장 스토리는 v0.25.0, 곡 직접 선택은 v0.24.0, 음악 랜덤 재생은 v0.23.0, 이전 음악 설정은 v0.22.0, 효과음 설정은 v0.21.0, 가격 조정 내역은 v0.20.1, 기본 화면은 v0.20.0입니다. 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
 
 <details open>
 <summary><strong>v0.26.0 무료 내레이션 — 첫 문장에 목소리와 효과음</strong></summary>
 
-Windows 한국어 음성과 직접 합성한 울림·차임으로 도입부를 들려줍니다. 재생 중 배경음악은 잠시 작아지며, 효과음과 내레이션의 켜기·끄기·음량 설정을 함께 사용합니다. [완성 음원 듣기](../unity/Assets/Resources/Audio/story-opening.wav) · [제작 과정](opening-audio.md)
+Windows 한국어 음성과 직접 합성한 울림·차임으로 도입부를 들려줍니다. 재생 중 배경음악은 잠시 작아지며, 효과음과 내레이션의 켜기·끄기·음량 설정을 함께 사용합니다. [당시 음원](https://github.com/sanu1227/MoneyTown/blob/v0.26.0/unity/Assets/Resources/Audio/story-opening.wav) · [제작 과정](opening-audio.md)
 
 <img src="../assets/screenshots/v0.26.0/narration-settings.png" width="480" alt="효과음과 내레이션 켜기 및 50퍼센트 음량 설정" />
 

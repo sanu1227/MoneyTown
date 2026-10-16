@@ -16,8 +16,6 @@ namespace MoneyTown
         int resumeSample;
         double startedAt;
         float fadeFactor;
-        float duckTarget=1;
-        public float DuckFactor { get; private set; } = 1;
         public bool MusicEnabled { get; private set; } = true;
         public int VolumePercent { get; private set; } = 25;
         public bool IsSuspended { get; private set; } = true;
@@ -114,8 +112,6 @@ namespace MoneyTown
             ApplyState();
         }
 
-        public void SetDucked(bool ducked){duckTarget=ducked ? .25f : 1;}
-
         void ApplyState()
         {
             if (OutputSource == null || OutputSource.clip == null) return;
@@ -166,10 +162,9 @@ namespace MoneyTown
 
         void UpdateVolume()
         {
-            DuckFactor=Mathf.MoveTowards(DuckFactor,duckTarget,Time.unscaledDeltaTime*4);
             var clip = OutputSource.clip;
             float outro = Mathf.Clamp01((clip.samples - Playhead()) / (clip.frequency * .5f));
-            OutputSource.volume = VolumePercent / 100f * fadeFactor * outro * DuckFactor;
+            OutputSource.volume = VolumePercent / 100f * fadeFactor * outro;
         }
 
         void Pause()

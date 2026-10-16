@@ -13,17 +13,41 @@ namespace MoneyTown
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         bool UiStoryFits()
         {
-            string[] labels = StoryOpeningActive ? new[] { "StoryOpeningLine-0", "StoryOpeningLine-1", "StoryOpeningLine-2" }
-                : new[] { "StoryTitle", "StoryBody", "StoryPage" };
-            return labels.All(name => {
-                var label = UiLabel(name);
-                return UiOnScreen(label.rectTransform) &&
+            Text[] labels = { storyTitle, storyRequirement, storyCaption, storyBody, storyPageLabel, storyNotice, storySoundWord };
+            return labels.All(label => {
+                return UiStoryInside(label.rectTransform) && UiStoryWithinParent(label.rectTransform) &&
                     label.cachedTextGenerator.characterCountVisible >= label.text.Length;
-            }) && new[] { StoryOpeningActive ? "StoryOpeningNext" : "StoryNext", "StorySkip" }.All(name => {
+            }) && storyCutGroups.All(cut => UiStoryInside((RectTransform)cut.transform)) &&
+                new[] { "StoryNext", "StorySkip" }.All(name => {
                 var button = UiButton(name); var label = button.GetComponentInChildren<Text>();
-                return UiOnScreen((RectTransform)button.transform) &&
+                var rect = (RectTransform)button.transform; var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+                return UiStoryInside(rect) && corners[1].y - corners[0].y >= 43.5f &&
                     label.cachedTextGenerator.characterCountVisible >= label.text.Length;
             });
+        }
+        bool UiStoryInside(RectTransform rect)
+        {
+            var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+            return UiOnScreen(rect) && corners.All(corner =>
+                corner.x >= Screen.safeArea.xMin - .5f && corner.x <= Screen.safeArea.xMax + .5f &&
+                corner.y >= Screen.safeArea.yMin - .5f && corner.y <= Screen.safeArea.yMax + .5f);
+        }
+        static bool UiStoryWithinParent(RectTransform rect)
+        {
+            var parent = (RectTransform)rect.parent; var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+            return corners.All(corner => {
+                var point = parent.InverseTransformPoint(corner);
+                return point.x >= parent.rect.xMin - .5f && point.x <= parent.rect.xMax + .5f &&
+                    point.y >= parent.rect.yMin - .5f && point.y <= parent.rect.yMax + .5f;
+            });
+        }
+        static bool UiStoryCropFits(RawImage image)
+        {
+            if (image.texture == null) return false;
+            var crop = image.uvRect; var rect = image.rectTransform.rect;
+            return crop.xMin >= 0 && crop.yMin >= 0 && crop.xMax <= 1.0001f && crop.yMax <= 1.0001f &&
+                crop.width > 0 && crop.height > 0 && rect.height > 0 &&
+                Math.Abs(image.texture.width * crop.width / (image.texture.height * crop.height) - rect.width / rect.height) < .01f;
         }
         static GameState UiStoryState(long assets, int seen)
         {
@@ -65,10 +89,11 @@ namespace MoneyTown
                     "full-screen story freezes the market countdown without catch-up ticks");
                 Vector3 startScale = storyArt.localScale;
                 Vector2 startPosition = storyArt.anchoredPosition;
-                yield return new WaitForSecondsRealtime(.4f);
-                UiCheck(storyTextGroup.alpha > .99f && (Vector3.Distance(startScale, storyArt.localScale) > .00001f ||
+                yield return new WaitForSecondsRealtime(.55f);
+                UiCheck(storyTextGroup.alpha > .99f && storyCutGroups.All(cut => cut.alpha == 1) &&
+                    (Vector3.Distance(startScale, storyArt.localScale) > .00001f ||
                     Vector2.Distance(startPosition, storyArt.anchoredPosition) > .00001f),
-                    "story fades in readable text while the illustration moves gently");
+                    "comic panels settle into place and their dialogue becomes fully readable");
                 OnApplicationPause(true);
                 float motionTime = storyMotionTime; startScale = storyArt.localScale; startPosition = storyArt.anchoredPosition;
                 yield return new WaitForSecondsRealtime(.12f);
@@ -77,10 +102,10 @@ namespace MoneyTown
                 OnApplicationPause(false); appFocused = true;
                 effects.Configure(effects.SoundEnabled, effects.VolumePercent, true); UpdateStoryAnimation();
                 yield return new WaitForSecondsRealtime(.12f);
-                UiCheck(storyArt.localScale == Vector3.one && storyArt.anchoredPosition == Vector2.zero && storyTextGroup.alpha == 1,
-                    "reduced motion presents a still illustration and immediately readable text");
+                UiCheck(storyCutGroups.All(cut => cut.alpha == 1 && cut.transform.localScale == Vector3.one) && storyTextGroup.alpha == 1,
+                    "reduced motion presents both comic panels immediately at their final size");
                 yield return new WaitForEndOfFrame();
-                UiCheck(UiStoryFits(), "milestone title, narrative and both controls remain complete on the current screen size");
+                UiCheck(UiStoryFits(), "milestone caption, speech bubble and touch controls fit inside the safe area");
                 UiCapture("33-story-milestone");
                 UiButton("StoryNext").onClick.Invoke();
                 UiCheck(StoryActive && storyPage == 1 && state.StorySeen == 1 &&
@@ -203,22 +228,29 @@ namespace MoneyTown
                 unchanged = SaveCodec.Encode(state);
                 for (int chapter = 0; chapter < Story.Count; chapter++) {
                     ShowStory(chapter, true);
-                    var image = GetComponentsInChildren<RawImage>().Single(item => item.name == "StoryIllustration");
+                    var image = storyIllustration;
                     allPagesFit &= image.texture != null && image.texture.width >= 768 && image.texture.height >= 768;
                     art.Add(image.texture);
                     for (int page = 0; page < 3; page++) {
                         UpdateStoryAnimation(); yield return new WaitForEndOfFrame();
-                        allPagesFit &= UiStoryFits() && storyPage == page && !string.IsNullOrWhiteSpace(storyBody.text);
-                        UiButton(StoryOpeningActive ? "StoryOpeningNext" : "StoryNext").onClick.Invoke();
+                        var lines = StoryChapters.All[chapter].Pages[page].Split('\n');
+                        string caption = lines.Length == 1 ? "아직, 작은 방에서." : lines[0];
+                        string dialogue = lines.Length == 1 ? lines[0] : lines[1];
+                        allPagesFit &= UiStoryFits() && storyPage == page && storyCaption.text == caption && storyBody.text == dialogue &&
+                            storyCutGroups.All(cut => cut.alpha == 1) && storyTextGroup.alpha == 1 &&
+                            storyDetail.texture == image.texture && storyDetail.uvRect != image.uvRect &&
+                            UiStoryCropFits(image) && UiStoryCropFits(storyDetail);
+                        if (chapter == 4 && page == 1) UiCapture("37-story-comic-boardroom");
+                        UiButton("StoryNext").onClick.Invoke();
                     }
                 }
                 UiCheck(allPagesFit && art.Count == Story.Count && unchanged.SequenceEqual(SaveCodec.Encode(state)),
-                    "all six distinct high-resolution illustrations and eighteen narrative pages render completely in read-only replay");
+                    "all six distinct illustrations and eighteen comic pages have readable captions, dialogue and two different undistorted crops in safe-area replay");
 
-                var openingChecks = VerifyStoryOpeningUi();
-                while (openingChecks.MoveNext()) yield return openingChecks.Current;
-                var audioChecks = VerifyStoryAudioUi();
-                while (audioChecks.MoveNext()) yield return audioChecks.Current;
+                var comicChecks = VerifyStoryComicUi();
+                while (comicChecks.MoveNext()) yield return comicChecks.Current;
+                var soundChecks = VerifyStoryWithoutNarrationUi();
+                while (soundChecks.MoveNext()) yield return soundChecks.Current;
 
                 GameRuntime.SetInt(TutorialModeKey, 0); GameRuntime.DeleteKey(TutorialStepKey);
                 UiFixture(Market.Create(), stories: true); RestoreTutorial(); TryShowStory();
@@ -237,98 +269,91 @@ namespace MoneyTown
                 UiFixture(original, originalTab); marketClock.Reset(); marketWasRunning = false;
             }
         }
-        IEnumerator VerifyStoryOpeningUi()
+        IEnumerator VerifyStoryComicUi()
         {
             effects.Configure(effects.SoundEnabled, effects.VolumePercent, false);
             UiFixture(Market.Create(), stories: true);
-            storyPageTime = 0; UpdateStoryOpening();
+            storyPageTime = 0; UpdateStoryAnimation();
             byte[] unchanged = SaveCodec.Encode(state);
             string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
             byte[] saved = File.ReadAllBytes(savePath);
-            float initialShade = storyOpeningShade.color.a;
-            UiCheck(StoryOpeningActive && !storyBody.gameObject.activeInHierarchy && initialShade > .7f &&
-                storyOpeningLines.All(line => line.alpha == 0) &&
-                Enumerable.Range(0, 3).Select(index => UiLabel("StoryOpeningLine-" + index).text)
-                    .SequenceEqual(new[] { "이건 내가", "세계 최고의 부자가", "되는 이야기이다" }),
-                "opening starts with its exact three-line declaration over a dark background and hides the regular dialogue");
+            UiCheck(StoryOpeningActive && storyCaption.text == "아직, 작은 방에서." &&
+                storyBody.text == "이건 내가 세계 최고의 부자가 되는 이야기이다" &&
+                storyBody.gameObject.activeInHierarchy && storyCutGroups.Length == 2 &&
+                storyCutGroups[0].alpha > storyCutGroups[1].alpha && storyTextGroup.alpha < 1,
+                "comic introduction keeps the exact declaration in a speech bubble and begins with its first panel");
 
             bool ordered = true, staggered = false;
-            for (int step = 0; step <= 20; step++) {
-                storyPageTime = StoryOpeningDuration * step / 20; UpdateStoryOpening();
-                ordered &= storyOpeningLines[0].alpha >= storyOpeningLines[1].alpha &&
-                    storyOpeningLines[1].alpha >= storyOpeningLines[2].alpha;
-                staggered |= storyOpeningLines[0].alpha > .9f && storyOpeningLines[2].alpha < .1f;
+            for (int step = 0; step <= 10; step++) {
+                storyPageTime = step * .05f; UpdateStoryAnimation();
+                ordered &= storyCutGroups[0].alpha >= storyCutGroups[1].alpha;
+                staggered |= storyCutGroups[0].alpha > .5f && storyCutGroups[1].alpha < .5f;
             }
-            UiCheck(ordered && staggered && storyOpeningLines.All(line => line.alpha == 1) &&
-                storyOpeningShade.color.a < initialShade && storyPage == 0,
-                "opening reveals each phrase in order and uncovers the city without advancing the page automatically");
+            UiCheck(ordered && staggered && storyCutGroups.All(cut => cut.alpha == 1) &&
+                storyTextGroup.alpha == 1 && storyPage == 0,
+                "comic reveals its two panels in order and settles without advancing the page automatically");
+            yield return new WaitForEndOfFrame();
+            UiCheck(UiStoryFits(), "complete opening comic and its touch controls fit inside the safe area");
+            UiCapture("35-story-comic-opening");
 
-            storyPageTime = StoryOpeningDuration * .4f; UpdateStoryOpening();
+            storyPageTime = .08f; UpdateStoryAnimation();
             OnApplicationPause(true);
-            float pausedTime = storyPageTime, pausedShade = storyOpeningShade.color.a;
-            float[] pausedAlphas = storyOpeningLines.Select(line => line.alpha).ToArray();
+            float pausedTime = storyPageTime;
+            float[] pausedAlphas = storyCutGroups.Select(cut => cut.alpha).ToArray();
+            Vector3[] pausedScales = storyCutGroups.Select(cut => cut.transform.localScale).ToArray();
             yield return new WaitForSecondsRealtime(.12f);
-            bool held = storyPageTime == pausedTime && storyOpeningShade.color.a == pausedShade &&
-                pausedAlphas.SequenceEqual(storyOpeningLines.Select(line => line.alpha));
-            yield return new WaitForEndOfFrame(); UiCapture("36-story-opening-dark");
+            bool held = storyPageTime == pausedTime && pausedAlphas.SequenceEqual(storyCutGroups.Select(cut => cut.alpha)) &&
+                pausedScales.SequenceEqual(storyCutGroups.Select(cut => cut.transform.localScale));
             OnApplicationPause(false); appFocused = true;
             yield return new WaitForSecondsRealtime(.12f);
-            UiCheck(held && storyPageTime > pausedTime && storyPageTime < StoryOpeningDuration && storyPage == 0,
-                "opening reveal pauses in the background and resumes without skipping the declaration");
+            UiCheck(held && storyPageTime > pausedTime && storyPage == 0,
+                "background pause freezes both comic panels and resumes their reveal on the same page");
 
-            UiButton("StoryOpeningNext").onClick.Invoke();
-            UiCheck(StoryOpeningActive && storyPage == 0 && storyOpeningLines.All(line => line.alpha == 1) &&
-                state.StorySeen == 0 && unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
-                "first click during the reveal completes its animation without skipping the opening or saving progress");
-            yield return new WaitForEndOfFrame();
-            UiCheck(UiStoryFits(), "complete opening declaration and its controls fit on the current screen size");
-            UiCapture("35-story-opening");
-            UiButton("StoryOpeningNext").onClick.Invoke();
-            UiCheck(!StoryOpeningActive && storyPage == 1 && storyBody.gameObject.activeInHierarchy &&
-                UiButton("StoryNext").gameObject.activeInHierarchy && storyBody.text == StoryChapters.All[0].Pages[1] &&
+            storyPageTime = 0; UpdateStoryAnimation(); UiButton("StoryNext").onClick.Invoke();
+            UiCheck(!StoryOpeningActive && storyPage == 1 && storyBody.text == StoryChapters.All[0].Pages[1].Split('\n')[1] &&
+                state.StorySeen == 0 && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
                 saved.SequenceEqual(File.ReadAllBytes(savePath)),
-                "second opening click restores the existing illustrated dialogue on the next page without acknowledging the chapter");
+                "one next click during the first panel reveal advances immediately without acknowledging or saving the chapter");
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, true); UpdateStoryAnimation();
+            yield return new WaitForEndOfFrame(); UiCapture("36-story-comic-desk");
 
-            effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
             UiFixture(Market.Create(), stories: true); UpdateStoryAnimation();
-            bool stillOpening = StoryOpeningActive && storyOpeningLines.All(line => line.alpha == 1) &&
-                storyArt.localScale == Vector3.one && storyArt.anchoredPosition == Vector2.zero;
-            UiButton("StoryOpeningNext").onClick.Invoke();
+            float stillTime = storyPageTime;
+            yield return new WaitForSecondsRealtime(.12f);
+            bool stillOpening = StoryOpeningActive && storyCutGroups.All(cut => cut.alpha == 1 && cut.transform.localScale == Vector3.one) &&
+                storyTextGroup.alpha == 1 && storyPageTime == stillTime;
+            UiButton("StoryNext").onClick.Invoke();
             UiCheck(stillOpening && !StoryOpeningActive && storyPage == 1,
-                "reduced motion shows the whole opening immediately and a single click advances normally");
+                "reduced motion shows both panels and speech immediately without animation and one click advances normally");
 
             UiFixture(Market.Create(), stories: true);
             unchanged = SaveCodec.Encode(state); saved = File.ReadAllBytes(savePath);
             var realStore = store;
-            string failureDirectory = Path.Combine(GameRuntime.DataDirectory, "failed-story-opening");
+            string failureDirectory = Path.Combine(GameRuntime.DataDirectory, "failed-story-comic");
             var failingStore = new GameStore(failureDirectory);
             Directory.CreateDirectory(Path.Combine(failureDirectory, "game-unity-v1.bin.tmp"));
             try { store = failingStore; UiButton("StorySkip").onClick.Invoke(); }
             finally { store = realStore; }
             yield return new WaitForEndOfFrame();
-            UiCheck(StoryOpeningActive && storyOpeningNotice.gameObject.activeInHierarchy &&
-                storyOpeningNotice.text.Contains("저장") && UiOnScreen(storyOpeningNotice.rectTransform) &&
-                storyOpeningNotice.cachedTextGenerator.characterCountVisible >= storyOpeningNotice.text.Length &&
-                unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
-                saved.SequenceEqual(File.ReadAllBytes(savePath)),
-                "failed opening skip save keeps the declaration visible with its own readable error notice");
+            UiCheck(StoryOpeningActive && storyNotice.text.Contains("저장") && UiStoryFits() &&
+                unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "failed comic skip save keeps the first page visible with its complete error notice and unchanged progress");
             UiButton("StorySkip").onClick.Invoke();
             UiCheck(!StoryActive && state.StorySeen == 1 && store.Load().StorySeen == 1,
-                "opening skip retry acknowledges the chapter once after storage recovers");
+                "comic skip retry acknowledges the chapter once after storage recovers");
 
             UiFixture(UiStoryState(1000000, 1), 3, stories: true);
             unchanged = SaveCodec.Encode(state); saved = File.ReadAllBytes(savePath);
             effects.Configure(effects.SoundEnabled, effects.VolumePercent, false);
             UiButton("StoryReplay-0").onClick.Invoke();
-            bool replayOpening = StoryOpeningActive && storyReplay && storyPageTime < StoryOpeningDuration;
-            UiButton("StoryOpeningNext").onClick.Invoke(); UiButton("StoryOpeningNext").onClick.Invoke();
-            UiButton("StoryNext").onClick.Invoke(); UiButton("StoryNext").onClick.Invoke();
-            UiCheck(replayOpening && !StoryActive && tab == 3 && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
+            bool replayComic = StoryOpeningActive && storyReplay && storyPageTime < .4f;
+            for (int page = 0; page < 3; page++) UiButton("StoryNext").onClick.Invoke();
+            UiCheck(replayComic && !StoryActive && tab == 3 && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
                 saved.SequenceEqual(File.ReadAllBytes(savePath)),
-                "replay restarts the opening presentation and returns to help with every saved field unchanged");
+                "replay restarts the comic and three next clicks return to help with every saved field unchanged");
             effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
         }
-        IEnumerator VerifyStoryAudioUi()
+        IEnumerator VerifyStoryWithoutNarrationUi()
         {
             bool sound = effects.SoundEnabled, reduced = effects.ReducedMotion, musicEnabled = music.MusicEnabled;
             int soundVolume = effects.VolumePercent, musicVolume = music.VolumePercent;
@@ -338,85 +363,30 @@ namespace MoneyTown
             int[] preferences = keys.Select(key => GameRuntime.GetInt(key)).ToArray();
             try {
                 appPaused = false; appFocused = true;
-                effects.Configure(true, 50, false); music.Configure(true, 25); music.NextTrack(); UpdateFeedbackActivity();
-                UiFixture(Market.Create(), stories: true);
-                yield return new WaitForSecondsRealtime(.65f);
-                var voice = storyOpeningAudio;
-                var clip = Resources.Load<AudioClip>("Audio/story-opening");
-                UiCheck(clip != null && clip.loadState == AudioDataLoadState.Loaded && clip.samples > 0 &&
-                    voice != null && voice.clip == clip && voice != effects.OutputSource && voice != music.OutputSource &&
-                    !voice.loop && !voice.playOnAwake && voice.spatialBlend == 0 && voice.isPlaying && voice.timeSamples > 0 &&
-                    Math.Abs(voice.volume - .5f) < .001f && Math.Abs(music.DuckFactor - .25f) < .001f &&
-                    music.VolumePercent == 25 && Math.Abs(music.OutputSource.volume - .0625f) < .001f,
-                    "opening narration plays through its own source at the effects volume while music is ducked without changing its setting");
-
-                OnApplicationPause(true); int stopped = voice.timeSamples;
-                yield return new WaitForSecondsRealtime(.12f);
-                bool held = !voice.isPlaying && storyAudioPaused && Math.Abs(voice.timeSamples - stopped) <= 2048;
-                OnApplicationPause(false); appFocused = true;
-                yield return new WaitForSecondsRealtime(.2f);
-                UiCheck(held && voice.isPlaying && !storyAudioPaused && voice.timeSamples > stopped &&
-                    voice.timeSamples < stopped + clip.frequency,
-                    "opening narration pauses in the background and resumes from the same spoken position");
-
-                storyPageTime = 0; UpdateStoryOpening(); int before = voice.timeSamples;
-                UiButton("StoryOpeningNext").onClick.Invoke();
-                yield return new WaitForSecondsRealtime(.12f);
-                UiCheck(StoryOpeningActive && storyPage == 0 && voice.isPlaying && voice.clip == clip &&
-                    voice.timeSamples > before && voice.timeSamples < before + clip.frequency,
-                    "revealing the whole opening sentence leaves the narration playing continuously without restarting");
-                UiButton("StoryOpeningNext").onClick.Invoke();
-                yield return new WaitForSecondsRealtime(.4f);
-                UiCheck(storyPage == 1 && !StoryOpeningActive && !voice.isPlaying && !storyAudioRequested &&
-                    Math.Abs(music.DuckFactor - 1) < .001f && music.VolumePercent == 25 &&
-                    Math.Abs(music.OutputSource.volume - .25f) < .001f,
-                    "advancing past the opening stops its narration and smoothly restores the original music volume");
-
-                effects.Configure(true, 50, true); UiFixture(Market.Create(), stories: true);
-                yield return new WaitForSecondsRealtime(.12f);
-                UiCheck(StoryOpeningActive && storyOpeningLines.All(line => line.alpha == 1) &&
-                    storyArt.localScale == Vector3.one && voice.isPlaying && voice.timeSamples > 0,
-                    "reduced motion keeps the opening still while its narration remains audible");
-
-                bool silent = true;
-                for (int mode = 0; mode < 2; mode++) {
-                    effects.Configure(mode != 0, mode == 0 ? 50 : 0, true);
-                    UiFixture(Market.Create(), stories: true);
-                    yield return new WaitForSecondsRealtime(.3f);
-                    silent &= !voice.isPlaying && !storyAudioStarted && storyAudioRequested &&
-                        Math.Abs(music.DuckFactor - 1) < .001f;
-                }
-                effects.Configure(true, 75, true); UpdateFeedbackActivity();
-                yield return new WaitForSecondsRealtime(.12f);
-                UiCheck(silent && voice.isPlaying && voice.timeSamples > 0 && voice.timeSamples < clip.frequency &&
-                    Math.Abs(voice.volume - .75f) < .001f,
-                    "effects mute and zero volume suppress narration and ducking until sound is restored at the selected volume");
-
-                voice.timeSamples = Math.Max(0, clip.samples - clip.frequency / 10); UpdateOpeningAudio();
-                yield return new WaitForSecondsRealtime(.3f);
-                bool ended = !voice.isPlaying && storyAudioStarted && !storyAudioPaused;
-                OnApplicationPause(true); yield return new WaitForSecondsRealtime(.05f);
-                OnApplicationPause(false); appFocused = true;
-                yield return new WaitForSecondsRealtime(.6f);
-                UiCheck(ended && StoryOpeningActive && !voice.isPlaying && storyAudioStarted && !storyAudioPaused &&
-                    Math.Abs(music.DuckFactor - 1) < .001f && Math.Abs(music.OutputSource.volume - .25f) < .001f,
-                    "naturally finished narration never restarts after app suspension and releases music ducking");
-
+                effects.Configure(true, 50, true); music.Configure(true, 25); music.NextTrack(); UpdateFeedbackActivity();
                 UiFixture(UiStoryState(1000000, 1), 3, stories: true);
+                yield return new WaitForSecondsRealtime(.65f);
+                var source = music.OutputSource; var clip = source.clip;
+                int before = source.timeSamples; float volume = source.volume;
                 byte[] unchanged = SaveCodec.Encode(state);
                 string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
                 byte[] saved = File.ReadAllBytes(savePath);
                 UiButton("StoryReplay-0").onClick.Invoke();
                 yield return new WaitForSecondsRealtime(.12f);
-                bool restarted = StoryOpeningActive && storyReplay && voice.isPlaying &&
-                    voice.timeSamples > 0 && voice.timeSamples < clip.frequency;
-                UiButton("StorySkip").onClick.Invoke();
-                yield return new WaitForSecondsRealtime(.3f);
-                UiCheck(restarted && !StoryActive && tab == 3 && !voice.isPlaying && !storyAudioRequested &&
-                    Math.Abs(music.DuckFactor - 1) < .001f && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
-                    saved.SequenceEqual(File.ReadAllBytes(savePath)) &&
-                    existed.SequenceEqual(keys.Select(GameRuntime.HasKey)) && preferences.SequenceEqual(keys.Select(key => GameRuntime.GetInt(key))),
-                    "replay restarts narration once and closing it stops audio while preserving game progress and all sound preferences");
+                var sources = GetComponentsInChildren<AudioSource>(true);
+                UiCheck(Resources.Load<AudioClip>("Audio/story-opening") == null && sources.Length == 2 &&
+                    sources.Contains(effects.OutputSource) && sources.Contains(source),
+                    "story ships no opening voice clip or narration source and retains only music and ordinary effects sources");
+                bool uninterrupted = source.isPlaying && source.clip == clip && source.timeSamples > before &&
+                    source.timeSamples < before + clip.frequency && Math.Abs(source.volume - volume) < .001f;
+                UiButton("StoryNext").onClick.Invoke(); UiButton("StorySkip").onClick.Invoke();
+                yield return new WaitForSecondsRealtime(.12f);
+                UiCheck(uninterrupted && !StoryActive && tab == 3 && source.isPlaying && source.clip == clip &&
+                    Math.Abs(source.volume - .25f) < .001f && music.MusicEnabled && music.VolumePercent == 25 &&
+                    effects.SoundEnabled && effects.VolumePercent == 50 &&
+                    existed.SequenceEqual(keys.Select(GameRuntime.HasKey)) && preferences.SequenceEqual(keys.Select(key => GameRuntime.GetInt(key))) &&
+                    unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                    "opening, advancing and closing the comic leave background music, sound preferences and saved progress unchanged");
             } finally {
                 CloseStoryScreen(); effects.Configure(sound, soundVolume, reduced); music.Configure(musicEnabled, musicVolume);
                 appPaused = paused; appFocused = focused; UpdateFeedbackActivity();
