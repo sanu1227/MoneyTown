@@ -112,7 +112,7 @@ namespace MoneyTown
             while (!UnityEngine.Rendering.SplashScreen.isFinished) yield return null;
             yield return new WaitForEndOfFrame();
             UiCheck(StoryActive && storyChapter == 0 && storyPage == 0 &&
-                UiLabel("StoryBody").text == "이건 내가 세계 최고의 부자가 되는 이야기이다",
+                storyBody.text == "이건 내가 세계 최고의 부자가 되는 이야기이다",
                 "fresh game opens the requested exact introduction before the trading screen");
             effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
             UpdateStoryAnimation();

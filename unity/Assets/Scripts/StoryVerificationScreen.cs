@@ -13,11 +13,13 @@ namespace MoneyTown
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         bool UiStoryFits()
         {
-            return new[] { "StoryTitle", "StoryBody", "StoryPage" }.All(name => {
+            string[] labels = StoryOpeningActive ? new[] { "StoryOpeningLine-0", "StoryOpeningLine-1", "StoryOpeningLine-2" }
+                : new[] { "StoryTitle", "StoryBody", "StoryPage" };
+            return labels.All(name => {
                 var label = UiLabel(name);
                 return UiOnScreen(label.rectTransform) &&
                     label.cachedTextGenerator.characterCountVisible >= label.text.Length;
-            }) && new[] { "StoryNext", "StorySkip" }.All(name => {
+            }) && new[] { StoryOpeningActive ? "StoryOpeningNext" : "StoryNext", "StorySkip" }.All(name => {
                 var button = UiButton(name); var label = button.GetComponentInChildren<Text>();
                 return UiOnScreen((RectTransform)button.transform) &&
                     label.cachedTextGenerator.characterCountVisible >= label.text.Length;
@@ -206,12 +208,15 @@ namespace MoneyTown
                     art.Add(image.texture);
                     for (int page = 0; page < 3; page++) {
                         UpdateStoryAnimation(); yield return new WaitForEndOfFrame();
-                        allPagesFit &= UiStoryFits() && storyPage == page && !string.IsNullOrWhiteSpace(UiLabel("StoryBody").text);
-                        UiButton("StoryNext").onClick.Invoke();
+                        allPagesFit &= UiStoryFits() && storyPage == page && !string.IsNullOrWhiteSpace(storyBody.text);
+                        UiButton(StoryOpeningActive ? "StoryOpeningNext" : "StoryNext").onClick.Invoke();
                     }
                 }
                 UiCheck(allPagesFit && art.Count == Story.Count && unchanged.SequenceEqual(SaveCodec.Encode(state)),
                     "all six distinct high-resolution illustrations and eighteen narrative pages render completely in read-only replay");
+
+                var openingChecks = VerifyStoryOpeningUi();
+                while (openingChecks.MoveNext()) yield return openingChecks.Current;
 
                 GameRuntime.SetInt(TutorialModeKey, 0); GameRuntime.DeleteKey(TutorialStepKey);
                 UiFixture(Market.Create(), stories: true); RestoreTutorial(); TryShowStory();
@@ -229,6 +234,97 @@ namespace MoneyTown
                 appPaused = paused; appFocused = focused; UpdateFeedbackActivity();
                 UiFixture(original, originalTab); marketClock.Reset(); marketWasRunning = false;
             }
+        }
+        IEnumerator VerifyStoryOpeningUi()
+        {
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, false);
+            UiFixture(Market.Create(), stories: true);
+            storyPageTime = 0; UpdateStoryOpening();
+            byte[] unchanged = SaveCodec.Encode(state);
+            string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
+            byte[] saved = File.ReadAllBytes(savePath);
+            float initialShade = storyOpeningShade.color.a;
+            UiCheck(StoryOpeningActive && !storyBody.gameObject.activeInHierarchy && initialShade > .7f &&
+                storyOpeningLines.All(line => line.alpha == 0) &&
+                Enumerable.Range(0, 3).Select(index => UiLabel("StoryOpeningLine-" + index).text)
+                    .SequenceEqual(new[] { "이건 내가", "세계 최고의 부자가", "되는 이야기이다" }),
+                "opening starts with its exact three-line declaration over a dark background and hides the regular dialogue");
+
+            bool ordered = true, staggered = false;
+            for (int step = 0; step <= 20; step++) {
+                storyPageTime = StoryOpeningDuration * step / 20; UpdateStoryOpening();
+                ordered &= storyOpeningLines[0].alpha >= storyOpeningLines[1].alpha &&
+                    storyOpeningLines[1].alpha >= storyOpeningLines[2].alpha;
+                staggered |= storyOpeningLines[0].alpha > .9f && storyOpeningLines[2].alpha < .1f;
+            }
+            UiCheck(ordered && staggered && storyOpeningLines.All(line => line.alpha == 1) &&
+                storyOpeningShade.color.a < initialShade && storyPage == 0,
+                "opening reveals each phrase in order and uncovers the city without advancing the page automatically");
+
+            storyPageTime = StoryOpeningDuration * .4f; UpdateStoryOpening();
+            OnApplicationPause(true);
+            float pausedTime = storyPageTime, pausedShade = storyOpeningShade.color.a;
+            float[] pausedAlphas = storyOpeningLines.Select(line => line.alpha).ToArray();
+            yield return new WaitForSecondsRealtime(.12f);
+            bool held = storyPageTime == pausedTime && storyOpeningShade.color.a == pausedShade &&
+                pausedAlphas.SequenceEqual(storyOpeningLines.Select(line => line.alpha));
+            yield return new WaitForEndOfFrame(); UiCapture("36-story-opening-dark");
+            OnApplicationPause(false); appFocused = true;
+            yield return new WaitForSecondsRealtime(.12f);
+            UiCheck(held && storyPageTime > pausedTime && storyPageTime < StoryOpeningDuration && storyPage == 0,
+                "opening reveal pauses in the background and resumes without skipping the declaration");
+
+            UiButton("StoryOpeningNext").onClick.Invoke();
+            UiCheck(StoryOpeningActive && storyPage == 0 && storyOpeningLines.All(line => line.alpha == 1) &&
+                state.StorySeen == 0 && unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "first click during the reveal completes its animation without skipping the opening or saving progress");
+            yield return new WaitForEndOfFrame();
+            UiCheck(UiStoryFits(), "complete opening declaration and its controls fit on the current screen size");
+            UiCapture("35-story-opening");
+            UiButton("StoryOpeningNext").onClick.Invoke();
+            UiCheck(!StoryOpeningActive && storyPage == 1 && storyBody.gameObject.activeInHierarchy &&
+                UiButton("StoryNext").gameObject.activeInHierarchy && storyBody.text == StoryChapters.All[0].Pages[1] &&
+                saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "second opening click restores the existing illustrated dialogue on the next page without acknowledging the chapter");
+
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
+            UiFixture(Market.Create(), stories: true); UpdateStoryAnimation();
+            bool stillOpening = StoryOpeningActive && storyOpeningLines.All(line => line.alpha == 1) &&
+                storyArt.localScale == Vector3.one && storyArt.anchoredPosition == Vector2.zero;
+            UiButton("StoryOpeningNext").onClick.Invoke();
+            UiCheck(stillOpening && !StoryOpeningActive && storyPage == 1,
+                "reduced motion shows the whole opening immediately and a single click advances normally");
+
+            UiFixture(Market.Create(), stories: true);
+            unchanged = SaveCodec.Encode(state); saved = File.ReadAllBytes(savePath);
+            var realStore = store;
+            string failureDirectory = Path.Combine(GameRuntime.DataDirectory, "failed-story-opening");
+            var failingStore = new GameStore(failureDirectory);
+            Directory.CreateDirectory(Path.Combine(failureDirectory, "game-unity-v1.bin.tmp"));
+            try { store = failingStore; UiButton("StorySkip").onClick.Invoke(); }
+            finally { store = realStore; }
+            yield return new WaitForEndOfFrame();
+            UiCheck(StoryOpeningActive && storyOpeningNotice.gameObject.activeInHierarchy &&
+                storyOpeningNotice.text.Contains("저장") && UiOnScreen(storyOpeningNotice.rectTransform) &&
+                storyOpeningNotice.cachedTextGenerator.characterCountVisible >= storyOpeningNotice.text.Length &&
+                unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
+                saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "failed opening skip save keeps the declaration visible with its own readable error notice");
+            UiButton("StorySkip").onClick.Invoke();
+            UiCheck(!StoryActive && state.StorySeen == 1 && store.Load().StorySeen == 1,
+                "opening skip retry acknowledges the chapter once after storage recovers");
+
+            UiFixture(UiStoryState(1000000, 1), 3, stories: true);
+            unchanged = SaveCodec.Encode(state); saved = File.ReadAllBytes(savePath);
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, false);
+            UiButton("StoryReplay-0").onClick.Invoke();
+            bool replayOpening = StoryOpeningActive && storyReplay && storyPageTime < StoryOpeningDuration;
+            UiButton("StoryOpeningNext").onClick.Invoke(); UiButton("StoryOpeningNext").onClick.Invoke();
+            UiButton("StoryNext").onClick.Invoke(); UiButton("StoryNext").onClick.Invoke();
+            UiCheck(replayOpening && !StoryActive && tab == 3 && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
+                saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "replay restarts the opening presentation and returns to help with every saved field unchanged");
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
         }
 #endif
     }
