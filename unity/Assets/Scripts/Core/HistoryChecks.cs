@@ -100,7 +100,7 @@ namespace MoneyTown
             Throws(()=>SaveCodec.Decode(ChangeBytes(bytes,trades,BitConverter.GetBytes(101))));
             Throws(()=>SaveCodec.Decode(ChangeBytes(bytes,trades,BitConverter.GetBytes(-1))));
             Throws(()=>SaveCodec.Decode(ChangeBytes(bytes,trades+4,BitConverter.GetBytes(s.Day+1))));
-            Throws(()=>SaveCodec.Decode(ChangeBytes(bytes,bytes.Length-36,BitConverter.GetBytes(32))));
+            Throws(()=>SaveCodec.Decode(ChangeBytes(bytes,bytes.Length-36-4*8-s.Clues.Length,BitConverter.GetBytes(32))));
             Throws(()=>SaveCodec.Decode(ChangeBytes(bytes,footer+s.Stocks[0].History.Length*8,new byte[]{2})));
             Throws(()=>SaveCodec.Decode(ChangeBytes(bytes,trades+4+8+4,new byte[]{2})));
             Throws(()=>SaveCodec.Decode(ChangeBytes(bytes,8,new byte[0],bytes.Length-33)));

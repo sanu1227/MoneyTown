@@ -107,7 +107,7 @@ namespace MoneyTown
             CheckIntraday();CheckSettlement();CheckDayMigration();CheckMarketIntervals();
             CheckArticleEditions();
             CheckMediaVoices();
-            return 30 + StorageChecks.Run() + PurchaseGuidanceChecks.Run() + OrderGuidanceChecks.Run() + HistoryChecks.Run() + ProgressChecks.Run() + ExpansionChecks.Run() + CorrelationChecks.Run() + WarehouseChecks.Run() + InvestmentGrowthChecks.Run() + PriceProgressionChecks.Run();
+            return 30 + StorageChecks.Run() + PurchaseGuidanceChecks.Run() + OrderGuidanceChecks.Run() + HistoryChecks.Run() + ProgressChecks.Run() + ExpansionChecks.Run() + CorrelationChecks.Run() + WarehouseChecks.Run() + InvestmentGrowthChecks.Run() + PriceProgressionChecks.Run() + PriceMigrationChecks.Run();
         }
         static void CheckMediaVoices()
         {

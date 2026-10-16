@@ -50,7 +50,8 @@ namespace MoneyTown
             PrepareVerification();
             try{store=new GameStore(GameRuntime.DataDirectory);state=store.Load();}
             catch(Exception){state=Market.Create();blocked=true;message="저장 읽기 실패. 자산 탭에서 복구하세요.";}
-            if(state.SettlementPending)message="전날 결산과 새로운 개장 시세를 확인하세요.";
+            if(store!=null&&store.PricesMigrated&&!blocked){message="가격 조정 완료 · 총자산 보존 · 내 자산 > 진행 관리";flashUntil=Time.unscaledTime+8;}
+            else if(state.SettlementPending)message="전날 결산과 새로운 개장 시세를 확인하세요.";
             RestoreTutorial();BuildScreen();UpdateSummary();RenderTab();
             StartVerification();
         }
@@ -225,7 +226,12 @@ namespace MoneyTown
             }
             if(tutorial!=null)DrawTutorial();
             else if(tab==3)DrawHelp();
-            else if(tab==4)DrawSettlement();
+            else if(tab==4){
+                var report=selectedReportDay.HasValue?state.DayReports.First(item=>item.Day==selectedReportDay.Value):state.LastReport;
+                if(state.PriceMigrationDay>0&&report.Day<state.PriceMigrationDay)
+                    Label(content,(store!=null&&store.PricesMigrated?"총자산을 보존해 가격을 조정했습니다.\n":"")+"가격 조정 전 결산 · 당시 주가와 수량입니다. 현재 주가와 직접 비교하지 마세요.",18,Gold,store!=null&&store.PricesMigrated?92:68).name="PriceMigrationSettlementNotice";
+                DrawSettlement();
+            }
             else if(tab==5)DrawClockSettings();
             else if(tab==6)DrawHistory();
             else if(tab==0){Trading();BuildTradeDock();}else if(tab==1)Information();else Assets();
@@ -380,6 +386,15 @@ namespace MoneyTown
             if(showGoals)DrawProgress(content);
             if(!showManagement&&!blocked&&!resetPending)return;
             var settings=Card(content);Label(settings,"진행 관리",23,null,34);Label(settings,blocked?"저장을 읽지 못했습니다. 기존 파일은 보존됩니다.":"행동마다 자동 저장 · 종료 중 시장 정지",18,blocked?Red:Muted,46);
+            if(state.PriceMigrationDay>0){
+                var migration=Card(settings,14,6);migration.name="PriceMigrationSummary";
+                Label(migration,state.PriceMigrationDay+"일차 · 가격 조정 내역",22,Gold,36);
+                Label(migration,"보존 총자산 "+Money(state.PriceMigrationAssets),24,Mint,40).name="PriceMigrationAssets";
+                Label(migration,"잔여 주식 현금 환산 "+Money(state.PriceMigrationCash),20,null,36).name="PriceMigrationCash";
+                Label(migration,"보유 수량을 새 가격에 맞췄습니다. 1주 미만의 남은 금액은 수수료 없이 현금으로 돌려드렸습니다.",18,Muted,70);
+                if(state.PriceMigrationProfit!=0)
+                    Label(migration,"환산분 실현손익 "+Signed(state.PriceMigrationProfit)+" · 총자산 변동 없음",17,Muted,48);
+            }
             Button(settings,"도움말 · 튜토리얼 다시 보기",OpenHelp,Raised,62);
             DrawRecoveryControls(settings);
             if(resetPending){

@@ -525,6 +525,48 @@ namespace MoneyTown
             UiButton("목표 접기").onClick.Invoke();UiButton("진행 관리").onClick.Invoke();UiButton("새 게임 시작").onClick.Invoke();
             UiCheck(resetPending&&UiText().Contains("현재 진행을 초기화할까요?"),"management keeps the existing reset confirmation");
             UiButton("취소").onClick.Invoke();UiButton("관리 접기").onClick.Invoke();
+            var migrationBefore=Market.Create(42);migrationBefore.Cash=migrationBefore.DayStartAssets=200000000;
+            migrationBefore.Stocks[2].Price=migrationBefore.Stocks[2].History[0]=24000;
+            migrationBefore=Market.Trade(migrationBefore,2,301,true);
+            migrationBefore=Market.AcknowledgeSettlement(Market.NextDay(migrationBefore));
+            var oldAnalysis=Intelligence.CompanyOffers(migrationBefore,2).Last();
+            migrationBefore=Intelligence.Buy(migrationBefore,oldAnalysis.Index,migrationBefore.Day);
+            var legacyBriefing=InfoMarket.Capture(migrationBefore,InfoKind.Briefing,2);
+            migrationBefore.Information[InfoMarket.Slot(InfoKind.Briefing,2)]=legacyBriefing;
+            string oldScenario=ClueContent.PriceScenario(migrationBefore.Clues.Single());
+            long migrationAssets=Market.Total(migrationBefore),migrationCash=migrationBefore.Cash;
+            var migrated=PriceMigration.Apply(migrationBefore);UiFixture(migrated,2);
+            UiButton("진행 관리").onClick.Invoke();scroll.verticalNormalizedPosition=0;
+            yield return new WaitForEndOfFrame();
+            UiCheck(Market.Total(state)==migrationAssets&&state.Cash==migrationCash+state.PriceMigrationCash&&
+                UiLabel("PriceMigrationAssets").text.Contains(Money(migrationAssets))&&
+                UiLabel("PriceMigrationCash").text.Contains(Money(state.PriceMigrationCash))&&
+                new[]{UiLabel("PriceMigrationAssets"),UiLabel("PriceMigrationCash")}.All(label=>UiOnScreen(label.rectTransform)&&
+                    label.cachedTextGenerator.characterCountVisible>=label.text.Length),
+                "price conversion management shows preserved total assets and returned cash without clipping");
+            UiCapture("27-price-migration");
+            UiFixture(migrated,1);OpenClue(state.Day,oldAnalysis.Index);
+            yield return new WaitForEndOfFrame();
+            bool oldPriceWarning=UiLabel("PriceMigrationArticleNotice").text.Contains("현재 주가나 조정 후 결산 금액과 직접 비교하지 마세요")&&
+                UiLabel("PriceMigrationArticleNotice").cachedTextGenerator.characterCountVisible>=UiLabel("PriceMigrationArticleNotice").text.Length&&
+                ClueContent.PriceScenario(state.Clues.Single())==oldScenario&&
+                UiText().Contains(Money(migrationBefore.Clues.Single().Prices.Last()))&&state.Clues.Single().BeforePriceMigration;
+            OpenInfo(InfoKind.Briefing,2);
+            UiCheck(oldPriceWarning&&UiLabel("PriceMigrationLegacyNotice").text.Contains("가격 조정 전 자료")&&
+                state.Information[InfoMarket.Slot(InfoKind.Briefing,2)].Prices.SequenceEqual(legacyBriefing.Prices),
+                "old top-grade scenarios and legacy price records retain their values with a clear conversion warning");
+            var newAnalysis=Intelligence.CompanyOffers(state,0).First();
+            UiFixture(Intelligence.Buy(state,newAnalysis.Index,state.Day),1);OpenClue(state.Day,newAnalysis.Index);
+            UiCheck(!state.Clues.Last().BeforePriceMigration&&
+                !GetComponentsInChildren<Text>().Any(label=>label.name=="PriceMigrationArticleNotice")&&
+                state.Clues.Last().Prices.Last()==state.Stocks[0].Price,
+                "newly purchased analysis uses current prices without the old-price warning");
+            UiFixture(migrated,6);bool historyWarning=UiLabel("PriceMigrationHistoryNotice").text.Contains("조정 전 거래·결산");
+            selectedReportDay=1;tab=4;RenderTab();
+            UiCheck(historyWarning&&UiLabel("PriceMigrationSettlementNotice").text.Contains("가격 조정 전 결산")&&
+                state.DayReports[0].ClosePrices.SequenceEqual(migrationBefore.DayReports[0].ClosePrices)&&
+                state.Trades[0].Price==migrationBefore.Trades[0].Price,
+                "historical trades and settlement explain their original units while retaining recorded prices");
             UiFixture(Market.Create(),1);informationBand=0;InfoHome(0);
             yield return new WaitForEndOfFrame();UiCapture("23-clean-information");
             var compactOffers=content.GetComponentsInChildren<PaperSheet>();

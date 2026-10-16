@@ -84,8 +84,8 @@ namespace MoneyTown
             var state=Market.Create(42);state.Cash=state.DayStartAssets=1000000000;
             state=Intelligence.Buy(state,Intelligence.DailyCount+2,state.Day);
             byte[] bytes=SaveCodec.Encode(state);var restored=SaveCodec.Decode(bytes);
-            Check(BitConverter.ToInt32(bytes,4)==10&&restored.MarketVersion==4&&restored.Clues.Single().MarketVersion==4
-                &&bytes.SequenceEqual(SaveCodec.Encode(restored)),"Version-ten save lost the active or purchased price model.");
+            Check(BitConverter.ToInt32(bytes,4)==11&&restored.MarketVersion==4&&restored.Clues.Single().MarketVersion==4
+                &&bytes.SequenceEqual(SaveCodec.Encode(restored)),"Version-eleven save lost the active or purchased price model.");
             foreach(int invalid in new[]{-1,0,1,2,5,int.MaxValue}) {
                 var broken=state.Copy();broken.MarketVersion=invalid;Reject(()=>SaveCodec.Encode(broken));
                 // Authenticate the corrupt body so decoding must reject the model, not only its checksum.

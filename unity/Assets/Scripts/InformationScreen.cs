@@ -165,6 +165,10 @@ namespace MoneyTown
             Print(paper,offer.Source,27,48,PrintBlue,TextAnchor.MiddleCenter,true);
             Print(paper,offer.Tier.Name+" · 신뢰도 "+offer.Tier.Confidence+"%",18,32,PaperMuted,TextAnchor.MiddleCenter);
             Print(paper,"취재 "+record.IssuedDay+"일차 · 사건 예정 "+(record.IssuedDay+1)+"일차",18,32,PaperMuted,TextAnchor.MiddleCenter);Rule(paper,PrintBlue,3);
+            if(record.BeforePriceMigration){
+                var notice=Print(paper,"가격 조정 전 구매 자료\n구매 당시 시세·예상 금액은 조정 전 기준입니다. 현재 주가나 조정 후 결산 금액과 직접 비교하지 마세요.",20,0,StampRed,TextAnchor.UpperLeft);
+                notice.name="PriceMigrationArticleNotice";notice.resizeTextForBestFit=false;notice.lineSpacing=1.15f;
+            }
             Print(paper,ClueContent.Headline(offer),30,106,Ink,TextAnchor.MiddleLeft,true);
             if(record.Version>=2&&record.ContentEdition<InformationCatalog.CurrentEdition)Print(paper,"이전 발행판 · 구매 당시 본문 보존",18,32,PaperMuted);
             string reaction=ClueContent.MarketReaction(state,record);
@@ -172,6 +176,8 @@ namespace MoneyTown
                 var comparison=Column(paper,16,8);comparison.name="InformationReaction";
                 Surface(comparison,Hex("E2ECF3")).raycastTarget=false;
                 Print(comparison,"정보와 주가 대조",25,40,PrintBlue,TextAnchor.MiddleLeft,true).name="InformationReactionTitle";
+                if(record.BeforePriceMigration&&record.IssuedDay>=state.PriceMigrationDay)
+                    Print(comparison,"아래 종가·시가는 가격 조정 후 기준입니다.",18,48,PrintBlue);
                 var result=Print(comparison,reaction,21,0,Ink,TextAnchor.UpperLeft);
                 result.name="InformationReactionBody";result.resizeTextForBestFit=false;result.lineSpacing=1.2f;
             } else if(state.Day==record.IssuedDay) {
@@ -198,6 +204,8 @@ namespace MoneyTown
             var owned=InfoMarket.Owned(state,kind,readerCompany);
             Button(content,"‹ 이전 자료 목록",()=>InfoHome(1),Raised,64);
             Label(content,"이전 버전 구매본 · 발행 당시 내용",18,Gold,34);
+            if(state.PriceMigrationDay>0)
+                Label(content,"가격 조정 전 자료입니다. 아래 시세는 발행 당시 기준이며 현재 주가와 직접 비교하지 마세요.",19,Gold,80).name="PriceMigrationLegacyNotice";
             if(kind==InfoKind.Newspaper)DrawNewspaper(owned);
             else if(kind==InfoKind.Report)DrawResearch(owned);
             else if(kind==InfoKind.Briefing)DrawBriefing(owned);

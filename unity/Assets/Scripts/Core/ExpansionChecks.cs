@@ -33,7 +33,7 @@ namespace MoneyTown
                 for(int i=6;i<12;i++)Check(migrated.Stocks[i].Quantity==0&&migrated.Stocks[i].Cost==0&&migrated.Stocks[i].History.SequenceEqual(new[]{Market.Companies[i].Price})&&migrated.Stocks[i].HistoryDays.SequenceEqual(new[]{old.Day})&&migrated.Stocks[i].HistoryOpenings.Single(),"Migration invented a new company's previous prices or holdings.");
                 Check(migrated.DayReports.All(r=>r.ClosePrices.Length==6&&r.News.Length==0),"Migration fabricated old company prices or news.");
                 if(article!=null)Check(ClueContent.Body(migrated.Clues[0].Offer)==article,"Paid legacy article was rewritten.");
-                var encoded=SaveCodec.Encode(migrated);Check(BitConverter.ToInt32(encoded,4)==10&&encoded.SequenceEqual(SaveCodec.Encode(SaveCodec.Decode(encoded))),"Expanded migration did not round-trip in v10.");
+                var encoded=SaveCodec.Encode(migrated);Check(BitConverter.ToInt32(encoded,4)==11&&encoded.SequenceEqual(SaveCodec.Encode(SaveCodec.Decode(encoded))),"Expanded migration did not round-trip in v11.");
             }
         }
         static void CheckPurchasedWorld()

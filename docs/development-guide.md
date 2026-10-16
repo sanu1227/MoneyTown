@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-결과는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.20.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다.
+결과는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.20.1-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.20.0-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.20.1-Setup-x64.exe
 ```
 
 ## Android APK
@@ -111,8 +111,11 @@ dotnet run --project tests/strategy-comparison/StrategyComparison.csproj
 
 - PC 진행 파일: `%USERPROFILE%\AppData\LocalLow\MoneyTown\MoneyTown\game-unity-v1.bin`
 - PC 설정: `HKEY_CURRENT_USER\Software\MoneyTown\MoneyTown`
-- v0.19.0부터 저장 형식 10에 현재 날짜의 가격 모델을 기록합니다. 형식 1~9를 읽으면 다음 개장 한 번은 모델 3으로 진행하고 새 날짜부터 모델 4로 전환합니다. 이전 구매본·과거 결산은 변경하지 않습니다.
-- v0.20.0의 가격 차등은 새 게임의 초기 가격에 적용합니다. 기존 저장의 주가·보유 수량·원가·차트·구매본을 그대로 복원하므로 업데이트만으로 자산이 늘어나거나 초기화되지 않습니다.
+- v0.19.0의 저장 형식 10은 현재 날짜의 가격 모델을 추가했습니다. 형식 1~9의 다음 개장 한 번은 모델 3으로 진행하고 새 날짜부터 모델 4로 전환합니다. 이 가격 반응 규칙과 아래 가격 기준 조정은 별개입니다.
+- v0.20.0은 새 게임의 초기 가격을 1천~600만원으로 구분했습니다. v0.20.1은 저장 형식 **11**에서 지원하는 이전 형식 **1~10 전체**의 현재가를 새 기준가로 한 번 맞춥니다. v0.20.0에서 새로 생성한 형식 10 저장도 구별할 표식이 없어 동일하게 적용합니다.
+- 기업별 `V = 기존 현재가 × 보유 수량`, `새 수량 = V / 새 기준가`의 내림값, `R = V % 새 기준가`로 계산합니다. `R`은 무수수료 현금 정산하고 `floor(기존 원가 × R / V)`만큼 원가를 차감합니다. 평가액 0은 별도로 처리합니다. 실현손익과 `DayStartRealized`에 정산 손익을 함께 반영해 총자산·총손익·당일 손익을 보존합니다. 중간 곱셈은 `BigInteger`를 사용합니다.
+- 차트는 동일 비율로 새 가격 기준에 맞추며 기존 거래·결산·구매 가격 스냅샷은 원본으로 남깁니다. 과거 자료는 가격 기준 조정 이전임을 안내합니다. 날짜·예금 원금/만기·시장 난수는 유지하며 진행을 초기화하지 않습니다.
+- 이전 파일을 먼저 검증하고 `before-price-update` 원본 사본을 남긴 뒤 원자적 저장이 성공한 경우에만 조정 상태를 적용합니다. 형식 11로 적용 상태를 저장해 재실행 시 중복 정산을 막습니다. 정산 금액·실현손익의 한도를 넘거나 저장이 실패하면 원본을 보존하며, 자산이나 손익을 잘라 한도에 맞추지 않습니다. 검증에서는 총자산 보존·정산 원가·중복 방지·원본 사본·저장 실패 경로를 함께 확인합니다.
 - Android·Unity 에디터·PC의 저장은 별개일 수 있습니다. 이전 Kotlin·웹 저장은 자동 이전하지 않습니다.
 - 소스에는 Unity `Assets`·`.meta`·`Packages`·`ProjectSettings`와 콘텐츠·검증·문서를 포함합니다. 캐시·로그·개인 설정·서명 키·빌드 결과는 제외합니다.
 - 기능별 검증과 개발 노트를 마친 뒤 한국어 메시지로 커밋하고 `origin`에 일반 push합니다. 자세한 규칙은 [AGENTS.md](../AGENTS.md)를 따릅니다.

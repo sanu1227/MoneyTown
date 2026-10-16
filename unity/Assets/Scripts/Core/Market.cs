@@ -29,6 +29,7 @@ namespace MoneyTown
         public int EventEdition = InformationCatalog.CurrentEdition;
         public int MarketVersion = Market.CurrentMarketVersion;
         public long TickSeed,TickCount,DayStartAssets,DayStartRealized,DayFees,DayInformationCost,DayInterest;
+        public long PriceMigrationDay,PriceMigrationCash,PriceMigrationAssets,PriceMigrationProfit;
         public DayReport LastReport;
         public TradeRecord[] Trades = Array.Empty<TradeRecord>();
         public DayReport[] DayReports = Array.Empty<DayReport>();
@@ -111,6 +112,10 @@ namespace MoneyTown
             Require(s.EventEdition>=2&&s.EventEdition<=InformationCatalog.CurrentEdition,damaged);
             Require(s.MarketVersion>=3&&s.MarketVersion<=CurrentMarketVersion,damaged);
             Require(s.Realized >= -Limit && s.Realized <= Limit, damaged);
+            Require(s.PriceMigrationDay>=0&&s.PriceMigrationDay<=s.Day,damaged);
+            Amount(s.PriceMigrationCash);Amount(s.PriceMigrationAssets);
+            Require(s.PriceMigrationCash<=s.PriceMigrationAssets&&s.PriceMigrationProfit>=-Limit&&s.PriceMigrationProfit<=Limit,damaged);
+            Require(s.PriceMigrationDay>0||s.PriceMigrationCash==0&&s.PriceMigrationAssets==0&&s.PriceMigrationProfit==0,damaged);
             Require(s.Stocks != null && s.Stocks.Length == Companies.Length && s.Reports != null && s.Reports.Length == Companies.Length, damaged);
             foreach (var stock in s.Stocks) {
                 Require(stock != null && stock.Price >= 100 && stock.Price <= Limit && stock.Quantity >= 0 && stock.Quantity <= Limit, damaged);
@@ -124,6 +129,7 @@ namespace MoneyTown
             Require(s.NewsCompany >= 0 && s.NewsCompany < Companies.Length, damaged);
             InfoMarket.Validate(s);
             Intelligence.Validate(s);
+            Require(s.Clues.All(c=>!c.BeforePriceMigration||s.PriceMigrationDay>0&&c.IssuedDay<=s.PriceMigrationDay),damaged);
             ValidateDay(s);ValidateHistory(s);Total(s); return s;
         }
         public static Quote GetQuote(GameState s, int index, long quantity)

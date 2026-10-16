@@ -30,6 +30,8 @@ namespace MoneyTown
         {
             Label(content, "거래와 결산 기록", 30, Gold, 52);
             Label(content, "이전 저장에 없는 거래·결산은 만들어내지 않습니다.", 17, Muted, 52);
+            if(state.PriceMigrationDay>0)
+                Label(content,state.PriceMigrationDay+"일차에 가격과 보유 수량을 조정했습니다. 조정 전 거래·결산은 당시 가격과 수량을 보존하며 현재 주가와 직접 비교하지 마세요.",18,Gold,96).name="PriceMigrationHistoryNotice";
             Button(content, "내 자산으로 돌아가기", () => SwitchTab(2), Raised, 62);
             Label(content, "일별 결산 · 최근 30일", 24, null, 42);
             if (state.DayReports.Length == 0) Label(content, "다음 날을 진행하면 첫 결산이 남습니다.", 20, Muted, 52);

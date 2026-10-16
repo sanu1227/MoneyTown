@@ -2,7 +2,18 @@
 
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
-**v0.20.0 / 2026-10-16 촬영.** 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+**2026-10-16 촬영.** 기본 화면은 v0.20.0, 아래 가격 조정 내역은 v0.20.1입니다. 각 항목을 펼치면 480×960 원본을 볼 수 있습니다. Windows 검증용 Unity Player에서 테스트 데이터로 실행한 화면이며 이미지 보정이나 UI 합성 없이 제공합니다.
+
+<details open>
+<summary><strong>v0.20.1 가격 조정 — 기존 진행의 총자산 보존</strong></summary>
+
+내 자산의 진행 관리에서 조정 당시 총자산과 정수 주식으로 바꾸고 남은 현금 정산액을 확인합니다. 실제 사용자 저장이 아닌 검증용 보유 주식 데이터입니다.
+
+<img src="../assets/screenshots/v0.20.1/price-migration.png" width="480" alt="가격 조정 후 보존 총자산과 현금 환산액을 표시하는 진행 관리" />
+
+원본은 `build/ui-verification-91f25d9eebd242b49f1f439251e88d6b/27-price-migration.png`입니다. 해당 실행은 UI 133개 검사를 통과했고 공개 이미지의 SHA-256이 원본과 같습니다.
+
+</details>
 
 <details open>
 <summary><strong>거래소 — 차트와 주문</strong></summary>
@@ -80,7 +91,7 @@
 
 </details>
 
-## 촬영 정보
+## v0.20.0 기본 화면 촬영 정보
 
 | 항목 | 값 |
 | --- | --- |

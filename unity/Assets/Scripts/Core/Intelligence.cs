@@ -30,6 +30,7 @@ namespace MoneyTown
         public long IssuedDay,Seed,PaidPrice;
         public int Index,Version=1,MarketVersion=1,ContentEdition=1;
         public int EventEdition=InformationCatalog.CurrentEdition;
+        public bool BeforePriceMigration;
         public long[] Prices=Array.Empty<long>();
         public ClueRecord Copy() {var copy=(ClueRecord)MemberwiseClone();copy.Prices=(long[])Prices.Clone();return copy;}
         public IntelOffer Offer => Version==1?LegacyIntelligence.Offers(IssuedDay,Seed)[Index]:Intelligence.Offer(IssuedDay,Seed,Index,ContentEdition,Version,EventEdition);
