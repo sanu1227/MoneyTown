@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.26.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
+빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.26.1-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.26.0-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.26.1-Setup-x64.exe
 ```
 
 ## Android APK
@@ -95,7 +95,9 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 
 [`Core/StoryChecks.cs`](../unity/Assets/Scripts/Core/StoryChecks.cs)는 해금 경계·총자산·자산 하락·확인 순서·이전 저장 호환성을 검사합니다. [`StoryVerificationScreen.cs`](../unity/Assets/Scripts/StoryVerificationScreen.cs)는 Unity Player에서 화면 우선순위·시세 차단·저장 실패 재시도·다시 보기·본문 배치·그림·동작 줄이기를 확인합니다. 위 코어·Verification 명령에 포함되며, 이미지 자체 확인과 실제 화면 캡처를 함께 점검합니다.
 
-도입부 음성은 [`StoryAudio.cs`](../unity/Assets/Scripts/StoryAudio.cs)가 `Audio/story-opening.wav`를 재생합니다. [무료 음원 제작 기록](opening-audio.md)에 원문·음성·북마크 시점·생성기를 보관합니다. `python scripts/generate-opening-audio.py --check`는 TTS를 호출하지 않고 저장된 원본에서 음성을 포함한 믹스를 정확히 재합성해 검사합니다. 목소리를 다시 만들면 `StoryScreen`의 문구 시점과 연출 길이도 새 음원에 맞춰 확인합니다.
+도입부 음성은 [`StoryAudio.cs`](../unity/Assets/Scripts/StoryAudio.cs)가 `Audio/story-opening.wav`를 재생합니다. 0.26.1은 무료 로컬 Supertonic 3의 M2 프리셋으로 원본을 만들고, 게임에는 완성 WAV만 포함합니다. [무료 음원 제작 기록](opening-audio.md)에 원문·모델과 도구 revision·패키지 버전·구간 시점·생성기를 보관합니다. `python scripts/generate-opening-audio.py --check`는 표준 라이브러리만 사용하며 TTS 호출이나 파일 변경 없이 저장된 원본의 해시·형식·세 구간과 정확한 믹스 재현을 검사합니다.
+
+원본 교체는 내려받은 모델·공식 helper·패키지를 `build/voice-tools/`에 준비한 뒤 [`record-opening-neural.py`](../scripts/record-opening-neural.py)를 명시적으로 실행합니다. 이 도구 폴더는 Git과 게임 배포에 포함하지 않습니다. 재생성 스크립트는 음성 인식 검사를 다시 실행하지 않으므로 발화를 별도로 확인해야 합니다. 원본을 바꾸면 JSON의 `cues`, `StoryScreen`의 문구 시점과 연출 길이도 새 음원에 맞춰 확인합니다. 현재 시점은 0.2·1.3·2.9초이며 연출 길이는 5.25초입니다. 도움말의 AI 생성 음성 고지와 출처·라이선스 설명을 유지합니다.
 
 ## 배경음악 수정
 

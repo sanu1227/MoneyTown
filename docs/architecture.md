@@ -34,6 +34,7 @@ v0.19.0의 가격 모델 4는 사건·성장·수급의 합과 기존 개장 최
 | 이야기 해금·확인 순서 | [`Core/Story.cs`](../unity/Assets/Scripts/Core/Story.cs), [`Core/Progress.cs`](../unity/Assets/Scripts/Core/Progress.cs) |
 | 이야기 화면·대사·일러스트 연결 | [`StoryScreen.cs`](../unity/Assets/Scripts/StoryScreen.cs), [`StoryChapters.cs`](../unity/Assets/Scripts/StoryChapters.cs), [일러스트 자료](story-art.md) |
 | 첫 문장 내레이션·효과음·음악 낮추기 | [`StoryAudio.cs`](../unity/Assets/Scripts/StoryAudio.cs), [`GameMusic.cs`](../unity/Assets/Scripts/GameMusic.cs) |
+| 내레이션 원본 생성·효과음 믹싱·검사 | [`record-opening-neural.py`](../scripts/record-opening-neural.py), [`generate-opening-audio.py`](../scripts/generate-opening-audio.py), [음원 자료](opening-audio.md) |
 | 차트·아이콘·종이 표현 | [`PriceChart.cs`](../unity/Assets/Scripts/PriceChart.cs), [`MarketIcon.cs`](../unity/Assets/Scripts/MarketIcon.cs), [`PaperSheet.cs`](../unity/Assets/Scripts/PaperSheet.cs) |
 | 거래·가격·날짜 규칙 | [`Core/Market.cs`](../unity/Assets/Scripts/Core/Market.cs), [`Core/TradingDay.cs`](../unity/Assets/Scripts/Core/TradingDay.cs) |
 | 주문 가능 여부와 최대 매수 | [`Core/OrderGuidance.cs`](../unity/Assets/Scripts/Core/OrderGuidance.cs) |
@@ -57,7 +58,11 @@ v0.24.0의 `GameMusic`은 `Resources/Audio`의 원곡 4곡을 PCM 스트리밍�
 
 `StoryScreen`은 새 게임의 도입부를 튜토리얼보다 먼저 표시합니다. 성장 장면은 미확인 결산·물류센터 작업·튜토리얼이 끝난 뒤 표시하며 설정·도움말에서는 기다립니다. 이야기 중 일반 화면을 숨기고 거래·날짜·시세 갱신을 막습니다. 그림의 확대·이동과 본문 페이드는 앱 비활성화 때 멈추고, 동작 줄이기에서는 정지 그림과 완성된 본문을 사용합니다.
 
-v0.26.0의 `StoryAudio`는 `Resources/Audio/story-opening.wav`의 내레이션과 합성 효과음을 별도 2D `AudioSource`로 재생합니다. 프롤로그 첫 페이지에서 Unity 시작 화면이 끝난 뒤 한 번 시작하며, 다음 페이지·장 닫기·컴포넌트 비활성화 때 중지합니다. 재감상은 처음부터 재생하고 앱 중단·복귀는 `Pause`·`UnPause`로 위치를 보존합니다. 효과음 켜기/끄기와 음량 설정을 공유하며 동작 줄이기는 음성에 영향을 주지 않습니다.
+v0.26.0에서 추가한 `StoryAudio`는 `Resources/Audio/story-opening.wav`의 내레이션과 합성 효과음을 별도 2D `AudioSource`로 재생합니다. 프롤로그 첫 페이지에서 Unity 시작 화면이 끝난 뒤 한 번 시작하며, 다음 페이지·장 닫기·컴포넌트 비활성화 때 중지합니다. 재감상은 처음부터 재생하고 앱 중단·복귀는 `Pause`·`UnPause`로 위치를 보존합니다. 효과음 켜기/끄기와 음량 설정을 공유하며 동작 줄이기는 음성에 영향을 주지 않습니다.
+
+v0.26.1의 원본 음성은 로컬 Supertonic 3 M2 프리셋으로 생성한 44.1kHz·16bit PCM입니다. 모델 추론은 제작 도구에서만 수행하며 게임에는 완성 WAV만 포함합니다. `record-opening-neural.py`가 명시적으로 원본과 제작 메타를 교체하고, 표준 라이브러리만 쓰는 `generate-opening-audio.py`는 저장된 원본과 세 구간 시점을 검증해 효과음을 결정적으로 섞습니다. `--check`는 파일을 바꾸거나 TTS를 실행하지 않습니다. 모델·공식 helper·가상환경은 Git에서 제외한 `build/voice-tools/`에 둡니다.
+
+현재 `StoryOpeningPhraseTimes`는 0.2·1.3·2.9초, `StoryOpeningDuration`은 5.25초입니다. 각 문구는 0.7초 동안 나타나며 도시는 3~5.25초에 드러납니다. AI 생성 음성 고지는 `TutorialScreen`의 도움말에 표시합니다. 라이선스·원본 해시·재현 절차는 [음원 자료](opening-audio.md)에 기록합니다.
 
 음성이 실제 재생되는 동안 `GameMusic.DuckFactor`를 0.25로 낮추고 종료·중단 시 1로 복원합니다. 사용자가 저장한 음악 음량은 바꾸지 않습니다. ‘문장 바로 보기’는 시각 연출만 완성하며 음성 위치를 바꾸지 않고, 다음 대사로 이동하면 중지합니다. 게임 저장과 자산 규칙에는 변화가 없습니다. [음원 제작 기록](opening-audio.md)
 

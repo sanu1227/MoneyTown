@@ -13,8 +13,8 @@ namespace MoneyTown
         Image storyOpeningShade,storyHeader;
         Text storyBrand,storyOpeningNotice;
         Button storyOpeningNext;
-        const float StoryOpeningDuration=5.75f;
-        static readonly float[] StoryOpeningPhraseTimes={.2f,1.11f,2.880375f};
+        const float StoryOpeningDuration=5.25f;
+        static readonly float[] StoryOpeningPhraseTimes={.2f,1.3f,2.9f};
         Text storyBody,storyTitle,storyRequirement,storyPageLabel,storyNotice;
         Button storyNext,storySkip;
         int storyChapter,storyPage;
