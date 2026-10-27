@@ -59,7 +59,7 @@ namespace MoneyTown
         void Update()
         {
             UpdateFeedbackActivity();
-            TryShowStory();UpdateStoryAnimation();UpdateGuideExplanationVisibility();
+            TryShowStory();UpdateStoryAnimation();
             if(safeArea!=null&&(lastSafe!=Screen.safeArea||lastSize!=new Vector2Int(Screen.width,Screen.height)))ApplySafeArea();
             if(status!=null)UpdateStatus();
             UpdateMarket();
@@ -73,7 +73,6 @@ namespace MoneyTown
             safeArea.offsetMin=safeArea.offsetMax=Vector2.zero;
             PositionSettlementWindow();
             PositionStoryWindow();
-            PositionGuideExplanation();
         }
         static Sprite MakeRoundedSprite()
         {
@@ -183,7 +182,6 @@ namespace MoneyTown
                 navIcons[i]=Icon(body,kinds[i],Muted,30);Label(body,titles[i],19,Muted,30,TextAnchor.MiddleCenter);
             }
             BuildSettlementWindow(root.transform);
-            BuildGuideExplanation(root.transform);
             BuildStoryWindow(root.transform);
             if(FindFirstObjectByType<EventSystem>()==null)new GameObject("EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));
         }
@@ -251,11 +249,11 @@ namespace MoneyTown
             else if(tab==5)DrawClockSettings();
             else if(tab==6)DrawHistory();
             else if(tab==0){Trading();BuildTradeDock();}else if(tab==1)Information();else Assets();
+            if(TutorialActive&&state.TutorialStep<2)tradeDock.gameObject.SetActive(false);
             Canvas.ForceUpdateCanvases();LayoutRebuilder.ForceRebuildLayoutImmediate(safeArea);LayoutRebuilder.ForceRebuildLayoutImmediate(content);
             if(tab==4)LayoutRebuilder.ForceRebuildLayoutImmediate(settlementWindow);
             ApplyTutorialGuide();
             TryShowStory();
-            RefreshGuideExplanation();
         }
         void CompanyStrip()
         {

@@ -17,20 +17,6 @@ namespace MoneyTown
             TutorialAction.OpenInformation,TutorialAction.OpenOffer,TutorialAction.BuyInformation,TutorialAction.ReturnExchange,
             TutorialAction.NextDay,TutorialAction.CloseSettlement,TutorialAction.Sell,TutorialAction.OpenAssets,TutorialAction.Deposit,TutorialAction.Finish};
         static readonly string[] GuideTitles={"관심 있는 기업 찾기","첫 종목 고르기","첫 주식 1주 매수","정보 가판대 둘러보기","가격과 신뢰도 확인","정보를 직접 구매","읽은 단서를 생각해 보기","다음 날 시장 열기","변동 원인 확인","보유 주식 1주 매도","내 자산 확인","다른 투자처 알아보기","첫 투자를 마쳤어요"};
-        static readonly string[] GuideBodies={
-            "실제 게임에서 시작합니다. 금빛 ‘종목 선택’을 눌러 보세요. 거래한 돈과 주식은 그대로 남습니다.",
-            "금빛 기업 중 하나를 골라 보세요. 첫 거래는 현재 현금으로 살 수 있는 종목 1주로 시작합니다.",
-            "차트와 가격을 보고 ‘매수’를 누르세요. 수수료가 포함된 표시 금액이 실제 현금에서 빠져나갑니다.",
-            "보유 주식을 확인했습니다. 아래 ‘정보 가판대’를 눌러 투자 판단에 쓸 자료를 살펴보세요.",
-            "오늘 가장 저렴한 자료를 강조했습니다. 카드를 눌러 가격과 신뢰도부터 확인하세요.",
-            "아래 ‘봉인 해제’를 누르면 표시된 비용을 내고 내용을 읽습니다. 신뢰도는 수익 확률이 아닙니다.",
-            "기사를 읽고 어떤 기업과 연결되는지 생각해 보세요. 다 읽었다면 아래 ‘거래소’를 누르세요.",
-            "위의 ‘다음 날’을 눌러 보세요. 하루가 지나고 사건이 반영된 새 주가와 전날 결산이 나옵니다.",
-            "뉴스의 원인과 실제 변동률을 살펴보세요. 오를 수도, 내릴 수도 있습니다. 확인했으면 결산을 닫으세요.",
-            "내 보유 수량과 손익을 확인하고 ‘매도’를 누르세요. 보유한 1주를 팔아 실제 현금으로 돌려받습니다.",
-            "첫 매매를 마쳤습니다. 아래 ‘내 자산’을 눌러 현금과 투자 결과를 확인하세요.",
-            "예금은 10만원을 3일 맡기면 10만500원을 받습니다. 가입하거나 ‘안내 마치기’를 선택하세요.",
-            "이제 직접 기업과 정보를 골라 보세요. 거래 내역은 내 자산에 남으며 도움말에서 안내를 다시 켤 수 있습니다."};
         void RestoreTutorial()
         {
             ResetGuideExplanation();
@@ -56,7 +42,7 @@ namespace MoneyTown
         }
         void StartTutorial(bool restart)
         {
-            if(blocked||StoryActive||state.SettlementPending||GuideExplanationOpen)return;
+            if(blocked||StoryActive||state.SettlementPending)return;
             var changed=TutorialGuide.Start(state,restart);NormalizeTutorial(changed);
             if(!SaveGuideState(changed))return;
             ResetGuideExplanation();
@@ -75,7 +61,7 @@ namespace MoneyTown
         }
         void FinishTutorial()
         {
-            if(!TutorialActive||state.TutorialStep<11||GuideExplanationOpen)return;
+            if(!TutorialActive||state.TutorialStep<11)return;
             var changed=state.Copy();changed.TutorialStep=TutorialGuide.Count;changed.TutorialActive=false;
             if(!SaveGuideState(changed))return;
             ResetGuideExplanation();
@@ -84,7 +70,7 @@ namespace MoneyTown
         }
         void OpenHelp()
         {
-            if(StoryActive||state.SettlementPending||GuideExplanationOpen)return;
+            if(StoryActive||state.SettlementPending)return;
             if(TutorialActive){LeaveTutorial(true);return;}
             tab=3;resetPending=false;RenderTab();scroll.verticalNormalizedPosition=1;
         }
@@ -92,7 +78,6 @@ namespace MoneyTown
         bool TutorialAllows(TutorialAction action,int value=-1)
         {
             if(!TutorialActive)return true;
-            if(GuideExplanationOpen)return false;
             if(state.SettlementPending)return action==TutorialAction.CloseSettlement;
             if(GuideActions[state.TutorialStep]!=action)return false;
             if(action==TutorialAction.SelectCompany)return value>=0&&value<state.Stocks.Length&&OrderGuidance.MaximumBuy(state,value)>0;
@@ -128,19 +113,17 @@ namespace MoneyTown
             guideOutlines.Clear();Clear(guideBanner);
             guideBanner.gameObject.SetActive(TutorialActive);
             if(!TutorialActive)return;
-            int step=state.SettlementPending?8:state.TutorialStep;
+            PrepareGuideExplanation();
+            Height(guideBanner,guideExplanationExpanded?322:156);
+            int step=GuideExplanationStage;
             var row=Row(guideBanner,74,10);
             var heading=Column(row,0,1);Flexible(heading);
             Label(heading,"첫 투자 안내  "+(state.TutorialStep+1)+" / "+TutorialGuide.Count,17,Mint,24);
             Label(heading,GuideTitles[step],25,Gold,42).name="GuideTitle";
-            var review=Button(row,"설명\n다시 보기",OpenGuideExplanation,Raised,74);review.name="GuideExplainReview";Width((RectTransform)review.transform,100);
+            var toggle=Button(row,guideExplanationExpanded?"설명\n접기":"설명\n펼치기",ToggleGuideExplanation,Raised,74);toggle.name="GuideExplainToggle";Width((RectTransform)toggle.transform,100);
             var pause=Button(row,step>=11?"안내 마치기":"나중에",step>=11?(Action)FinishTutorial:()=>LeaveTutorial(false),Raised,74);
             pause.name=step>=11?"GuideFinish":"GuidePause";Width((RectTransform)pause.transform,144);
-            string body=GuideBodies[step];
-            if(step==2&&OrderGuidance.MaximumBuy(state,selected)==0)body="1주를 살 현금이 부족합니다. ‘나중에’를 누르고 내 자산의 물류센터 알바로 자금을 모은 뒤 이어 하세요.";
-            if(step==5&&state.Cash<Intelligence.Offer(state.Day,state.Seed,state.TutorialOffer,eventEdition:state.EventEdition).Price)
-                body="이 정보의 구매 비용이 부족합니다. ‘나중에’를 누르고 내 자산에서 알바한 뒤 이어 하세요. 구매는 아직 이루어지지 않았습니다.";
-            Label(guideBanner,body,20,Color.white,68).name="GuideBody";
+            DrawGuideExplanation(step);
         }
         bool GuideTarget(Selectable control)
         {
@@ -169,7 +152,7 @@ namespace MoneyTown
             foreach(var control in controls) {
                 if(!control.gameObject.activeInHierarchy)continue;
                 bool target=GuideTarget(control);
-                control.interactable=control.interactable&&(target||control==help||control.name=="GuidePause"||control.name=="GuideFinish"||control.name=="GuideExplainReview");
+                control.interactable=control.interactable&&(target||control==help||control.name=="GuidePause"||control.name=="GuideFinish"||control.name=="GuideExplainToggle");
                 if(!target||!control.interactable)continue;
                 var outline=control.gameObject.AddComponent<Outline>();outline.effectColor=Gold;outline.effectDistance=new Vector2(3,-3);guideOutlines.Add(outline);
                 if(focus==null&&control.transform.IsChildOf(content))focus=(RectTransform)control.transform;

@@ -1,36 +1,30 @@
-using System;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace MoneyTown
 {
     public sealed partial class GameScreen
     {
-        RectTransform guideExplanationOverlay,guideExplanationSafe,guideExplanationWindow;
-        CanvasGroup guideGameInput,guideSettlementInput;
-        Text guideExplanationTitle,guideExplanationBody,guideExplanationResult,guideExplanationAction,guideExplanationProgress;
-        Button guideExplainContinue;
+        Text guideActionText;
         int guideExplanationStep=-1;
-        bool guideExplanationRequested;
+        bool guideExplanationExpanded=true;
         string guideExplanationError="";
-        bool GuideExplanationOpen => TutorialActive&&!StoryActive&&guideExplanationRequested;
         int GuideExplanationStage => state.SettlementPending?8:state.TutorialStep;
         static readonly string[] GuideLessons={
-            "거래소는 기업의 주식을 사고파는 곳이에요. 먼저 기업 목록을 열어 어떤 회사가 있는지 함께 살펴볼게요. 이 안내에서 거래한 돈과 주식은 실제 게임에 남아요.",
-            "종목은 거래할 회사의 주식을 뜻해요. 회사를 고르면 가격과 차트를 볼 수 있고, 선택만으로 돈이 나가지는 않아요. 처음에는 부담을 줄여 1주부터 시작해 볼게요.",
-            "매수는 현금을 내고 주식을 사는 거예요. 아래 금액에는 0.1% 거래 수수료가 이미 포함돼 있어요. 매수하면 현금이 줄고, 그만큼 주식을 보유하게 돼요.",
-            "이제 보유 주식은 가격이 오르면 가치가 늘고, 내리면 줄어요. 어떤 일이 기업에 영향을 줄지 알아보기 위해 정보 가판대를 살펴볼게요. 정보를 살 때도 비용이 들어요.",
-            "봉인 정보는 사기 전에는 기업과 내용이 숨겨져 있어요. 등급은 정보의 깊이, 신뢰도는 내용이 맞을 가능성을 뜻해요. 지금은 구매 방법을 익히려고 가장 싼 자료를 골랐어요.",
-            "신뢰도는 정보가 맞을 가능성이지, 돈을 벌 확률이 아니에요. 봉인을 풀면 표시된 비용을 내고 내용을 읽게 돼요. 투자 결과와 관계없이 정보 비용은 지출로 남아요.",
-            "어떤 일이 생기는지, 어떤 업종에 기회나 부담이 될지 생각하며 읽어 보세요. 보유한 회사와 무관한 정보일 수도 있어요. 정보를 사는 행동 자체가 주가를 올리지는 않아요.",
-            "자동 갱신은 같은 날짜 안에서 주가를 바꿔요. ‘다음 날’은 날짜와 판매 정보도 바꾸고, 사건이 반영된 새 주가와 전날 결산을 보여줘요. 안내 중 자동 갱신은 잠시 멈춰 있어요.",
-            "결산은 지난날의 비용과 자산 변화를, 개장 뉴스는 새 주가가 움직인 원인을 보여줘요. 아직 팔지 않은 주식의 가격 변화는 평가손익이에요. 매도하기 전에는 현금으로 확정된 수익이 아니에요.",
-            "매도는 보유 주식을 팔아 현금으로 바꾸는 거예요. 수수료를 뺀 금액을 받고, 판 주식의 매매손익이 확정돼요. 아래 받을 금액과 실제 보유 수량을 확인해 보세요.",
-            "현금은 지금 쓸 수 있는 돈이고, 총자산은 현금에 주식의 현재 가치와 예금 원금을 더한 값이에요. 매매손익과 정보 구매비는 별개예요. 내 자산에서 전체 결과와 기록을 살펴볼게요.",
-            "예금은 10만원을 맡기고 게임 날짜로 3일 뒤 100,500원을 받는 방식이에요. 그동안 돈을 꺼낼 수는 없지만 원금은 총자산에 포함돼요. 가입하지 않고 안내를 마쳐도 괜찮아요.",
-            "여기서 한 거래와 정보 구매는 현재 게임에 그대로 남아요. 이제 기업과 정보를 직접 골라 보세요. 필요하면 도움말에서 안내를 다시 켜고 거래 내역도 확인할 수 있어요."};
+            "거래소는 기업의 주식을 사고파는 곳이에요. 먼저 회사를 살펴볼게요. 안내 중 거래한 돈과 주식도 실제 게임에 남아요.",
+            "종목은 거래할 회사의 주식을 뜻해요. 선택만으로 돈이 나가지는 않아요. 살 수 있는 기업을 골라 1주부터 시작해 볼게요.",
+            "매수는 현금을 내고 주식을 사는 거예요. 결제액에는 0.1% 수수료가 포함돼요. 현금이 줄고 보유 주식이 늘어요.",
+            "주가가 오르면 보유 주식의 가치가 늘고, 내리면 줄어요. 기업에 영향을 줄 사건을 찾아볼게요. 정보를 살 때도 비용이 들어요.",
+            "봉인 정보는 기업과 내용이 숨겨져 있어요. 등급은 정보의 깊이, 신뢰도는 내용이 맞을 가능성이에요. 가장 싼 자료부터 살펴볼게요.",
+            "신뢰도는 정보가 맞을 가능성이지, 수익 확률은 아니에요. 봉인을 풀면 비용을 내고 내용을 읽어요. 정보비는 지출로 남아요.",
+            "이 사건이 어느 업종에 기회나 부담이 될지 생각해 보세요. 보유 회사와 무관할 수도 있어요. 정보를 산다고 주가가 오르지는 않아요.",
+            "자동 갱신은 같은 날의 시세 변화예요. ‘다음 날’은 날짜·정보를 바꾸고 새 주가와 결산을 보여줘요. 안내 중 자동 갱신은 멈춰요.",
+            "결산은 비용과 자산 변화를, 개장 뉴스는 주가 변동 원인을 보여줘요. 아직 팔지 않은 주식의 평가손익은 현금으로 확정된 수익이 아니에요.",
+            "매도는 주식을 팔아 현금으로 바꾸는 거예요. 수수료를 뺀 금액을 받고 매매손익이 확정돼요. 보유 수량과 받을 금액을 확인하세요.",
+            "현금은 지금 쓸 돈이고, 총자산은 현금·주식 가치·예금 원금의 합이에요. 매매손익과 정보비는 별개예요. 전체 결과를 살펴볼게요.",
+            "예금은 10만원을 맡겨 3일 뒤 100,500원을 받아요. 만기 전에는 꺼낼 수 없지만 총자산에 포함돼요. 가입 없이 마쳐도 괜찮아요.",
+            "안내에서 한 거래와 정보 구매는 그대로 남아요. 이제 직접 기업과 정보를 골라보세요. 필요하면 도움말에서 안내를 다시 켤 수 있어요."};
         static readonly string[] GuideTasks={
             "‘종목 선택’을 눌러 기업 목록을 열어보세요.","금빛으로 표시한 기업 중 하나를 골라보세요.",
             "수수료를 포함한 금액을 확인하고 ‘매수’를 누르세요.","아래 ‘정보 가판대’를 눌러보세요.",
@@ -39,84 +33,43 @@ namespace MoneyTown
             "뉴스와 금액을 살펴본 뒤 ‘결산 확인’을 누르세요.","보유 주식 1주를 ‘매도’해 보세요.",
             "아래 ‘내 자산’에서 전체 결과를 확인해 보세요.","예금에 가입하거나 ‘안내 마치기’를 누르세요.",
             "‘안내 마치기’를 눌러 자유롭게 투자해 보세요."};
-        void BuildGuideExplanation(Transform parent)
-        {
-            guideGameInput=safeArea.GetComponent<CanvasGroup>()??safeArea.gameObject.AddComponent<CanvasGroup>();
-            guideSettlementInput=settlementWindow.GetComponent<CanvasGroup>()??settlementWindow.gameObject.AddComponent<CanvasGroup>();
-            guideExplanationOverlay=Rect("GuideExplanationOverlay",parent);Stretch(guideExplanationOverlay);
-            Surface(guideExplanationOverlay,new Color(0,0,0,.76f),false);
-            guideExplanationSafe=Rect("GuideExplanationSafe",guideExplanationOverlay);
-            guideExplanationWindow=Column(guideExplanationSafe,24,12);guideExplanationWindow.name="GuideExplanationWindow";
-            Surface(guideExplanationWindow,Panel);
-            var outline=guideExplanationWindow.gameObject.AddComponent<Outline>();outline.effectColor=Mint;outline.effectDistance=new Vector2(1,-1);
-            guideExplanationProgress=Label(guideExplanationWindow,"",21,Mint,34);
-            guideExplanationTitle=Label(guideExplanationWindow,"",34,Gold,72);guideExplanationTitle.name="GuideExplanationTitle";
-            guideExplanationTitle.fontStyle=FontStyle.Bold;
-            guideExplanationBody=Label(guideExplanationWindow,"",25,null,0,TextAnchor.UpperLeft);guideExplanationBody.name="GuideExplanationBody";
-            var bodyLayout=Layout(guideExplanationBody.rectTransform);bodyLayout.minHeight=150;bodyLayout.flexibleHeight=1;
-            guideExplanationBody.lineSpacing=1.15f;
-            var result=Card(guideExplanationWindow,14,4);Height(result,140);result.GetComponent<Image>().color=Background;
-            Label(result,"현재 상황과 금액",18,Mint,26);
-            guideExplanationResult=Label(result,"",24,null,82);guideExplanationResult.name="GuideExplanationResult";
-            guideExplanationAction=Label(guideExplanationWindow,"",22,Gold,68);guideExplanationAction.name="GuideExplanationAction";
-            var buttons=Row(guideExplanationWindow,82,12);
-            var later=Button(buttons,"나중에",()=>LeaveTutorial(false),Raised,82);later.name="GuideExplainPause";Width((RectTransform)later.transform,120);
-            guideExplainContinue=Button(buttons,"직접 해보기",ConfirmGuideExplanation,Hex("266957"),82);guideExplainContinue.name="GuideExplainContinue";
-            PositionGuideExplanation();guideExplanationOverlay.gameObject.SetActive(false);
-        }
-        void PositionGuideExplanation()
-        {
-            if(guideExplanationSafe==null)return;
-            guideExplanationSafe.anchorMin=new Vector2(Screen.safeArea.xMin/Screen.width,Screen.safeArea.yMin/Screen.height);
-            guideExplanationSafe.anchorMax=new Vector2(Screen.safeArea.xMax/Screen.width,Screen.safeArea.yMax/Screen.height);
-            guideExplanationSafe.offsetMin=guideExplanationSafe.offsetMax=Vector2.zero;
-            guideExplanationWindow.anchorMin=guideExplanationWindow.anchorMax=new Vector2(.5f,.5f);
-            guideExplanationWindow.pivot=new Vector2(.5f,.5f);guideExplanationWindow.anchoredPosition=Vector2.zero;
-            guideExplanationWindow.sizeDelta=new Vector2(Mathf.Min(560,guideExplanationSafe.rect.width-24),Mathf.Min(780,guideExplanationSafe.rect.height-24));
-        }
         void ResetGuideExplanation()
         {
-            guideExplanationStep=-1;guideExplanationRequested=false;guideExplanationError="";UpdateGuideExplanationVisibility();
+            guideExplanationStep=-1;guideExplanationExpanded=true;guideExplanationError="";
         }
-        void OpenGuideExplanation()
+        void ToggleGuideExplanation()
         {
             if(!TutorialActive||StoryActive)return;
-            guideExplanationError="";guideExplanationRequested=true;RenderTab();
-        }
-        void ConfirmGuideExplanation()
-        {
-            if(!GuideExplanationOpen)return;
-            guideExplanationError="";guideExplanationRequested=false;RenderTab();
-            if(EventSystem.current!=null)EventSystem.current.SetSelectedGameObject(null);
-        }
-        void RefreshGuideExplanation()
-        {
-            if(TutorialActive&&!StoryActive) {
-                int step=GuideExplanationStage;
-                if(guideExplanationStep!=step){guideExplanationStep=step;guideExplanationRequested=true;guideExplanationError="";}
-                guideExplanationProgress.text="투자 도우미  ·  "+(step+1)+" / "+TutorialGuide.Count;
-                guideExplanationTitle.text=GuideTitles[step];guideExplanationBody.text=GuideLessons[step];
-                guideExplanationResult.text=GuideCurrentResult(step);
-                guideExplanationAction.text=guideExplanationError.Length>0?guideExplanationError:"이번에 해볼 일\n"+GuideTasks[step];
+            float readingOffset=content.anchoredPosition.y;
+            guideExplanationExpanded=!guideExplanationExpanded;RenderTab();
+            if(GuideExplanationStage==6) {
+                float distance=content.rect.height-scroll.viewport.rect.height;
+                scroll.verticalNormalizedPosition=distance<=0?1:1-Mathf.Clamp01(readingOffset/distance);
             }
-            PositionGuideExplanation();UpdateGuideExplanationVisibility();
-            if(GuideExplanationOpen){Canvas.ForceUpdateCanvases();LayoutRebuilder.ForceRebuildLayoutImmediate(guideExplanationWindow);}
+        }
+        void PrepareGuideExplanation()
+        {
+            int step=GuideExplanationStage;
+            if(guideExplanationStep==step)return;
+            guideExplanationStep=step;guideExplanationExpanded=true;guideExplanationError="";
+        }
+        void DrawGuideExplanation(int step)
+        {
+            if(guideExplanationExpanded) {
+                Label(guideBanner,GuideLessons[step],22,null,92).name="GuideExplanationBody";
+                Label(guideBanner,GuideCurrentResult(step),22,Mint,66).name="GuideExplanationResult";
+            }
+            string task=GuideTasks[step];
+            if(step==2&&OrderGuidance.MaximumBuy(state,selected)==0)task="현금이 부족해요. ‘나중에’로 닫고 내 자산에서 알바한 뒤 이어 하세요.";
+            if(step==5&&state.Cash<Intelligence.Offer(state.Day,state.Seed,state.TutorialOffer,eventEdition:state.EventEdition).Price)
+                task="정보 비용이 부족해요. ‘나중에’로 닫고 알바한 뒤 이어 하세요. 아직 구매하지 않았어요.";
+            guideActionText=Label(guideBanner,guideExplanationError.Length>0?guideExplanationError:task,21,Gold,54);guideActionText.name="GuideBody";
         }
         void ShowGuideExplanationSaveError()
         {
-            if(!GuideExplanationOpen)return;
-            guideExplanationError="안내 중단을 저장하지 못했어요.\n‘나중에’를 다시 눌러 주세요.";
-            guideExplanationAction.text=guideExplanationError;
-        }
-        void UpdateGuideExplanationVisibility()
-        {
-            if(guideExplanationOverlay==null)return;
-            bool visible=GuideExplanationOpen;
-            bool opening=visible&&!guideExplanationOverlay.gameObject.activeSelf;
-            guideExplanationOverlay.gameObject.SetActive(visible);
-            guideGameInput.interactable=guideGameInput.blocksRaycasts=!visible;
-            guideSettlementInput.interactable=guideSettlementInput.blocksRaycasts=!visible;
-            if(opening&&EventSystem.current!=null)EventSystem.current.SetSelectedGameObject(guideExplainContinue.gameObject);
+            if(!TutorialActive||guideActionText==null)return;
+            guideExplanationError="안내 진행을 저장하지 못했어요.\n같은 버튼을 다시 눌러 주세요.";
+            guideActionText.text=guideExplanationError;
         }
         string GuideCurrentResult(int step)
         {
