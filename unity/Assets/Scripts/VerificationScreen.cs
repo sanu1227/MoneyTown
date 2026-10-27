@@ -70,15 +70,17 @@ namespace MoneyTown
                 "unchanged prices remain flat and only floor-bound prices cite the floor");
         }
         string UiText() => string.Join("\n", GetComponentsInChildren<Text>().Select(label => label.text));
-        void UiFixture(GameState fixture, int screen = 0, bool stories = false)
+        void UiFixture(GameState fixture, int screen = 0, bool stories = false, bool guide = false)
         {
             CloseStoryScreen();
             Story.Record(fixture);
             if (!stories) fixture.StorySeen = fixture.StoryUnlocked;
-            state = fixture; store.Save(state); blocked = false; tutorial = null;
+            if (!guide) fixture.TutorialActive = false;
+            state = fixture; store.Save(state); blocked = false;
             selected = 0; tab = screen; selectedReportDay = null; openedClue = null; openedInfo = null;
             quantityText = "1"; choosingCompany=showGoals=showManagement=feedbackError=false;flashUntil=0;
-            RenderTab(); scroll.verticalNormalizedPosition = 1;
+            if (guide) RestoreTutorial();
+            RenderTab(); if (!guide) scroll.verticalNormalizedPosition = 1;
         }
         void UiCapture(string name)
         {
@@ -123,12 +125,13 @@ namespace MoneyTown
             UiCapture("32-story-intro");
             UiButton("StoryOpeningSkip").onClick.Invoke();
             UiCheck(!StoryActive && state.StorySeen == 1 && store.Load().StorySeen == 1 && safeArea.gameObject.activeSelf &&
-                tutorial != null && tutorial.Step == 0,
+                TutorialActive && state.TutorialStep == 0,
                 "skipping the introduction saves its acknowledgement and opens the first investment lesson");
             LeaveTutorial(false);
+            selected = 0; RenderTab();
             RestoreFeedbackSettings();
             CheckOpeningNewsCopy();
-            UiCheck(!blocked && tutorial == null && state.Cash == 1000000, "isolated startup, no user preferences");
+            UiCheck(!blocked && !TutorialActive && state.Cash == 1000000, "isolated startup, no user preferences");
             navigation[2].onClick.Invoke();
             UiCheck(UiButton("WarehouseWorkButton").interactable,"warehouse job is available in assets with the full starting cash balance");
             navigation[0].onClick.Invoke();
@@ -228,17 +231,17 @@ namespace MoneyTown
             UiFixture(new GameStore(GameRuntime.DataDirectory).Load());
             UiCheck(state.SettlementPending&&tab==4&&settlementOverlay.gameObject.activeSelf&&state.Day==2,
                 "unacknowledged briefing resumes after save reload without advancing another day");
-            UiButton("결산 확인 · 2일차 시작").onClick.Invoke();
+            UiButton("SettlementConfirm").onClick.Invoke();
             UiFixture(new GameStore(GameRuntime.DataDirectory).Load());
             UiCheck(!state.SettlementPending&&!settlementOverlay.gameObject.activeSelf&&safeArea.gameObject.activeSelf&&state.Day==2,
                 "acknowledged briefing stays closed after reload and restores the game");
-            next.onClick.Invoke(); UiButton("결산 확인 · 3일차 시작").onClick.Invoke();
+            next.onClick.Invoke(); UiButton("SettlementConfirm").onClick.Invoke();
             navigation[2].onClick.Invoke(); UiButton("거래 내역 · 지난 결산").onClick.Invoke();
             UiCheck(tab == 6 && UiText().Contains("수수료"), "history screen includes transaction fees");
             yield return new WaitForEndOfFrame(); UiCapture("02-history");
             GetComponentsInChildren<Button>().First(button => button.name.StartsWith("1일차  ", StringComparison.Ordinal)).onClick.Invoke();
             UiCheck(UiText().Contains("1일차 결산") && UiText().Contains("2일차 개장"), "historical settlement uses its own date");
-            UiButton("기록 목록으로 돌아가기").onClick.Invoke();
+            UiButton("SettlementConfirm").onClick.Invoke();
             UiCheck(tab == 6 && !state.SettlementPending, "historical report returns without advancing market");
             navigation[0].onClick.Invoke();
             UiCheck(GetComponentInChildren<PriceChart>().Openings.Any(value => value), "intraday chart receives day boundaries");
@@ -255,7 +258,7 @@ namespace MoneyTown
             scroll.verticalNormalizedPosition = 0;
             yield return new WaitForEndOfFrame(); UiCapture("05-purchase-budget");
             long before = state.Cash;
-            GetComponentsInChildren<Button>().First(button => button.name.StartsWith("기업 분석 구매", StringComparison.Ordinal)).onClick.Invoke();
+            UiButton("BuyClue").onClick.Invoke();
             UiCheck(state.Cash == before - first.Price && state.Clues.Length == 1, "purchase callback charges existing price exactly once");
             var second = Intelligence.CompanyOffers(state, 0).First(offer => offer.Index != first.Index);
             OpenClue(state.Day, second.Index);
@@ -317,7 +320,7 @@ namespace MoneyTown
             var newCompanyOffer = Intelligence.CompanyOffers(state, selected).First();
             OpenClue(state.Day, newCompanyOffer.Index);
             long informationCash = state.Cash;
-            GetComponentsInChildren<Button>().First(button => button.name.StartsWith("기업 분석 구매", StringComparison.Ordinal)).onClick.Invoke();
+            UiButton("BuyClue").onClick.Invoke();
             UiCheck(state.Cash == informationCash - newCompanyOffer.Price && state.Clues.Last().Offer.Company == selectedCompany,
                 "new company report purchase charges once and opens the correct article");
             UiCheck(state.Clues.Last().Version == Intelligence.CurrentVersion && UiText().Contains(Market.Companies[selectedCompany].Name),
@@ -353,7 +356,7 @@ namespace MoneyTown
             scroll.verticalNormalizedPosition = 1;
             yield return new WaitForEndOfFrame(); UiCapture("12-opening-news");
             var viewportCorners=new Vector3[4];scroll.viewport.GetWorldCorners(viewportCorners);
-            UiCheck(UiOnScreen(settlementWindow)&&UiOnScreen((RectTransform)UiButton("결산 확인 · 3일차 시작").transform)&&
+            UiCheck(UiOnScreen(settlementWindow)&&UiOnScreen((RectTransform)UiButton("SettlementConfirm").transform)&&
                 UiSettlementNews().All(card=>{var corners=new Vector3[4];card.GetWorldCorners(corners);
                     return corners.All(point=>point.y>=viewportCorners[0].y-.5f&&point.y<=viewportCorners[1].y+.5f);})&&
                 content.GetComponentsInChildren<Text>().Where(label=>label.name=="SettlementNewsSummary").All(label=>
@@ -370,7 +373,7 @@ namespace MoneyTown
                 "optional settlement details retain fees and prices for all twelve companies");
             scroll.verticalNormalizedPosition=0;
             yield return new WaitForEndOfFrame();UiCapture("17-settlement-details");
-            UiCheck(UiOnScreen((RectTransform)UiButton("결산 확인 · 3일차 시작").transform),
+            UiCheck(UiOnScreen((RectTransform)UiButton("SettlementConfirm").transform),
                 "confirm button remains visible while detailed settlement scrolls");
             UiButton("상세 결산 접기").onClick.Invoke();
             UiCheck(!UiText().Contains("거래 실현손익")&&state.SettlementPending,
@@ -379,10 +382,10 @@ namespace MoneyTown
             var failingStore=new GameStore(failureDirectory);
             Directory.CreateDirectory(Path.Combine(failureDirectory,"game-unity-v1.bin.tmp"));
             var realStore=store;store=failingStore;
-            UiButton("결산 확인 · 3일차 시작").onClick.Invoke();store=realStore;
+            UiButton("SettlementConfirm").onClick.Invoke();store=realStore;
             UiCheck(state.SettlementPending&&settlementOverlay.gameObject.activeSelf&&settlementNotice.text.Contains("저장하지 못했습니다"),
                 "failed confirmation save keeps the modal open with an error inside the window");
-            UiButton("결산 확인 · 3일차 시작").onClick.Invoke();
+            UiButton("SettlementConfirm").onClick.Invoke();
             UiCheck(GetComponentInChildren<PriceChart>().Prices.SequenceEqual(state.Stocks[selected].History) &&
                 GetComponentInChildren<PriceChart>().Prices.Last() == state.LastReport.OpeningPrices[selected],
                 "recent price chart includes the new opening after settlement confirmation");
@@ -699,7 +702,7 @@ namespace MoneyTown
                     "disabled buy callback emits no sound and cannot change holdings");
                 var rich=Market.Create();rich.Cash=rich.DayStartAssets=100000000;UiFixture(rich,1);
                 var offer=Intelligence.CompanyOffers(state,0).First();OpenClue(state.Day,offer.Index);
-                GetComponentsInChildren<Button>().First(button=>button.name.StartsWith("기업 분석 구매",StringComparison.Ordinal)).onClick.Invoke();
+                UiButton("BuyClue").onClick.Invoke();
                 UiCheck(effects.LastCue==GameCue.Paper&&state.Clues.Length==1&&state.Cash==rich.Cash-offer.Price,
                     "information purchase completion uses the paper cue after one charge");
                 next.onClick.Invoke();

@@ -21,7 +21,7 @@ namespace MoneyTown
         }
         void StartWarehouseWork()
         {
-            if(StoryActive||warehouseWorking||blocked||tutorial!=null||state.SettlementPending)return;
+            if(StoryActive||warehouseWorking||blocked||TutorialActive||state.SettlementPending)return;
             GameState changed;
             try{changed=Market.WorkWarehouse(state);}
             catch(Exception error){Feedback(error.Message,true);return;}

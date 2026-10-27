@@ -278,35 +278,120 @@ namespace MoneyTown
         }
         static void CheckTutorial()
         {
-            var real=Market.Trade(Market.Create(42),0,5,true);real=Market.Deposit(real);
+            var real=Market.Trade(Market.Create(42),0,5,true);
             byte[] original=SaveCodec.Encode(real);
-            var lesson=TutorialSession.Restore(0);
-            Equal(1000000,lesson.State.Cash);Equal(4,lesson.State.Day);Equal(4,lesson.State.Stocks[1].History.Length);
-            Equal(1,lesson.Offer.Company);Equal(4,lesson.Offer.Grade);Equal(17,lesson.Offer.Story);
-            for(int step=0;step<TutorialSession.Count;step++) {
-                Equal(step,lesson.Step);
-                var restored=TutorialSession.Restore(step);
-                if(!SaveCodec.Encode(lesson.State).SequenceEqual(SaveCodec.Encode(restored.State)))throw new Exception("Resumed practice diverged.");
-                var before=SaveCodec.Encode(lesson.State);Throws(()=>lesson.Advance(step+1,1));
-                if(step==4) {
-                    Throws(()=>lesson.Advance(step,0));Throws(()=>lesson.Advance(step));Equal(step,lesson.Step);
-                    if(!before.SequenceEqual(SaveCodec.Encode(lesson.State)))throw new Exception("Wrong answer charged money or advanced.");
-                    if(ClueContent.Body(lesson.Clue.Offer).Contains(Market.Companies[1].Name))throw new Exception("Practice question reveals its answer.");
+            var state=TutorialGuide.Start(real,true);GameState checkpoint=null;
+            Equal(0,state.TutorialStep);Equal(1,state.TutorialCompany);Equal(-1,state.TutorialOffer);Equal(state.Day,state.TutorialDay);
+            if(!TutorialGuide.Active(state)||!original.SequenceEqual(SaveCodec.Encode(real)))throw new Exception("Starting the guide changed its input.");
+            for(int step=0;step<TutorialGuide.Count;step++) {
+                Equal(step,state.TutorialStep);
+                byte[] before=SaveCodec.Encode(state);
+                TutorialGuide.Record(state,TutorialAction.None);TutorialGuide.Record(state,(TutorialAction)(step+2),4);
+                if(!before.SequenceEqual(SaveCodec.Encode(state)))throw new Exception("An unrelated action advanced the guide.");
+                var action=(TutorialAction)(step+1);
+                if(step==1||step==2||step==4||step==5||step==9) {
+                    TutorialGuide.Record(state,action,-1);TutorialGuide.Record(state,action,int.MaxValue);
+                    if(step==2||step==5||step==9)TutorialGuide.Record(state,action,3);
+                    if(!before.SequenceEqual(SaveCodec.Encode(state)))throw new Exception("A mismatched company or offer advanced the guide.");
                 }
-                long cashBefore=lesson.State.Cash,totalBefore=Market.Total(lesson.State);var buy=Market.GetQuote(lesson.State,1,1);
-                lesson.Advance(step,1);
-                if(step==2){Equal(1,lesson.State.Stocks[1].Quantity);Equal(cashBefore-buy.Buy,lesson.State.Cash);}
-                if(step==3){Equal(1,lesson.State.Clues.Length);Equal(cashBefore-lesson.Offer.Price,lesson.State.Cash);}
-                if(step==5)Equal(5,lesson.State.Day);
-                if(step==6){Equal(0,lesson.State.Stocks[1].Quantity);Equal(cashBefore+buy.Sell,lesson.State.Cash);}
-                if(step==7){Equal(cashBefore-100000,lesson.State.Cash);Equal(totalBefore,Market.Total(lesson.State));Equal(8,lesson.State.DepositDue);}
-                if(step==8){Equal(0,lesson.State.DepositDue);Equal(cashBefore+100500,lesson.State.Cash);Equal(8,lesson.State.Day);}
+                long cash=state.Cash,total=Market.Total(state),day=state.Day;
+                var changed=state.Copy();int value=step==4||step==5?0:4;
+                if(step==2) {
+                    var quote=Market.GetQuote(state,4,3);changed=Market.Trade(state,4,3,true);
+                    Equal(cash-quote.Buy,changed.Cash);Equal(3,changed.Stocks[4].Quantity);Equal(2,changed.Trades.Length);
+                }
+                if(step==5) {
+                    var offer=Intelligence.Offers(state)[0];changed=Intelligence.Buy(state,0,state.Day);
+                    Equal(cash-offer.Price,changed.Cash);Equal(1,changed.Clues.Length);Equal(offer.Price,changed.DayInformationCost);
+                }
+                if(step==7){changed=Market.NextDay(state);Equal(day+1,changed.Day);if(!changed.SettlementPending)throw new Exception("The real settlement was not opened.");}
+                if(step==8){changed=Market.AcknowledgeSettlement(state);if(changed.SettlementPending)throw new Exception("The real settlement was not closed.");}
+                if(step==9) {
+                    var quote=Market.GetQuote(state,4,3);changed=Market.Trade(state,4,3,false);
+                    Equal(cash+quote.Sell,changed.Cash);Equal(0,changed.Stocks[4].Quantity);Equal(3,changed.Trades.Length);
+                }
+                if(step==11){changed=Market.Deposit(state);Equal(cash-100000,changed.Cash);Equal(total,Market.Total(changed));Equal(day+3,changed.DepositDue);}
+                TutorialGuide.Record(changed,action,value);Equal(step+1,changed.TutorialStep);
+                if(!before.SequenceEqual(SaveCodec.Encode(state)))throw new Exception("A guide action mutated its input before saving.");
+                byte[] saved=SaveCodec.Encode(changed);state=SaveCodec.Decode(saved);
+                if(!saved.SequenceEqual(SaveCodec.Encode(state)))throw new Exception("The real guide action did not round-trip with its checkpoint.");
+                if(TutorialGuide.Active(state)!=(step+1<TutorialGuide.Count))throw new Exception("Guide completion state is inconsistent.");
+                if(step==4)checkpoint=state.Copy();
             }
-            Equal(TutorialSession.Count,lesson.Step);Throws(()=>lesson.Advance(lesson.Step));
-            Equal(1000000+lesson.State.Realized-lesson.Offer.Price+500,Market.Total(lesson.State));
-            var replay=TutorialSession.Restore(0);Equal(1000000,replay.State.Cash);Equal(0,replay.State.Clues.Length);
-            if(!original.SequenceEqual(SaveCodec.Encode(real)))throw new Exception("Practice changed real progress.");
-            Throws(()=>TutorialSession.Restore(-1));Throws(()=>TutorialSession.Restore(11));
+            Equal(4,state.TutorialCompany);Equal(0,state.TutorialOffer);Equal(1,state.TutorialDay);
+            byte[] completed=SaveCodec.Encode(state);TutorialGuide.Record(state,TutorialAction.Finish);
+            if(!completed.SequenceEqual(SaveCodec.Encode(TutorialGuide.Start(state,false))))throw new Exception("Resuming a completed guide restarted it.");
+
+            byte[] active=SaveCodec.Encode(checkpoint);var paused=TutorialGuide.Pause(checkpoint);
+            if(!active.SequenceEqual(SaveCodec.Encode(checkpoint))||TutorialGuide.Active(paused))throw new Exception("Pausing changed its input or remained active.");
+            byte[] pausedBytes=SaveCodec.Encode(paused);TutorialGuide.Record(paused,TutorialAction.BuyInformation,0);
+            if(!pausedBytes.SequenceEqual(SaveCodec.Encode(paused)))throw new Exception("A paused guide advanced.");
+            if(!active.SequenceEqual(SaveCodec.Encode(TutorialGuide.Start(paused,false))))throw new Exception("Resuming lost the selected guide checkpoint.");
+            var later=NextDay(paused);var resumed=TutorialGuide.Start(later,false);
+            Equal(1,resumed.TutorialDay);Equal(5,resumed.TutorialStep);
+            var restarted=TutorialGuide.Start(later,true);var expected=later.Copy();
+            expected.TutorialActive=true;expected.TutorialStep=0;expected.TutorialCompany=1;expected.TutorialOffer=-1;expected.TutorialDay=expected.Day;
+            if(!SaveCodec.Encode(expected).SequenceEqual(SaveCodec.Encode(restarted)))throw new Exception("Restarting the guide changed actual assets or history.");
+            CheckTutorialStorage(checkpoint);
+        }
+        static void CheckTutorialStorage(GameState checkpoint)
+        {
+            byte[] encoded=SaveCodec.Encode(checkpoint);Equal(13,BitConverter.ToInt32(encoded,4));
+            byte[] legacy=LegacyBytes(checkpoint,12),prefix=encoded.Take(encoded.Length-32-21).ToArray();
+            Array.Copy(BitConverter.GetBytes(12),0,prefix,4,4);
+            if(!legacy.Take(legacy.Length-32).SequenceEqual(prefix))throw new Exception("Version thirteen changed the version-twelve body.");
+            for(int version=1;version<=12;version++) {
+                var old=SaveCodec.Decode(LegacyBytes(checkpoint,version));
+                if(old.TutorialActive)throw new Exception("Old saves unexpectedly started the guide.");
+                Equal(0,old.TutorialStep);Equal(1,old.TutorialCompany);Equal(-1,old.TutorialOffer);Equal(0,old.TutorialDay);
+                Equal(checkpoint.Cash,old.Cash);Equal(checkpoint.Day,old.Day);Equal(checkpoint.Stocks[4].Quantity,old.Stocks[4].Quantity);
+            }
+            foreach(var fields in new[] {new[]{-1,1,-1},new[]{14,1,-1},new[]{0,-1,-1},new[]{0,Market.Companies.Length,-1},new[]{0,1,-2},new[]{0,1,Intelligence.DailyCount}}) {
+                var invalid=Market.Create();invalid.TutorialStep=fields[0];invalid.TutorialCompany=fields[1];invalid.TutorialOffer=fields[2];
+                Throws(()=>SaveCodec.Encode(invalid));Throws(()=>TutorialGuide.Start(invalid,true));Throws(()=>TutorialGuide.Record(invalid,TutorialAction.None));
+                byte[] body=encoded.Take(encoded.Length-32).ToArray();
+                for(int i=0;i<fields.Length;i++)Array.Copy(BitConverter.GetBytes(fields[i]),0,body,body.Length-20+i*4,4);
+                using(var hash=SHA256.Create())Throws(()=>SaveCodec.Decode(body.Concat(hash.ComputeHash(body)).ToArray()));
+            }
+            var finished=checkpoint.Copy();finished.TutorialStep=TutorialGuide.Count;Throws(()=>SaveCodec.Encode(finished));
+            byte[] complete=encoded.Take(encoded.Length-32).ToArray();Array.Copy(BitConverter.GetBytes(TutorialGuide.Count),0,complete,complete.Length-20,4);
+            using(var hash=SHA256.Create())Throws(()=>SaveCodec.Decode(complete.Concat(hash.ComputeHash(complete)).ToArray()));
+            foreach(long day in new[]{-1L,checkpoint.Day+1}) {
+                var invalid=checkpoint.Copy();invalid.TutorialDay=day;Throws(()=>SaveCodec.Encode(invalid));
+                byte[] body=encoded.Take(encoded.Length-32).ToArray();Array.Copy(BitConverter.GetBytes(day),0,body,body.Length-8,8);
+                using(var hash=SHA256.Create())Throws(()=>SaveCodec.Decode(body.Concat(hash.ComputeHash(body)).ToArray()));
+            }
+            foreach(bool active in new[]{false,true})foreach(int step in new[]{5,6})foreach(bool missingOffer in new[]{false,true}) {
+                var invalid=checkpoint.Copy();invalid.TutorialActive=active;invalid.TutorialStep=step;
+                if(missingOffer)invalid.TutorialOffer=-1;else invalid.TutorialDay=0;
+                Throws(()=>SaveCodec.Encode(invalid));Throws(()=>TutorialGuide.Start(invalid,false));
+                byte[] body=encoded.Take(encoded.Length-32).ToArray();body[body.Length-21]=(byte)(active?1:0);
+                Array.Copy(BitConverter.GetBytes(step),0,body,body.Length-20,4);
+                Array.Copy(BitConverter.GetBytes(invalid.TutorialOffer),0,body,body.Length-12,4);
+                Array.Copy(BitConverter.GetBytes(invalid.TutorialDay),0,body,body.Length-8,8);
+                using(var hash=SHA256.Create())Throws(()=>SaveCodec.Decode(body.Concat(hash.ComputeHash(body)).ToArray()));
+            }
+            for(int step=0;step<=TutorialGuide.Count;step++) {
+                var allowed=Market.Create();allowed.TutorialStep=step;
+                if(step==5||step==6){allowed.TutorialOffer=0;allowed.TutorialDay=allowed.Day;}
+                Equal(step,SaveCodec.Decode(SaveCodec.Encode(allowed)).TutorialStep);
+            }
+            byte[] flag=encoded.Take(encoded.Length-32).ToArray();flag[flag.Length-21]=2;
+            using(var hash=SHA256.Create())Throws(()=>SaveCodec.Decode(flag.Concat(hash.ComputeHash(flag)).ToArray()));
+            string directory=Path.Combine(Path.GetTempPath(),"moneytown-guide-"+Guid.NewGuid().ToString("N"));
+            try {
+                var store=new GameStore(directory);store.Load();Equal(13,store.LoadedVersion);
+                string path=Path.Combine(directory,"game-unity-v1.bin");File.WriteAllBytes(path,legacy);
+                var loaded=store.Load();Equal(12,store.LoadedVersion);Equal(checkpoint.Cash,loaded.Cash);
+                var rejected=checkpoint.Copy();rejected.TutorialStep=-1;Throws(()=>store.Save(rejected));Equal(12,store.LoadedVersion);
+                store.Save(checkpoint);Equal(13,store.LoadedVersion);
+                if(!encoded.SequenceEqual(SaveCodec.Encode(store.Load())))throw new Exception("The guide checkpoint was not persisted with real game progress.");
+                var purchase=Intelligence.Buy(checkpoint,checkpoint.TutorialOffer,checkpoint.TutorialDay);
+                TutorialGuide.Record(purchase,TutorialAction.BuyInformation,checkpoint.TutorialOffer);
+                Directory.CreateDirectory(path+".tmp");Throws(()=>store.Save(purchase));
+                if(!encoded.SequenceEqual(File.ReadAllBytes(path))||!encoded.SequenceEqual(SaveCodec.Encode(store.Load())))
+                    throw new Exception("A failed save committed the purchase or guide step separately.");
+            } finally {if(Directory.Exists(directory))Directory.Delete(directory,true);}
         }
         static void CheckIntraday()
         {
@@ -421,8 +506,8 @@ namespace MoneyTown
         }
         internal static byte[] LegacyBytes(GameState s,int version)
         {
-            // Frozen file layouts through v11, independent of the current save writer.
-            if(version<1||version>11||version<8&&s.Clues.Any(c=>c.Version>2||c.ContentEdition>2))throw new ArgumentException("Legacy fixture contains current information.");
+            // Frozen file layouts through v12, independent of the current save writer.
+            if(version<1||version>12||version<8&&s.Clues.Any(c=>c.Version>2||c.ContentEdition>2))throw new ArgumentException("Legacy fixture contains current information.");
             int companies=version>=8?s.Stocks.Length:6;
             using(var buffer=new MemoryStream()) {
                 using(var writer=new BinaryWriter(buffer,System.Text.Encoding.UTF8,true)) {
@@ -476,6 +561,7 @@ namespace MoneyTown
                         writer.Write(s.PriceMigrationAssets);writer.Write(s.PriceMigrationProfit);
                         foreach(var clue in s.Clues)writer.Write(clue.BeforePriceMigration);
                     }
+                    if(version>=12){writer.Write(s.StoryUnlocked);writer.Write(s.StorySeen);}
                 }
                 byte[] body=buffer.ToArray();
                 using(var hash=SHA256.Create())return body.Concat(hash.ComputeHash(body)).ToArray();

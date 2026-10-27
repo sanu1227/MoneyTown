@@ -29,6 +29,9 @@ namespace MoneyTown
         public int EventEdition = InformationCatalog.CurrentEdition;
         public int MarketVersion = Market.CurrentMarketVersion;
         public int StoryUnlocked = 1, StorySeen;
+        public bool TutorialActive;
+        public int TutorialStep, TutorialCompany = 1, TutorialOffer = -1;
+        public long TutorialDay;
         public long TickSeed,TickCount,DayStartAssets,DayStartRealized,DayFees,DayInformationCost,DayInterest;
         public long PriceMigrationDay,PriceMigrationCash,PriceMigrationAssets,PriceMigrationProfit;
         public DayReport LastReport;
@@ -112,6 +115,10 @@ namespace MoneyTown
             Amount(s.Cash);
             Require(s.EventEdition>=2&&s.EventEdition<=InformationCatalog.CurrentEdition,damaged);
             Require(s.MarketVersion>=3&&s.MarketVersion<=CurrentMarketVersion,damaged);
+            Require(s.TutorialStep>=0&&s.TutorialStep<=TutorialGuide.Count&&(!s.TutorialActive||s.TutorialStep<TutorialGuide.Count),damaged);
+            Require(s.TutorialCompany>=0&&s.TutorialCompany<Companies.Length&&s.TutorialOffer>=-1&&s.TutorialOffer<Intelligence.DailyCount,damaged);
+            Require(s.TutorialDay>=0&&s.TutorialDay<=s.Day,damaged);
+            Require(s.TutorialStep!=5&&s.TutorialStep!=6||s.TutorialOffer>=0&&s.TutorialDay>=1,damaged);
             Require(s.Realized >= -Limit && s.Realized <= Limit, damaged);
             Require(s.PriceMigrationDay>=0&&s.PriceMigrationDay<=s.Day,damaged);
             Amount(s.PriceMigrationCash);Amount(s.PriceMigrationAssets);

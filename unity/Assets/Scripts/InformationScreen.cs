@@ -46,7 +46,7 @@ namespace MoneyTown
         void InfoHome(int shelf)
         {infoShelf=shelf;openedInfo=null;openedClue=null;choosingCompany=false;RenderTab();scroll.verticalNormalizedPosition=1;}
         void OpenClue(long day,int index,int version=Intelligence.CurrentVersion)
-        {openedInfo=null;openedClue=index;openedClueDay=day;openedClueVersion=version;RenderTab();scroll.verticalNormalizedPosition=1;RevealPaper();}
+        {if(TutorialActive){MoveTutorial(TutorialAction.OpenOffer,index);RevealPaper();return;}openedInfo=null;openedClue=index;openedClueDay=day;openedClueVersion=version;RenderTab();scroll.verticalNormalizedPosition=1;RevealPaper();}
         void DrawInformation()
         {
             if(openedClue.HasValue){DrawClueReader();return;}
@@ -79,7 +79,7 @@ namespace MoneyTown
         {
             var tier=offer.Tier;var owned=Intelligence.Owned(state,state.Day,offer.Index);
             var tile=Paper(content,offer.Kind,14,true);Height(tile,210);tile.GetComponent<VerticalLayoutGroup>().spacing=5;
-            var button=tile.gameObject.AddComponent<Button>();var graphic=tile.GetComponent<PaperSheet>();graphic.raycastTarget=true;button.targetGraphic=graphic;
+            var button=tile.gameObject.AddComponent<Button>();button.name="Offer-"+offer.Index;var graphic=tile.GetComponent<PaperSheet>();graphic.raycastTarget=true;button.targetGraphic=graphic;
             long day=state.Day;BindButtonFeedback(button,()=>OpenClue(day,offer.Index));
             var heading=Row(tile,38);var tint=offer.Grade>=8?Hex("9C6B1F"):PrintBlue;
             if(offer.Targeted)CompanyIcon(heading,offer.Company,tint,32);else Icon(heading,7,tint,32);
@@ -154,8 +154,9 @@ namespace MoneyTown
             var budget=Card(content,20);
             Article(budget,PurchaseGuidance.BudgetSummary(state.Cash,offer.Price),state.Cash>=offer.Price?Gold:Red);
             var purchase=Button(content,(offer.Targeted?"기업 분석 구매   ":"봉인 해제   ")+Money(offer.Price),()=>{
-                Act(()=>Intelligence.Buy(state,index,openedClueDay),"정보를 열었습니다. 근거와 조건을 살펴보세요.",GameCue.Paper);scroll.verticalNormalizedPosition=1;
+                Act(()=>Intelligence.Buy(state,index,openedClueDay),"정보를 열었습니다. 근거와 조건을 살펴보세요.",GameCue.Paper,TutorialAction.BuyInformation,index);if(!TutorialActive)scroll.verticalNormalizedPosition=1;
             },Hex("8C6630"),74);
+            purchase.name="BuyClue";
             purchase.interactable=!blocked&&state.Cash>=offer.Price;
         }
         void DrawClue(ClueRecord record)

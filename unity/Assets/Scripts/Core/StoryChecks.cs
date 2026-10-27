@@ -99,11 +99,11 @@ namespace MoneyTown
             var state = WithAssets(1000000000); Story.Record(state);
             state = Story.Acknowledge(Story.Acknowledge(state, 0), 1);
             byte[] bytes = SaveCodec.Encode(state); var restored = SaveCodec.Decode(bytes);
-            Check(BitConverter.ToInt32(bytes, 4) == 12 && restored.StoryUnlocked == 5 && restored.StorySeen == 2
-                && Story.Next(restored) == 2 && bytes.SequenceEqual(SaveCodec.Encode(restored)), "Story progress did not round-trip in version twelve.");
+            Check(BitConverter.ToInt32(bytes, 4) == SaveCodec.CurrentVersion && restored.StoryUnlocked == 5 && restored.StorySeen == 2
+                && Story.Next(restored) == 2 && bytes.SequenceEqual(SaveCodec.Encode(restored)), "Story progress did not round-trip in the current version.");
             byte[] legacy = CoreChecks.LegacyBytes(state, 11);
             var oldBody = legacy.Take(legacy.Length - 32).ToArray();
-            var newBody = bytes.Take(bytes.Length - 40).ToArray();
+            var newBody = CoreChecks.LegacyBytes(state, 12).Take(legacy.Length - 32).ToArray();
             Array.Copy(BitConverter.GetBytes(11), 0, newBody, 4, 4);
             Check(oldBody.SequenceEqual(newBody), "Version twelve must append story fields after the unchanged version-eleven body.");
         }
@@ -141,7 +141,7 @@ namespace MoneyTown
         }
         static void CheckCorruption()
         {
-            byte[] bytes = SaveCodec.Encode(Market.Create());
+            byte[] bytes = CoreChecks.LegacyBytes(Market.Create(), 12);
             foreach (var pair in new[] { new[] { 0, 0 }, new[] { 7, 0 }, new[] { 1, -1 }, new[] { 1, 2 }, new[] { int.MaxValue, 0 } }) {
                 var state = Market.Create(); state.StoryUnlocked = pair[0]; state.StorySeen = pair[1];
                 Reject(() => SaveCodec.Encode(state)); Reject(() => Story.Next(state)); Reject(() => Story.Record(state));

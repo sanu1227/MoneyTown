@@ -7,7 +7,7 @@ namespace MoneyTown
 {
     public static class SaveCodec
     {
-        public const int CurrentVersion=12;
+        public const int CurrentVersion=13;
         public const int MaximumBytes=2*1024*1024;
         public static byte[] Encode(GameState s)
         {
@@ -63,6 +63,8 @@ namespace MoneyTown
                     writer.Write(s.PriceMigrationAssets);writer.Write(s.PriceMigrationProfit);
                     foreach(var clue in s.Clues)writer.Write(clue.BeforePriceMigration);
                     writer.Write(s.StoryUnlocked);writer.Write(s.StorySeen);
+                    writer.Write(s.TutorialActive);writer.Write(s.TutorialStep);writer.Write(s.TutorialCompany);writer.Write(s.TutorialOffer);
+                    writer.Write(s.TutorialDay);
                 }
                 var body = buffer.ToArray();
                 if(body.Length>MaximumBytes-32)throw new InvalidDataException("저장 파일 크기 한도를 초과했습니다.");
@@ -163,6 +165,11 @@ namespace MoneyTown
                 if(version>=12) {
                     s.StoryUnlocked=reader.ReadInt32();s.StorySeen=reader.ReadInt32();
                 }
+                if(version>=13) {
+                    s.TutorialActive=ReadFlag(reader);s.TutorialStep=reader.ReadInt32();
+                    s.TutorialCompany=reader.ReadInt32();s.TutorialOffer=reader.ReadInt32();
+                    s.TutorialDay=reader.ReadInt64();
+                }
                 if (buffer.Position != buffer.Length) throw new InvalidDataException("알 수 없는 저장 데이터가 있습니다.");
                 if (version == 1) { Market.Validate(s); InfoMarket.ImportLegacyReports(s); }
                 return Market.Validate(s);
@@ -215,13 +222,14 @@ namespace MoneyTown
     {
         readonly string path;
         public bool PricesMigrated { get; private set; }
+        public int LoadedVersion { get; private set; } = SaveCodec.CurrentVersion;
         public GameStore(string directory) { Directory.CreateDirectory(directory); path = Path.Combine(directory, "game-unity-v1.bin"); }
         public GameState Load()
         {
             PricesMigrated=false;
             string source = File.Exists(path) ? path : path + ".backup";
-            if (!File.Exists(source)) return Market.Create();
-            var state=Read(source,out bool migrated);
+            if (!File.Exists(source)) {LoadedVersion=SaveCodec.CurrentVersion;return Market.Create();}
+            var state=Read(source,out bool migrated,out int version);LoadedVersion=version;
             if(migrated) {
                 Preserve("price-update");
                 Write(state,false);
@@ -229,16 +237,16 @@ namespace MoneyTown
             }
             return state;
         }
-        static GameState Read(string source,out bool migrated)
+        static GameState Read(string source,out bool migrated,out int version)
         {
             if (new FileInfo(source).Length > SaveCodec.MaximumBytes) throw new InvalidDataException("저장 파일이 너무 큽니다.");
             byte[] bytes=File.ReadAllBytes(source);
             var state=SaveCodec.Decode(bytes);
-            migrated=BitConverter.ToInt32(bytes,4)<11;
+            version=BitConverter.ToInt32(bytes,4);migrated=version<11;
             return migrated?PriceMigration.Apply(state):state;
         }
-        public GameState PreviewBackup() => File.Exists(path + ".backup") ? Read(path + ".backup",out _) : null;
-        public void Save(GameState state) => Write(state, true);
+        public GameState PreviewBackup() => File.Exists(path + ".backup") ? Read(path + ".backup",out _,out _) : null;
+        public void Save(GameState state) {Write(state,true);LoadedVersion=SaveCodec.CurrentVersion;}
         void Write(GameState state, bool updateBackup)
         {
             byte[] bytes = SaveCodec.Encode(state);

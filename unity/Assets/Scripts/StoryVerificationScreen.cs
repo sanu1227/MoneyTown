@@ -167,7 +167,7 @@ namespace MoneyTown
                     unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
                     saved.SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin")));
                 store = realStore; tab = 0; RenderTab(); UiButton("StoryOpeningSkip").onClick.Invoke();
-                UiCheck(!StoryActive && tutorial != null && tutorial.Step == 0 && state.StorySeen == 1,
+                UiCheck(!StoryActive && TutorialActive && state.TutorialStep == 0 && state.StorySeen == 1,
                     "legacy introduction enters investment practice before its already unlocked milestone chapters");
                 LeaveTutorial(false);
                 var recovered = store.Load();
@@ -177,11 +177,12 @@ namespace MoneyTown
                     "successful introduction confirmation retries a failed legacy milestone unlock and preserves the remaining story queue");
 
                 UiFixture(UiStoryState(2000000, 1), 3, stories: true);
-                tutorial = TutorialSession.Restore(2); tab = 0; RenderTab(); TryShowStory();
-                UiCheck(!StoryActive && tutorial.Step == 2 && state.StorySeen == 1,
-                    "unread milestone waits while the separate investment tutorial is active");
+                state = TutorialGuide.Start(state, true); state.TutorialStep = 2; store.Save(state);
+                tab = 0; RestoreTutorial(); RenderTab(); TryShowStory();
+                UiCheck(!StoryActive && state.TutorialStep == 2 && state.StorySeen == 1,
+                    "unread milestone waits while the actual-screen investment guide is active");
                 LeaveTutorial(false); TryShowStory();
-                UiCheck(StoryActive && storyChapter == 1 && tutorial == null,
+                UiCheck(StoryActive && storyChapter == 1 && !TutorialActive,
                     "milestone opens after leaving the tutorial without losing the pending chapter");
                 var settlement = Market.NextDay(UiStoryState(2000000, 1));
                 UiFixture(settlement, stories: true); TryShowStory();
@@ -296,62 +297,168 @@ namespace MoneyTown
         {
             effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
             string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
-
             GameRuntime.SetInt(TutorialModeKey, 0); GameRuntime.DeleteKey(TutorialStepKey);
             UiFixture(Market.Create(), stories: true); RestoreTutorial(); TryShowStory();
             UiCheck(StoryActive && storyChapter == 0 && !safeArea.gameObject.activeSelf,
-                "a genuine first-time player sees the introduction before the unstarted tutorial");
-            byte[] expectedGame = SaveCodec.Encode(Story.Acknowledge(state, 0));
+                "a genuine first-time player sees the introduction before the actual-screen guide");
+            byte[] expectedGame = UiGuideEconomy(Story.Acknowledge(state, 0));
             UiButton("StoryOpeningSkip").onClick.Invoke();
-            UiCheck(!StoryActive && tutorial != null && tutorial.Step == 0 &&
-                GameRuntime.GetInt(TutorialModeKey) == 1 && SavedTutorialStep == 0 &&
-                expectedGame.SequenceEqual(SaveCodec.Encode(state)) && expectedGame.SequenceEqual(File.ReadAllBytes(savePath)),
-                "skipping a first introduction persists active practice without changing the real market or capital");
+            UiCheck(!StoryActive && TutorialActive && state.TutorialStep == 0 &&
+                expectedGame.SequenceEqual(UiGuideEconomy(state)) && store.Load().TutorialActive &&
+                SaveCodec.Encode(state).SequenceEqual(File.ReadAllBytes(savePath)),
+                "skipping the first introduction atomically saves its acknowledgement and guide without changing capital");
             LeaveTutorial(false);
 
-            GameRuntime.SetInt(TutorialModeKey, 2); GameRuntime.SetInt(TutorialStepKey, TutorialSession.Count);
+            GameRuntime.SetInt(TutorialModeKey, 2); GameRuntime.SetInt(TutorialStepKey, 10);
             UiFixture(UiStoryState(2000000, 2), 2, stories: true); showManagement = true; RenderTab();
             UiButton("새 게임 시작").onClick.Invoke(); UiButton("확인 · 새 게임 시작").onClick.Invoke();
-            UiCheck(StoryOpeningActive && tutorial == null && state.StorySeen == 0 && state.Cash == 1000000,
+            UiCheck(StoryOpeningActive && !TutorialActive && state.StorySeen == 0 && state.Cash == 1000000,
                 "the actual new-game action shows the original opening even with a completed tutorial preference");
             UiButton("StoryOpeningNext").onClick.Invoke(); UiButton("StoryNext").onClick.Invoke();
             yield return new WaitForEndOfFrame();
-            UiCheck(storyPage == 2 && UiButton("StoryNext").GetComponentInChildren<Text>().text == "투자 연습으로" && UiStoryFits(),
-                "the final introduction page clearly offers investment practice with readable story and controls");
+            UiCheck(storyPage == 2 && UiButton("StoryNext").GetComponentInChildren<Text>().text == "첫 투자 시작" && UiStoryFits(),
+                "the final introduction page clearly offers the first actual investment with readable controls");
             UiCapture("59-story-to-tutorial");
-            expectedGame = SaveCodec.Encode(Story.Acknowledge(state, 0));
+            expectedGame = UiGuideEconomy(Story.Acknowledge(state, 0));
             UiButton("StoryNext").onClick.Invoke();
             yield return new WaitForEndOfFrame();
-            UiCheck(!StoryActive && tutorial != null && tutorial.Step == 0 && tab == 0 && safeArea.gameObject.activeSelf &&
-                GameRuntime.GetInt(TutorialModeKey) == 1 && SavedTutorialStep == 0 && !MarketRunning &&
-                expectedGame.SequenceEqual(SaveCodec.Encode(state)) && expectedGame.SequenceEqual(File.ReadAllBytes(savePath)) &&
-                UiText().Contains(LessonTitles[0]) && UiOnScreen(tradeDock),
-                "reading the complete introduction starts visible practice instead of skipping to trading after a new game");
+            UiCheck(!StoryActive && TutorialActive && state.TutorialStep == 0 && tab == 0 && safeArea.gameObject.activeSelf &&
+                !MarketRunning && expectedGame.SequenceEqual(UiGuideEconomy(state)) &&
+                UiText().Contains("총자산") && !UiText().Contains("연습 현금") &&
+                GetComponentsInChildren<PriceChart>().Any(chart => chart.name == "PriceChart") && UiOnScreen(tradeDock),
+                "the introduction opens the real exchange and order dock with an active guide and real balances");
+            UiGuideState(0, "first guide checkpoint is saved with the introduction");
+            UiGuideFits("CompanyPicker");
             UiCapture("60-tutorial-after-story");
-            for (int step = 0; step < TutorialSession.Count; step++) AdvanceTutorial(step, TutorialSession.Company);
-            UiCheck(tutorial == null && !StoryActive && tab == 0 && GameRuntime.GetInt(TutorialModeKey) == 2 &&
-                SavedTutorialStep == TutorialSession.Count && expectedGame.SequenceEqual(SaveCodec.Encode(state)) &&
-                expectedGame.SequenceEqual(File.ReadAllBytes(savePath)),
-                "completing the automatic tutorial returns to trading with the actual save and starting assets unchanged");
+            byte[] unchanged = SaveCodec.Encode(state);
+            bool actionCalled = false;
+            Act(() => { actionCalled = true; return Market.NextDay(state); }, "out-of-order guide action", GameCue.Settlement, TutorialAction.NextDay);
+            UiCheck(!actionCalled && unchanged.SequenceEqual(SaveCodec.Encode(state)) && !navigation[1].interactable && !buy.interactable,
+                "the guide blocks unrelated actions and navigation without advancing or touching the saved economy");
+            UiGuideClick("CompanyPicker"); UiGuideState(1, "opening the actual company picker records its successful guide step");
+            yield return new WaitForEndOfFrame(); UiGuideFits("Company-1");
+            UiGuideClick("Company-1"); UiGuideState(2, "selecting the actual company advances to its real buy order");
+            yield return new WaitForEndOfFrame(); UiGuideFits("TradeBuy");
+            unchanged = SaveCodec.Encode(state);
+            Act(() => Market.Trade(state, 1, 0, true), "invalid guide quantity", GameCue.Buy, TutorialAction.Buy, 1);
+            UiCheck(state.TutorialStep == 2 && unchanged.SequenceEqual(SaveCodec.Encode(state)) && unchanged.SequenceEqual(File.ReadAllBytes(savePath)),
+                "an invalid order reports an error without advancing the guide or charging the player");
+            UiGuideFailSave(() => UiGuideClick("TradeBuy"), "buy");
+            long cashBefore = state.Cash; var quote = Market.GetQuote(state, 1, 1);
+            UiGuideClick("TradeBuy"); UiGuideState(3, "buying through the real order button saves the trade and guide step together");
+            UiCheck(state.Cash == cashBefore - quote.Buy && state.Stocks[1].Quantity == 1 && state.Trades.Length == 1,
+                "guided buying spends actual cash including the fee and creates one real holding and trade");
+            var bought = state.Copy();
+            UiGuideReload(); UiGuideState(3, "reloading after a guided buy restores navigation without repeating the buy");
+            UiCheck(state.Stocks[1].Quantity == 1 && state.Trades.Length == 1 && state.Cash == bought.Cash,
+                "guide restoration never replays financial actions");
+            UiGuideClick("Navigation-1"); UiGuideState(4, "the actual information tab opens the guided offer list");
+            int offerIndex = int.Parse(GetComponentsInChildren<Button>().First(button =>
+                button.interactable && button.name.StartsWith("Offer-", StringComparison.Ordinal)).name.Substring(6));
+            UiCheck(offerIndex >= 0 && offerIndex < Intelligence.DailyCount,
+                "the guide selects an existing daily sealed offer rather than a separate practice article");
+            yield return new WaitForEndOfFrame(); UiGuideFits("Offer-" + offerIndex);
+            UiCapture("61-tutorial-information");
+            UiGuideClick("Offer-" + offerIndex); UiGuideState(5, "opening the real sealed offer advances only to purchase confirmation");
+            UiCheck(state.TutorialOffer == offerIndex, "the chosen real offer is persisted for article restoration");
+            yield return new WaitForEndOfFrame(); UiGuideFits("BuyClue");
+            var offer = Intelligence.Offer(state.Day, state.Seed, offerIndex, eventEdition: state.EventEdition);
+            var sealedInformation = state.Copy();
+            UiGuideFailSave(() => UiGuideClick("BuyClue"), "information");
+            cashBefore = state.Cash;
+            UiGuideClick("BuyClue"); UiGuideState(6, "purchasing the actual information saves its charge, article and guide step together");
+            UiCheck(state.Cash == cashBefore - offer.Price && state.Clues.Length == 1 && state.Clues[0].Index == offerIndex,
+                "guided information buying spends the displayed price and adds one real article to the collection");
+            UiGuideReload();
+            UiCheck(state.TutorialStep == 6 && state.Clues.Length == 1 && state.Cash == cashBefore - offer.Price,
+                "reloading an opened article preserves its purchase without charging it again");
+            UiGuideClick("Navigation-0"); UiGuideState(7, "the exchange return uses the normal bottom navigation");
+            UiGuideFailSave(() => UiGuideClick("NextDay"), "next-day");
+            long dayBefore = state.Day;
+            UiGuideClick("NextDay"); UiGuideState(8, "the real next-day button saves one day and the settlement guide checkpoint");
+            UiCheck(state.Day == dayBefore + 1 && state.SettlementPending && settlementOverlay.gameObject.activeSelf,
+                "guided next-day progression opens the normal settlement window");
+            var pendingSettlement = state.Copy();
+            UiGuideReload();
+            UiCheck(state.TutorialStep == 8 && state.Day == dayBefore + 1 && state.SettlementPending && settlementOverlay.gameObject.activeSelf,
+                "reopening during settlement restores that window without advancing another day");
+            yield return new WaitForEndOfFrame(); UiGuideFits("SettlementClose"); UiCapture("62-tutorial-settlement");
+            UiGuideFailSave(() => UiGuideClick("SettlementClose"), "settlement");
+            UiGuideClick("SettlementClose"); UiGuideState(9, "confirming real settlement saves its acknowledgement before showing the sell instruction");
+            UiCheck(!state.SettlementPending && !settlementOverlay.gameObject.activeSelf && tab == 0,
+                "settlement completion returns to the exchange while the guide remains active");
+            var readyToSell = state.Copy();
+            UiGuideFailSave(() => UiGuideClick("TradeSell"), "sell");
+            cashBefore = state.Cash; quote = Market.GetQuote(state, 1, 1);
+            UiGuideClick("TradeSell"); UiGuideState(10, "the real sell order advances only after saving its proceeds");
+            UiCheck(state.Cash == cashBefore + quote.Sell && state.Stocks[1].Quantity == 0 && state.Trades.Length == 2,
+                "guided selling clears the real holding and records actual proceeds after fees");
+            UiGuideClick("Navigation-2"); UiGuideState(11, "the actual assets screen offers the optional deposit lesson");
+            var optionalDeposit = state.Copy();
+            yield return new WaitForEndOfFrame(); UiGuideFits("DepositMoney"); UiCapture("63-tutorial-assets");
+            UiGuideFailSave(() => UiGuideClick("DepositMoney"), "deposit");
+            cashBefore = state.Cash; long assetsBefore = Market.Total(state);
+            UiGuideClick("DepositMoney"); UiGuideState(12, "the real deposit and final guide checkpoint are saved together");
+            UiCheck(state.Cash == cashBefore - 100000 && state.DepositDue == state.Day + 3 && Market.Total(state) == assetsBefore,
+                "the optional guided deposit locks actual principal and preserves total assets");
+            UiGuideReload();
+            UiCheck(state.TutorialStep == 12 && state.Cash == cashBefore - 100000 && state.DepositDue == state.Day + 3,
+                "reloading the final lesson does not deposit a second principal");
+            expectedGame = UiGuideEconomy(state);
+            UiGuideFailSave(() => UiGuideClick("GuideFinish"), "finish");
+            UiGuideClick("GuideFinish"); UiGuideState(TutorialGuide.Count, "finishing the actual guide persists its completed state");
+            UiCheck(!StoryActive && expectedGame.SequenceEqual(UiGuideEconomy(state)),
+                "guide completion preserves all real trades, information, day and deposit changes");
+            UiFixture(optionalDeposit.Copy(), guide: true); expectedGame = UiGuideEconomy(state);
+            UiGuideClick("GuideFinish");
+            UiCheck(!TutorialActive && state.TutorialStep == TutorialGuide.Count && state.DepositDue == 0 &&
+                expectedGame.SequenceEqual(UiGuideEconomy(state)),
+                "the optional deposit can be skipped without spending cash or creating a deposit");
 
-            GameRuntime.SetInt(TutorialModeKey, 1); GameRuntime.SetInt(TutorialStepKey, 4);
-            UiFixture(Market.Create(), stories: true); RestoreTutorial();
-            byte[] practice = SaveCodec.Encode(tutorial.State);
+            var existingDeposit = Market.Deposit(optionalDeposit);
+            UiFixture(existingDeposit, guide: true); expectedGame = UiGuideEconomy(state);
+            UiCheck(!UiButton("DepositMoney").interactable && UiButton("GuideFinish").interactable,
+                "an existing real deposit disables another deposit while leaving the optional guide exit available");
+            UiGuideClick("GuideFinish");
+            UiCheck(!TutorialActive && expectedGame.SequenceEqual(UiGuideEconomy(state)),
+                "finishing with an existing deposit preserves its principal and maturity");
+            var noCash = Market.Create(); noCash.Cash = noCash.DayStartAssets = 0;
+            noCash = TutorialGuide.Start(noCash, true); noCash.TutorialStep = 2;
+            UiFixture(noCash, guide: true); unchanged = SaveCodec.Encode(state);
+            UiCheck(!UiButton("TradeBuy").interactable && UiButton("GuidePause").interactable,
+                "an unfunded resumed guide disables the buy and offers a safe exit");
+            UiButton("TradeBuy").onClick.Invoke();
+            UiCheck(unchanged.SequenceEqual(SaveCodec.Encode(state)),
+                "an unfunded guided order cannot charge cash or advance its checkpoint");
+            UiGuideClick("GuidePause"); navigation[2].onClick.Invoke();
+            UiCheck(!TutorialActive && tab == 2 && UiButton("WarehouseWorkButton").interactable && state.Cash == 0,
+                "pausing an unfunded guide restores access to the real warehouse job without granting free money");
+            VerifyPausedGuideUi(sealedInformation, pendingSettlement, readyToSell, optionalDeposit);
+
+            bought.StorySeen = 0;
+            UiFixture(bought, stories: true, guide: true);
+            expectedGame = UiGuideEconomy(Story.Acknowledge(state, 0));
             UiButton("StoryOpeningNext").onClick.Invoke(); UiButton("StoryNext").onClick.Invoke();
-            UiCheck(UiButton("StoryNext").GetComponentInChildren<Text>().text == "연습 이어하기",
-                "the introduction offers to resume when an investment lesson is already in progress");
-            expectedGame = SaveCodec.Encode(Story.Acknowledge(state, 0));
+            UiCheck(UiButton("StoryNext").GetComponentInChildren<Text>().text == "투자 이어하기",
+                "the introduction offers to resume an actual investment guide already in progress");
             UiButton("StoryNext").onClick.Invoke();
-            UiCheck(!StoryActive && tutorial != null && tutorial.Step == 4 && SavedTutorialStep == 4 &&
-                practice.SequenceEqual(SaveCodec.Encode(tutorial.State)) && expectedGame.SequenceEqual(SaveCodec.Encode(state)),
-                "the automatic handoff preserves an active lesson and its separate practice market");
-            UiFixture(store.Load(), stories: true); RestoreTutorial(); RenderTab();
-            UiCheck(!StoryActive && tutorial != null && tutorial.Step == 4 &&
-                practice.SequenceEqual(SaveCodec.Encode(tutorial.State)) && GameRuntime.GetInt(TutorialModeKey) == 1,
-                "reloading after the handoff resumes the saved lesson without replaying the completed introduction");
+            UiCheck(!StoryActive && TutorialActive && state.TutorialStep == 3 &&
+                expectedGame.SequenceEqual(UiGuideEconomy(state)),
+                "the introduction handoff retains the active step and its already purchased real shares");
+            UiGuideReload();
+            UiCheck(!StoryActive && TutorialActive && state.TutorialStep == 3 && state.Stocks[1].Quantity == 1,
+                "reloading the handoff resumes the guide without repeating the story or buy");
+            expectedGame = UiGuideEconomy(state);
+            UiGuideFailSave(() => UiGuideClick("GuidePause"), "pause");
+            UiGuideClick("GuidePause");
+            UiCheck(!TutorialActive && expectedGame.SequenceEqual(UiGuideEconomy(state)) && !store.Load().TutorialActive,
+                "pausing saves only guide status and preserves every real transaction");
+            StartTutorial(false);
+            UiCheck(TutorialActive && state.TutorialStep == 3 && expectedGame.SequenceEqual(UiGuideEconomy(state)),
+                "resuming from help keeps the saved step without creating or resetting funds");
             LeaveTutorial(false);
 
-            GameRuntime.SetInt(TutorialModeKey, 2); GameRuntime.SetInt(TutorialStepKey, TutorialSession.Count);
+            GameRuntime.SetInt(TutorialModeKey, 2); GameRuntime.SetInt(TutorialStepKey, 10);
             UiFixture(UiStoryState(1000000, 1), 3, stories: true);
             expectedGame = File.ReadAllBytes(savePath);
             UiButton("StoryReplay-0").onClick.Invoke();
@@ -359,9 +466,9 @@ namespace MoneyTown
             UiCheck(UiButton("StoryNext").GetComponentInChildren<Text>().text == "다시 보기 마치기",
                 "replaying the introduction keeps its finish label instead of offering an automatic tutorial");
             UiButton("StoryNext").onClick.Invoke();
-            UiCheck(!StoryActive && tutorial == null && tab == 3 && GameRuntime.GetInt(TutorialModeKey) == 2 &&
-                SavedTutorialStep == TutorialSession.Count && expectedGame.SequenceEqual(File.ReadAllBytes(savePath)),
-                "finishing a replay returns to help without reopening practice or changing tutorial preferences");
+            UiCheck(!StoryActive && !TutorialActive && tab == 3 && GameRuntime.GetInt(TutorialModeKey) == 2 &&
+                GameRuntime.GetInt(TutorialStepKey) == 10 && expectedGame.SequenceEqual(File.ReadAllBytes(savePath)),
+                "finishing a replay returns to help without starting the guide or altering old tutorial preferences");
 
             UiFixture(Market.Create(), stories: true);
             expectedGame = File.ReadAllBytes(savePath);
@@ -371,16 +478,112 @@ namespace MoneyTown
             Directory.CreateDirectory(Path.Combine(failureDirectory, "game-unity-v1.bin.tmp"));
             try { store = failingStore; UiButton("StoryOpeningSkip").onClick.Invoke(); }
             finally { store = realStore; }
-            UiCheck(StoryOpeningActive && tutorial == null && storyOpeningNotice.text.Contains("저장") && !MarketRunning &&
+            UiCheck(StoryOpeningActive && !TutorialActive && storyOpeningNotice.text.Contains("저장") && !MarketRunning &&
                 expectedGame.SequenceEqual(SaveCodec.Encode(state)) && expectedGame.SequenceEqual(File.ReadAllBytes(savePath)),
-                "a failed story save keeps the opening visible and does not expose the prepared investment tutorial");
+                "a failed combined story and guide save keeps the opening and leaves both checkpoints unchanged");
             UiButton("StoryOpeningSkip").onClick.Invoke();
-            UiCheck(!StoryActive && tutorial != null && tutorial.Step == 0 && state.StorySeen == 1 &&
-                store.Load().StorySeen == 1 && state.Cash == 1000000 && GameRuntime.GetInt(TutorialModeKey) == 1 && SavedTutorialStep == 0,
-                "retrying the introduction handoff after a save failure opens practice and records progress once");
+            UiCheck(!StoryActive && TutorialActive && state.TutorialStep == 0 && state.StorySeen == 1 &&
+                store.Load().StorySeen == 1 && store.Load().TutorialActive && state.Cash == 1000000,
+                "retrying the introduction handoff saves story and actual guide checkpoints together once");
+            expectedGame = UiGuideEconomy(state);
             LeaveTutorial(false);
-            UiCheck(tutorial == null && !StoryActive && tab == 0 && GameRuntime.GetInt(TutorialModeKey) == 2 && SavedTutorialStep == 0,
-                "skipping automatically started practice returns to trading and leaves the tutorial available from help");
+            UiCheck(!TutorialActive && !StoryActive && tab == 0 && state.TutorialStep == 0 && expectedGame.SequenceEqual(UiGuideEconomy(state)),
+                "skipping the automatically started guide returns to normal trading with starting assets intact");
+        }
+        static byte[] UiGuideEconomy(GameState value)
+        {
+            var copy = value.Copy(); copy.TutorialActive = false; copy.TutorialStep = 0;
+            copy.TutorialCompany = 1; copy.TutorialOffer = -1; copy.TutorialDay = 0;
+            return SaveCodec.Encode(copy);
+        }
+        void VerifyPausedGuideUi(GameState sealedInformation, GameState pendingSettlement, GameState readyToSell, GameState optionalDeposit)
+        {
+            UiFixture(sealedInformation.Copy(), guide: true); UiGuideClick("GuidePause");
+            long articleDay = state.TutorialDay; int articleIndex = state.TutorialOffer;
+            UiGuideClick("Navigation-1"); OpenClue(articleDay, articleIndex); UiGuideClick("BuyClue");
+            UiGuideClick("NextDay"); UiGuideClick("SettlementClose");
+            byte[] economy = UiGuideEconomy(state);
+            StartTutorial(false); UiGuideState(6, "resuming after a normal purchase and day advance keeps the purchased article lesson");
+            UiCheck(state.Day == articleDay + 1 && state.TutorialDay == articleDay && openedClue == articleIndex &&
+                openedClueDay == articleDay && tab == 1 && state.Clues.Length == 1 &&
+                Intelligence.Owned(state, articleDay, articleIndex) != null && economy.SequenceEqual(UiGuideEconomy(state)),
+                "an already bought previous-day article reopens without buying a replacement or charging again");
+            UiGuideReload();
+            UiCheck(state.TutorialStep == 6 && openedClueDay == articleDay && state.Clues.Length == 1 &&
+                economy.SequenceEqual(UiGuideEconomy(state)), "the previous-day purchased article remains resumable after reload");
+
+            UiFixture(sealedInformation.Copy(), guide: true); UiGuideClick("GuidePause");
+            UiGuideClick("NextDay"); UiGuideClick("SettlementClose"); economy = UiGuideEconomy(state);
+            StartTutorial(false); UiGuideState(4, "resuming an expired unpurchased offer returns to current daily offer selection");
+            UiCheck(state.Clues.Length == 0 && state.TutorialOffer == -1 && !openedClue.HasValue && tab == 1 &&
+                UiButton("Offer-" + GuideOfferIndex).interactable && economy.SequenceEqual(UiGuideEconomy(state)),
+                "expired unpurchased information is not silently bought or substituted during guide restoration");
+
+            UiFixture(pendingSettlement.Copy(), guide: true); UiGuideClick("GuidePause");
+            UiGuideClick("SettlementClose"); economy = UiGuideEconomy(state);
+            StartTutorial(false); UiGuideState(9, "resuming after a normal settlement confirmation proceeds to the sell lesson");
+            UiCheck(!state.SettlementPending && !settlementOverlay.gameObject.activeSelf && UiButton("TradeSell").interactable &&
+                economy.SequenceEqual(UiGuideEconomy(state)),
+                "a settlement closed while paused is not reopened and does not leave the guide stuck waiting for confirmation");
+
+            UiFixture(readyToSell.Copy(), guide: true); UiGuideClick("GuidePause"); UiGuideClick("TradeSell");
+            economy = UiGuideEconomy(state); int trades = state.Trades.Length;
+            StartTutorial(false); UiGuideState(10, "resuming after selling the holding during normal play skips the completed sell action");
+            UiCheck(state.Stocks[state.TutorialCompany].Quantity == 0 && state.Trades.Length == trades &&
+                navigation[2].interactable && economy.SequenceEqual(UiGuideEconomy(state)),
+                "resuming a completed sale never sells again or duplicates its proceeds");
+
+            UiFixture(optionalDeposit.Copy(), guide: true); help.onClick.Invoke();
+            UiCheck(!TutorialActive && tab == 3, "opening help pauses the optional deposit lesson");
+            UiGuideClick("Navigation-2"); UiGuideClick("DepositMoney"); economy = UiGuideEconomy(state);
+            long maturity = state.DepositDue;
+            StartTutorial(false); UiGuideState(12, "resuming with a deposit opened during normal play goes to the final lesson");
+            UiCheck(maturity == state.Day + 3 && state.DepositDue == maturity && UiButton("GuideFinish").interactable &&
+                !UiButton("DepositMoney").interactable && economy.SequenceEqual(UiGuideEconomy(state)),
+                "an existing deposit is preserved without taking another principal when the guide resumes");
+        }
+        void UiGuideState(int step, string description)
+        {
+            UiCheck(state.TutorialStep == step && TutorialActive == (step < TutorialGuide.Count) &&
+                SaveCodec.Encode(state).SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin"))), description);
+        }
+        void UiGuideClick(string name)
+        {
+            var button = UiButton(name);
+            UiCheck(button.interactable, "guided real control is enabled: " + name);
+            button.onClick.Invoke();
+        }
+        void UiGuideReload()
+        {
+            byte[] saved = File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin"));
+            UiFixture(store.Load(), guide: true);
+            UiCheck(saved.SequenceEqual(SaveCodec.Encode(state)), "guide restoration does not replay or alter saved actions at step " + state.TutorialStep);
+        }
+        void UiGuideFailSave(Action action, string stage)
+        {
+            byte[] unchanged = SaveCodec.Encode(state);
+            string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
+            byte[] saved = File.ReadAllBytes(savePath);
+            var realStore = store;
+            string failureDirectory = Path.Combine(GameRuntime.DataDirectory, "failed-guide-" + stage);
+            Directory.CreateDirectory(Path.Combine(failureDirectory, "game-unity-v1.bin.tmp"));
+            try { store = new GameStore(failureDirectory); action(); }
+            finally { store = realStore; }
+            UiCheck(unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "failed " + stage + " save preserves both actual economy and guide checkpoint");
+        }
+        void UiGuideFits(string targetName)
+        {
+            Canvas.ForceUpdateCanvases();
+            var target = (RectTransform)UiButton(targetName).transform;
+            var banner = GetComponentsInChildren<RectTransform>().First(rect => rect.name == "GuideBanner");
+            bool fits=UiOnScreen(banner) && UiOnScreen(target) && target.GetComponents<Outline>().Any(outline => outline.enabled) &&
+                new[] { "GuideTitle", "GuideBody" }.All(name => {
+                    var label = UiLabel(name);
+                    return UiOnScreen(label.rectTransform) && label.cachedTextGenerator.characterCountVisible >= label.text.Length;
+                });
+            if(!fits)UiCapture("guide-layout-failure-"+targetName);
+            UiCheck(fits, "guide text and actual target fit on screen without clipping: " + targetName);
         }
         IEnumerator VerifyStoryOpeningUi()
         {

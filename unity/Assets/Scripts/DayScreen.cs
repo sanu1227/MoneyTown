@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -19,7 +20,7 @@ namespace MoneyTown
         RectTransform settlementOverlay,settlementWindow;
         Text settlementTitle,settlementNotice;
         double lastMarketTime;
-        bool MarketRunning => state!=null&&!StoryActive&&!blocked&&!resetPending&&tutorial==null&&tab<3&&!state.SettlementPending&&appFocused&&!appPaused;
+        bool MarketRunning => state!=null&&!StoryActive&&!blocked&&!resetPending&&!TutorialActive&&tab<3&&!state.SettlementPending&&appFocused&&!appPaused;
         void OnApplicationFocus(bool focused){appFocused=focused;marketWasRunning=false;lastMarketTime=Time.realtimeSinceStartupAsDouble;UpdateFeedbackActivity();}
         void OnApplicationPause(bool paused){appPaused=paused;marketWasRunning=false;lastMarketTime=Time.realtimeSinceStartupAsDouble;UpdateFeedbackActivity();}
         void Watch(Action refresh){liveQuotes.Add(refresh);refresh();}
@@ -30,7 +31,7 @@ namespace MoneyTown
         }
         void OpenClockSettings()
         {
-            if(StoryActive||blocked||tutorial!=null||state.SettlementPending||tab==5)return;
+            if(StoryActive||blocked||TutorialActive||state.SettlementPending||tab==5)return;
             clockReturnTab=tab;SwitchTab(5);
         }
         void SelectMarketInterval(int seconds)
@@ -60,7 +61,7 @@ namespace MoneyTown
             }
             Label(settings,"간격을 바꾸면 새 카운트다운을 시작합니다.\n같은 간격을 다시 누르면 남은 시간을 유지합니다.",20,Muted,80);
             Label(settings,"설정은 자동 저장됩니다. 앱을 다시 열면 선택한 간격부터 시작합니다.",20,Muted,72);
-            Label(settings,"설정·도움말·결산·연습·백그라운드에서는 시간이 멈춥니다. ‘다음 날’도 선택한 간격을 유지합니다.",20,Muted,100);
+            Label(settings,"설정·도움말·결산·첫 투자 안내·백그라운드에서는 자동 시세가 멈춥니다. ‘다음 날’도 선택한 간격을 유지합니다.",20,Muted,100);
             DrawMusicSettings(content);DrawFeedbackSettings(content);
             Height(tradeDock,108);tradeDock.gameObject.SetActive(true);
             Button(tradeDock,"설정 완료 · 게임으로 돌아가기",()=>{tab=clockReturnTab;RenderTab();scroll.verticalNormalizedPosition=1;},Hex("266957"),76);
@@ -90,7 +91,7 @@ namespace MoneyTown
         {
             if(warehouseWorking)return;
             if(state.SettlementPending) {
-                try {var changed=Market.AcknowledgeSettlement(state);store.Save(changed);state=changed;}
+                try {var changed=Market.AcknowledgeSettlement(state);TutorialGuide.Record(changed,TutorialAction.CloseSettlement);NormalizeTutorial(changed);store.Save(changed);state=changed;}
                 catch(Exception){
                     const string error="확인 내용을 저장하지 못했습니다. 다시 눌러 주세요.";
                     if(settlementNotice!=null){settlementNotice.text=error;Height(settlementNotice.rectTransform,32);Height(tradeDock,138);}
@@ -99,7 +100,7 @@ namespace MoneyTown
                 marketClock.Reset();
             }
             bool historical=selectedReportDay.HasValue;selectedReportDay=null;
-            tab=historical?6:0;RenderTab();scroll.verticalNormalizedPosition=1;
+            tab=historical?6:0;RenderTab();if(!TutorialActive)scroll.verticalNormalizedPosition=1;
         }
         void BuildSettlementWindow(Transform parent)
         {
@@ -112,7 +113,7 @@ namespace MoneyTown
             var heading=Column(title,0,2);Flexible(heading);
             Label(heading,"장 마감 · 개장 브리핑",17,Muted,24);
             settlementTitle=Label(heading,"",34,Mint,48);settlementTitle.fontStyle=FontStyle.Bold;
-            var close=Button(title,"닫기",CloseSettlement,Raised,54);Width((RectTransform)close.transform,74);
+            var close=Button(title,"닫기",CloseSettlement,Raised,74);close.name="SettlementClose";Width((RectTransform)close.transform,74);
             PositionSettlementWindow();settlementOverlay.gameObject.SetActive(false);
         }
         void PositionSettlementWindow()
@@ -128,7 +129,9 @@ namespace MoneyTown
             // Reuse the same scroll view and fixed action dock; the rest of the game stays behind the modal.
             scroll.transform.SetParent(visible?settlementWindow:safeArea,false);
             tradeDock.SetParent(visible?settlementWindow:safeArea,false);
-            if(!visible){scroll.transform.SetSiblingIndex(3);tradeDock.SetSiblingIndex(4);}
+            guideBanner.SetParent(visible?settlementWindow:safeArea,false);
+            guideBanner.SetSiblingIndex(visible?1:3);
+            if(!visible){scroll.transform.SetSiblingIndex(4);tradeDock.SetSiblingIndex(5);}
             scroll.StopMovement();scroll.verticalNormalizedPosition=1;
             safeArea.gameObject.SetActive(!visible);settlementOverlay.gameObject.SetActive(visible);
             if(visible){showAllSettlementNews=false;showSettlementDetails=false;}
@@ -180,6 +183,7 @@ namespace MoneyTown
         }
         void DrawSettlement()
         {
+            settlementWindow.GetComponentsInChildren<Button>().First(button=>button.name=="SettlementClose").interactable=!warehouseWorking;
             var report=selectedReportDay.HasValue?System.Linq.Enumerable.First(state.DayReports,item=>item.Day==selectedReportDay.Value):state.LastReport;
             if(settlementNewsDay!=report.Day){settlementNewsDay=report.Day;showAllSettlementNews=false;showSettlementDetails=false;}
             settlementTitle.text=(report.Day+1)+"일차 개장";
@@ -204,7 +208,7 @@ namespace MoneyTown
             if(showSettlementDetails)DrawSettlementDetails(report);
             Height(tradeDock,100);tradeDock.gameObject.SetActive(true);
             settlementNotice=Label(tradeDock,"",18,Red,0);
-            Button(tradeDock,state.SettlementPending?"결산 확인 · "+state.Day+"일차 시작":selectedReportDay.HasValue?"기록 목록으로 돌아가기":"거래소로 돌아가기",CloseSettlement,Hex("266957"),72);
+            Button(tradeDock,state.SettlementPending?"결산 확인 · "+state.Day+"일차 시작":selectedReportDay.HasValue?"기록 목록으로 돌아가기":"거래소로 돌아가기",CloseSettlement,Hex("266957"),74).name="SettlementConfirm";
         }
         void DrawSettlementDetails(DayReport report)
         {

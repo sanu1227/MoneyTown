@@ -3,6 +3,22 @@
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
 <details open>
+<summary><strong>v0.30.0 관심에서 첫 투자로 — 실제 화면의 단계별 안내</strong></summary>
+
+모은 돈을 키우고 싶어 주식에 관심을 가진 주인공이 첫 투자를 결심합니다. 도입부 다음에는 실제 거래소·정보 가판대·결산·자산 화면에서 금빛으로 강조한 버튼을 직접 누릅니다. 거래와 구매는 실제 게임 자산에 반영됩니다.
+
+<img src="../assets/screenshots/v0.30.0/story-interest.png" width="360" alt="모은 백만 원을 불리고 싶어 주식에 관심을 가진 주인공" />
+<img src="../assets/screenshots/v0.30.0/story-first-investment.png" width="360" alt="기사를 읽고 첫 투자를 결심하는 주인공" />
+<img src="../assets/screenshots/v0.30.0/guided-exchange.png" width="360" alt="실제 거래소에서 종목 선택 버튼 강조" />
+<img src="../assets/screenshots/v0.30.0/guided-information.png" width="360" alt="실제 정보 목록의 최저가 자료 강조" />
+<img src="../assets/screenshots/v0.30.0/guided-settlement.png" width="360" alt="실제 다음 날 결산과 원인 뉴스 안내" />
+<img src="../assets/screenshots/v0.30.0/guided-assets.png" width="360" alt="실제 자산 화면의 선택 예금 안내" />
+
+2026-10-27, 격리 Windows 검증용 Unity Player의 480×960 화면입니다. 원본은 `build/ui-verification-f05ee0a802f1435b92c7911b567799a6/`의 42·59~63번 PNG이며 공개 이미지와 각각 SHA-256이 같습니다. 480×960·360×800에서 각각 UI 401개를 통과했습니다. 첫 선언의 32번 캡처는 0.29.0 원본과 바이트가 같습니다. 캡처를 보정하거나 UI를 합성하지 않았으며 Android 실기기 캡처는 아닙니다.
+
+</details>
+
+<details>
 <summary><strong>v0.29.0 스토리에서 첫 투자 연습으로</strong></summary>
 
 첫 멘트는 그대로 두고, 신문 속 게임 박람회 기사에 관심을 가진 주인공이 첫 거래를 연습하는 흐름으로 대사를 다듬었습니다. 도입부를 마치거나 건너뛰면 별도 연습 시장으로 이어집니다.
