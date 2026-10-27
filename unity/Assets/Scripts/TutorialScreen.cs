@@ -81,7 +81,7 @@ namespace MoneyTown
                 case 0:
                     var welcome=Card(content,24,14);var icons=Row(welcome,116,20);Icon(icons,9,Mint,92);Icon(icons,7,Gold,92);Icon(icons,8,Blue,92);
                     Label(welcome,"연습 자금 1,000,000원",30,Gold,62);
-                    GuideText(welcome,"사고, 정보를 읽고, 팔아 보세요. 버튼을 직접 누르며 약 2~3분 동안 배웁니다.");
+                    GuideText(welcome,"본격적으로 투자하기 전에 첫 거래를 연습해 봅시다. 주식을 사고, 기사 속 단서를 살펴본 뒤 팔아 보세요. 약 2~3분이면 됩니다.");
                     LessonNote("본게임 자산은 그대로","연습용 시장을 따로 사용합니다. 중간에 나가도 도움말에서 이어할 수 있습니다.",6);break;
                 case 1:
                     TutorialChart();LessonNote("현재가와 흐름","본게임 기본 간격은 30초입니다. 상단 ‘간격 설정’에서 1시간까지 바꿀 수 있습니다. 연습에서는 아래 버튼으로 바로 체험합니다. 과거 상승이 미래 상승을 보장하지 않습니다.",9);break;

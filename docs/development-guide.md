@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.28.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
+빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.29.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.28.0-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.29.0-Setup-x64.exe
 ```
 
 ## Android APK
@@ -100,6 +100,8 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 0.28.0은 첫 문장의 배경과 `BuildStoryOpening`·`UpdateStoryOpening`을 0.27.1 그대로 유지합니다. 문구 순서·금빛 강조·3.8초 연출·암전 해제, 연출 중 첫 클릭의 즉시 완성, 완성 후 클릭의 두 번째 페이지 이동을 확인합니다. 나머지 17페이지는 각각 고유한 페이지 텍스처를 읽어야 합니다. 위아래 컷이 서로 겹치지 않는 반쪽을 표시하는지, 경계선이 섞이거나 그림 비율이 왜곡되지 않는지 검사합니다. 전체 18페이지의 `41~58-story-scene-*` 캡처에서 대사에 맞는 장면과 가림·잘림도 확인합니다. 기존 아이보리 지면·캡션·말풍선, 컷 등장 후 정지와 한 번 클릭의 다음 페이지 이동은 유지합니다.
 
 공통으로 Unity 시작 로고가 끝난 뒤 연출 시작, 동작 줄이기의 즉시 완성, 앱 중단 시 연출 정지, 중앙 자막과 만화의 저장 실패 안내·건너뛰기·재감상을 점검합니다. 내레이션 부재와 기존 배경음악·효과음 유지도 확인합니다. 검증 수치와 실제 화면 결과는 해당 버전의 [개발 노트](development-log.md)에 기록합니다.
+
+0.29.0의 `VerifyStoryTutorialUi`는 새 게임 버튼을 통한 초기화와 도입부 완독·건너뛰기, 이전 연습 완료 설정, 진행 중 단계 유지·재실행, 재감상, 이야기 저장 실패·재시도를 확인합니다. 연습 종료 후 본게임 저장과 자산이 그대로인지도 검사합니다. `59-story-to-tutorial`·`60-tutorial-after-story` 캡처에서 마지막 대사와 버튼, 이어지는 안내를 확인합니다. 검증용 환경은 설정을 메모리로 보관하므로 실제 PlayerPrefs 저장 실패는 이 검사에서 강제로 재현하지 않습니다.
 
 내레이션과 전용 음원 제작 도구는 0.27.0에서 제거했습니다. 이전 음원 재현이 필요하면 현재 작업 트리의 명령 대신 [v0.26.1 제작 문서](https://github.com/sanu1227/MoneyTown/blob/v0.26.1/docs/opening-audio.md)와 해당 태그의 파일을 사용합니다. 배경음악·일반 효과음 제작 절차는 아래 설명과 [효과음 자료](audio-assets.md)를 따릅니다.
 

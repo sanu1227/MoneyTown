@@ -3,6 +3,19 @@
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
 <details open>
+<summary><strong>v0.29.0 스토리에서 첫 투자 연습으로</strong></summary>
+
+첫 멘트는 그대로 두고, 신문 속 게임 박람회 기사에 관심을 가진 주인공이 첫 거래를 연습하는 흐름으로 대사를 다듬었습니다. 도입부를 마치거나 건너뛰면 별도 연습 시장으로 이어집니다.
+
+<img src="../assets/screenshots/v0.29.0/comic-start.png" width="480" alt="백만 원으로 시작하며 공책을 펼치는 장면" />
+<img src="../assets/screenshots/v0.29.0/story-to-tutorial.png" width="480" alt="기사 속 단서를 궁금해하며 투자 연습으로 이어지는 마지막 페이지" />
+<img src="../assets/screenshots/v0.29.0/tutorial-start.png" width="480" alt="도입부 이후 자동으로 열린 첫 투자 연습 화면" />
+
+2026-10-27, 격리 Windows 검증용 Unity Player의 480×960 화면입니다. 원본은 `build/ui-verification-83471eeaaed546469a5bca5c66f28087/`의 42·59·60번 PNG이며 공개 이미지와 각각 SHA-256이 같습니다. 480×960·360×800에서 각각 UI 292개를 통과했습니다. 첫 화면의 32번 캡처는 v0.28.0 검사 원본과 바이트가 같습니다. 이미지 보정·UI 합성 없이 제공하며 Android 실기기 캡처는 아닙니다.
+
+</details>
+
+<details>
 <summary><strong>v0.28.0 장면별 새 일러스트 — 17페이지·34장면</strong></summary>
 
 첫 멘트는 기존 중앙 자막과 배경을 유지합니다. 이후에는 페이지와 상하 컷마다 다른 장면이 나옵니다. 시작 자금, 기사 분석, 도시의 일터, 동료의 의견을 대사에 맞춰 그렸습니다. [장면별 원본·프롬프트·해시](story-art.md)

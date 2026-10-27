@@ -122,8 +122,10 @@ namespace MoneyTown
                 "introduction illustration and all story controls fit the full-screen opening");
             UiCapture("32-story-intro");
             UiButton("StoryOpeningSkip").onClick.Invoke();
-            UiCheck(!StoryActive && state.StorySeen == 1 && store.Load().StorySeen == 1 && safeArea.gameObject.activeSelf,
-                "skipping the introduction saves its acknowledgement and reveals the game once");
+            UiCheck(!StoryActive && state.StorySeen == 1 && store.Load().StorySeen == 1 && safeArea.gameObject.activeSelf &&
+                tutorial != null && tutorial.Step == 0,
+                "skipping the introduction saves its acknowledgement and opens the first investment lesson");
+            LeaveTutorial(false);
             RestoreFeedbackSettings();
             CheckOpeningNewsCopy();
             UiCheck(!blocked && tutorial == null && state.Cash == 1000000, "isolated startup, no user preferences");

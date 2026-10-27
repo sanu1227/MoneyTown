@@ -216,7 +216,8 @@ namespace MoneyTown
             storyBody.text=split<0?page:page.Substring(split+1);
             storyPageLabel.text=(storyPage+1).ToString("00")+" / "+pages.Length.ToString("00");
             storySoundWord.text=storyPage==0?"두근":"";
-            storyNext.GetComponentInChildren<Text>().text=storyPage<pages.Length-1?"다음":storyReplay?"다시 보기 마치기":"이야기 마치기";
+            storyNext.GetComponentInChildren<Text>().text=storyPage<pages.Length-1?"다음":storyReplay?"다시 보기 마치기":
+                storyChapter==0?(tutorial!=null&&tutorial.Step>0?"연습 이어하기":"투자 연습으로"):"이야기 마치기";
             storyPageTime=0;storyNotice.text=storyOpeningNotice.text="";
             storySafe.gameObject.SetActive(!StoryOpeningActive);storyOpening.gameObject.SetActive(StoryOpeningActive);
             ApplyStoryCutAnimation(effects.ReducedMotion ? .4f : 0);
@@ -232,11 +233,23 @@ namespace MoneyTown
         void SkipStory(){if(StoryActive)FinishStory();}
         void FinishStory()
         {
+            TutorialSession nextTutorial=null;
+            if(!storyReplay&&storyChapter==0) {
+                nextTutorial=tutorial??TutorialSession.Restore(0);
+                // Save the practice checkpoint first so reopening after an interruption cannot skip it.
+                if(!SaveTutorialProgress(nextTutorial.Step,1)) {
+                    storyOpeningNotice.text=storyNotice.text=tutorialHint+"\n다시 눌러 연습을 시작해 주세요.";
+                    effects.Play(GameCue.Error);return;
+                }
+            }
             if(!storyReplay) {
                 try {var changed=state.Copy();Story.Record(changed);changed=Story.Acknowledge(changed,storyChapter);store.Save(changed);state=changed;}
                 catch(Exception){storyOpeningNotice.text=storyNotice.text="이야기 진행을 저장하지 못했습니다.\n저장 공간을 확인한 뒤 다시 눌러 주세요.";effects.Play(GameCue.Error);return;}
             }
-            CloseStoryScreen();RenderTab();
+            CloseStoryScreen();
+            if(nextTutorial!=null){tutorial=nextTutorial;tutorialHint="";tab=0;resetPending=false;}
+            RenderTab();
+            if(nextTutorial!=null)scroll.verticalNormalizedPosition=1;
         }
         void CloseStoryScreen()
         {

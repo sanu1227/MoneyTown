@@ -167,6 +167,9 @@ namespace MoneyTown
                     unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
                     saved.SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin")));
                 store = realStore; tab = 0; RenderTab(); UiButton("StoryOpeningSkip").onClick.Invoke();
+                UiCheck(!StoryActive && tutorial != null && tutorial.Step == 0 && state.StorySeen == 1,
+                    "legacy introduction enters investment practice before its already unlocked milestone chapters");
+                LeaveTutorial(false);
                 var recovered = store.Load();
                 UiCheck(deferredUnlock && StoryActive && storyChapter == 1 && state.StoryUnlocked == 3 &&
                     state.StorySeen == 1 && recovered.StoryUnlocked == 3 && recovered.StorySeen == 1 &&
@@ -277,13 +280,8 @@ namespace MoneyTown
                 var soundChecks = VerifyStoryWithoutNarrationUi();
                 while (soundChecks.MoveNext()) yield return soundChecks.Current;
 
-                GameRuntime.SetInt(TutorialModeKey, 0); GameRuntime.DeleteKey(TutorialStepKey);
-                UiFixture(Market.Create(), stories: true); RestoreTutorial(); TryShowStory();
-                UiCheck(StoryActive && storyChapter == 0 && !safeArea.gameObject.activeSelf,
-                    "a genuine first-time player sees the introduction before the unstarted tutorial");
-                UiButton("StoryOpeningSkip").onClick.Invoke();
-                UiCheck(!StoryActive && tutorial != null && tutorial.Step == 0 && state.StorySeen == 1 && state.Cash == 1000000,
-                    "the first tutorial begins after the introduction with unchanged starting capital");
+                var tutorialChecks = VerifyStoryTutorialUi();
+                while (tutorialChecks.MoveNext()) yield return tutorialChecks.Current;
             } finally {
                 store = realStore; warehouseWorking = false;
                 for (int i = 0; i < keys.Length; i++) {
@@ -293,6 +291,96 @@ namespace MoneyTown
                 appPaused = paused; appFocused = focused; UpdateFeedbackActivity();
                 UiFixture(original, originalTab); marketClock.Reset(); marketWasRunning = false;
             }
+        }
+        IEnumerator VerifyStoryTutorialUi()
+        {
+            effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
+            string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
+
+            GameRuntime.SetInt(TutorialModeKey, 0); GameRuntime.DeleteKey(TutorialStepKey);
+            UiFixture(Market.Create(), stories: true); RestoreTutorial(); TryShowStory();
+            UiCheck(StoryActive && storyChapter == 0 && !safeArea.gameObject.activeSelf,
+                "a genuine first-time player sees the introduction before the unstarted tutorial");
+            byte[] expectedGame = SaveCodec.Encode(Story.Acknowledge(state, 0));
+            UiButton("StoryOpeningSkip").onClick.Invoke();
+            UiCheck(!StoryActive && tutorial != null && tutorial.Step == 0 &&
+                GameRuntime.GetInt(TutorialModeKey) == 1 && SavedTutorialStep == 0 &&
+                expectedGame.SequenceEqual(SaveCodec.Encode(state)) && expectedGame.SequenceEqual(File.ReadAllBytes(savePath)),
+                "skipping a first introduction persists active practice without changing the real market or capital");
+            LeaveTutorial(false);
+
+            GameRuntime.SetInt(TutorialModeKey, 2); GameRuntime.SetInt(TutorialStepKey, TutorialSession.Count);
+            UiFixture(UiStoryState(2000000, 2), 2, stories: true); showManagement = true; RenderTab();
+            UiButton("새 게임 시작").onClick.Invoke(); UiButton("확인 · 새 게임 시작").onClick.Invoke();
+            UiCheck(StoryOpeningActive && tutorial == null && state.StorySeen == 0 && state.Cash == 1000000,
+                "the actual new-game action shows the original opening even with a completed tutorial preference");
+            UiButton("StoryOpeningNext").onClick.Invoke(); UiButton("StoryNext").onClick.Invoke();
+            yield return new WaitForEndOfFrame();
+            UiCheck(storyPage == 2 && UiButton("StoryNext").GetComponentInChildren<Text>().text == "투자 연습으로" && UiStoryFits(),
+                "the final introduction page clearly offers investment practice with readable story and controls");
+            UiCapture("59-story-to-tutorial");
+            expectedGame = SaveCodec.Encode(Story.Acknowledge(state, 0));
+            UiButton("StoryNext").onClick.Invoke();
+            yield return new WaitForEndOfFrame();
+            UiCheck(!StoryActive && tutorial != null && tutorial.Step == 0 && tab == 0 && safeArea.gameObject.activeSelf &&
+                GameRuntime.GetInt(TutorialModeKey) == 1 && SavedTutorialStep == 0 && !MarketRunning &&
+                expectedGame.SequenceEqual(SaveCodec.Encode(state)) && expectedGame.SequenceEqual(File.ReadAllBytes(savePath)) &&
+                UiText().Contains(LessonTitles[0]) && UiOnScreen(tradeDock),
+                "reading the complete introduction starts visible practice instead of skipping to trading after a new game");
+            UiCapture("60-tutorial-after-story");
+            for (int step = 0; step < TutorialSession.Count; step++) AdvanceTutorial(step, TutorialSession.Company);
+            UiCheck(tutorial == null && !StoryActive && tab == 0 && GameRuntime.GetInt(TutorialModeKey) == 2 &&
+                SavedTutorialStep == TutorialSession.Count && expectedGame.SequenceEqual(SaveCodec.Encode(state)) &&
+                expectedGame.SequenceEqual(File.ReadAllBytes(savePath)),
+                "completing the automatic tutorial returns to trading with the actual save and starting assets unchanged");
+
+            GameRuntime.SetInt(TutorialModeKey, 1); GameRuntime.SetInt(TutorialStepKey, 4);
+            UiFixture(Market.Create(), stories: true); RestoreTutorial();
+            byte[] practice = SaveCodec.Encode(tutorial.State);
+            UiButton("StoryOpeningNext").onClick.Invoke(); UiButton("StoryNext").onClick.Invoke();
+            UiCheck(UiButton("StoryNext").GetComponentInChildren<Text>().text == "연습 이어하기",
+                "the introduction offers to resume when an investment lesson is already in progress");
+            expectedGame = SaveCodec.Encode(Story.Acknowledge(state, 0));
+            UiButton("StoryNext").onClick.Invoke();
+            UiCheck(!StoryActive && tutorial != null && tutorial.Step == 4 && SavedTutorialStep == 4 &&
+                practice.SequenceEqual(SaveCodec.Encode(tutorial.State)) && expectedGame.SequenceEqual(SaveCodec.Encode(state)),
+                "the automatic handoff preserves an active lesson and its separate practice market");
+            UiFixture(store.Load(), stories: true); RestoreTutorial(); RenderTab();
+            UiCheck(!StoryActive && tutorial != null && tutorial.Step == 4 &&
+                practice.SequenceEqual(SaveCodec.Encode(tutorial.State)) && GameRuntime.GetInt(TutorialModeKey) == 1,
+                "reloading after the handoff resumes the saved lesson without replaying the completed introduction");
+            LeaveTutorial(false);
+
+            GameRuntime.SetInt(TutorialModeKey, 2); GameRuntime.SetInt(TutorialStepKey, TutorialSession.Count);
+            UiFixture(UiStoryState(1000000, 1), 3, stories: true);
+            expectedGame = File.ReadAllBytes(savePath);
+            UiButton("StoryReplay-0").onClick.Invoke();
+            UiButton("StoryOpeningNext").onClick.Invoke(); UiButton("StoryNext").onClick.Invoke();
+            UiCheck(UiButton("StoryNext").GetComponentInChildren<Text>().text == "다시 보기 마치기",
+                "replaying the introduction keeps its finish label instead of offering an automatic tutorial");
+            UiButton("StoryNext").onClick.Invoke();
+            UiCheck(!StoryActive && tutorial == null && tab == 3 && GameRuntime.GetInt(TutorialModeKey) == 2 &&
+                SavedTutorialStep == TutorialSession.Count && expectedGame.SequenceEqual(File.ReadAllBytes(savePath)),
+                "finishing a replay returns to help without reopening practice or changing tutorial preferences");
+
+            UiFixture(Market.Create(), stories: true);
+            expectedGame = File.ReadAllBytes(savePath);
+            var realStore = store;
+            string failureDirectory = Path.Combine(GameRuntime.DataDirectory, "failed-story-tutorial");
+            var failingStore = new GameStore(failureDirectory);
+            Directory.CreateDirectory(Path.Combine(failureDirectory, "game-unity-v1.bin.tmp"));
+            try { store = failingStore; UiButton("StoryOpeningSkip").onClick.Invoke(); }
+            finally { store = realStore; }
+            UiCheck(StoryOpeningActive && tutorial == null && storyOpeningNotice.text.Contains("저장") && !MarketRunning &&
+                expectedGame.SequenceEqual(SaveCodec.Encode(state)) && expectedGame.SequenceEqual(File.ReadAllBytes(savePath)),
+                "a failed story save keeps the opening visible and does not expose the prepared investment tutorial");
+            UiButton("StoryOpeningSkip").onClick.Invoke();
+            UiCheck(!StoryActive && tutorial != null && tutorial.Step == 0 && state.StorySeen == 1 &&
+                store.Load().StorySeen == 1 && state.Cash == 1000000 && GameRuntime.GetInt(TutorialModeKey) == 1 && SavedTutorialStep == 0,
+                "retrying the introduction handoff after a save failure opens practice and records progress once");
+            LeaveTutorial(false);
+            UiCheck(tutorial == null && !StoryActive && tab == 0 && GameRuntime.GetInt(TutorialModeKey) == 2 && SavedTutorialStep == 0,
+                "skipping automatically started practice returns to trading and leaves the tutorial available from help");
         }
         IEnumerator VerifyStoryOpeningUi()
         {
