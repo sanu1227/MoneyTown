@@ -39,14 +39,14 @@
 .\Build-Installer.ps1 -SkipUnityBuild
 ```
 
-빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.30.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
+빌드 결과 경로는 `dist/unity/Windows/MoneyTown.exe`와 `dist/installer/MoneyTown-0.31.0-Setup-x64.exe`입니다. 버전은 프로젝트 설정에 따라 달라집니다. 설치 파일 옆에 SHA-256 파일도 생성합니다. 경로 예시는 해당 버전의 빌드·설치 검증 완료를 뜻하지 않습니다.
 
 설치 위치는 `%LOCALAPPDATA%\Programs\MoneyTown`입니다. 게임을 종료한 뒤 새 설치 EXE를 실행하면 기존 설치 위치와 저장·설정을 유지합니다. 인터넷 자동 다운로드 기능은 없습니다. 설치 EXE에는 코드 서명을 적용하지 않았습니다.
 
 아래 검사는 **현재 Windows 계정에 실제 설치·재설치**합니다. 실행 중인 게임을 먼저 종료하세요.
 
 ```powershell
-.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.30.0-Setup-x64.exe
+.\scripts\Test-Installer.ps1 -InstallerPath .\dist\installer\MoneyTown-0.31.0-Setup-x64.exe
 ```
 
 ## Android APK
@@ -85,7 +85,7 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 
 결과 JSON과 PNG는 `build/ui-verification-*`에 생성됩니다. 화면 캡처에는 `-Visible`을 사용합니다. 검증 빌드는 `MoneyTownVerification`이라는 별도 제품 설정과 임시 데이터 경로를 사용합니다. 화면의 `Development Build` 표시는 원본 그대로 보존합니다.
 
-게임 소개 캡처를 갱신할 때는 통과한 실행의 PNG를 `assets/screenshots/버전/`에 복사하고 [갤러리의 촬영 정보](gallery.md#촬영-정보)를 함께 바꿉니다. 실제 게임 화면과 별도 브랜드 일러스트를 구분합니다.
+게임 소개 캡처를 갱신할 때는 통과한 실행의 PNG를 `assets/screenshots/버전/`에 복사하고 [갤러리의 촬영 정보](gallery.md)를 함께 바꿉니다. 실제 게임 화면과 별도 브랜드 일러스트를 구분합니다.
 
 ## 이야기와 일러스트 수정
 
@@ -102,6 +102,10 @@ dotnet run --project tests/unity-core/UnityCoreChecks.csproj
 공통으로 Unity 시작 로고가 끝난 뒤 연출 시작, 동작 줄이기의 즉시 완성, 앱 중단 시 연출 정지, 중앙 자막과 만화의 저장 실패 안내·건너뛰기·재감상을 점검합니다. 내레이션 부재와 기존 배경음악·효과음 유지도 확인합니다. 검증 수치와 실제 화면 결과는 해당 버전의 [개발 노트](development-log.md)에 기록합니다.
 
 0.30.0의 `VerifyStoryTutorialUi`는 실제 거래소·정보 가판대·결산·자산 화면의 버튼을 눌러 13단계 안내를 진행합니다. 매수·정보 구매·날짜 진행·매도·선택 예금의 실제 자산 변화와 저장된 안내 단계를 함께 확인합니다. 저장 실패, 재실행 시 중복 행동 방지, 안내 중단 중 일반 거래 후 이어하기, 자금 부족과 선택 예금 건너뛰기도 검사합니다. `59-story-to-tutorial`·`60-tutorial-after-story`·`61-tutorial-information`·`62-tutorial-settlement`·`63-tutorial-assets` 캡처에서 실제 버튼 강조와 안내·대상 가독성을 확인합니다. 단계 저장은 PlayerPrefs가 아닌 게임 저장 파일을 사용합니다.
+
+0.31.0의 단계별 설명은 [`TutorialExplanationScreen.cs`](../unity/Assets/Scripts/TutorialExplanationScreen.cs)의 `GuideLessons`·`GuideTasks`와 `GuideCurrentResult`에서 관리합니다. 설명을 먼저 읽고 ‘직접 해보기’를 누른 뒤 실제 행동을 수행하는 순서를 유지합니다. 수수료 포함 견적·정보 가격과 보유 여부·현재 날짜·최근 매도 손익·예금 만기처럼 변하는 값은 현재 상태에서 계산합니다. 본문의 개념과 다음 행동이 [`TutorialScreen.cs`](../unity/Assets/Scripts/TutorialScreen.cs)의 단계와 일치해야 합니다.
+
+`UiConfirmGuideExplanation`은 설명창의 문장·실제 수치·안전 영역과 배경 입력 차단을 확인합니다. 설명 확인·다시 보기 전후에는 자산과 진도뿐 아니라 저장 파일 바이트도 같아야 합니다. 재실행·이어하기·안내 재시작은 현재 단계의 설명을 다시 표시하되 거래를 반복하지 않아야 합니다. 실제 행동 저장 실패 후에는 같은 단계에서 다시 누를 수 있고, 설명창의 ‘나중에’ 저장 실패는 창 안에 재시도 문구를 표시하는지 확인합니다. 이미 보유한 자료, 현금 부족, 큰 금액, 결산 중 복귀와 아직 받지 않은 예금 반환금도 함께 점검합니다. 실행 결과와 확정 검사 수는 검증 후 개발 노트에 기록합니다.
 
 내레이션과 전용 음원 제작 도구는 0.27.0에서 제거했습니다. 이전 음원 재현이 필요하면 현재 작업 트리의 명령 대신 [v0.26.1 제작 문서](https://github.com/sanu1227/MoneyTown/blob/v0.26.1/docs/opening-audio.md)와 해당 태그의 파일을 사용합니다. 배경음악·일반 효과음 제작 절차는 아래 설명과 [효과음 자료](audio-assets.md)를 따릅니다.
 
@@ -162,6 +166,7 @@ dotnet run --project tests/strategy-comparison/StrategyComparison.csproj
 - 이전 파일을 먼저 검증하고 `before-price-update` 원본 사본을 남긴 뒤 원자적 저장이 성공한 경우에만 조정 상태를 적용합니다. v0.20.1에서는 형식 11로 적용 상태를 저장해 재실행 시 중복 정산을 막았습니다. 현재는 같은 이전 내역을 형식 13에 보존합니다. 정산 금액·실현손익의 한도를 넘거나 저장이 실패하면 원본을 보존하며, 자산이나 손익을 잘라 한도에 맞추지 않습니다. 검증에서는 총자산 보존·정산 원가·중복 방지·원본 사본·저장 실패 경로를 함께 확인합니다.
 - v0.25.0의 저장 형식 **12**는 기존 형식 11 본문 뒤에 이야기 해금 수·확인 수를 추가합니다. 형식 1~11은 도입부 미확인으로 읽고 화면 시작·복구 시 현재 총자산으로 해금합니다. 형식 11은 가격을 다시 환산하지 않으며, 1~10의 기존 가격 이전 조건도 유지합니다. 해금·확인은 저장 성공 후에만 화면 상태에 반영합니다.
 - v0.30.0의 현재 저장 형식 **13**은 기존 본문 뒤에 안내 활성 여부·단계·기업·정보 번호·정보 날짜 21바이트를 추가합니다. 실제 금액 행동과 안내 진도를 같은 저장 파일에 기록합니다. 형식 1~12는 안내 비활성 기본값으로 읽고, 진행 중인 이전 별도 연습만 새 안내 첫 단계로 이전합니다. 형식 13으로 저장한 진행은 0.29.0 이하 앱에서 읽을 수 없습니다.
+- v0.31.0도 저장 형식 **13**을 사용합니다. 설명 확인 여부는 실행 중에만 유지하며 설명을 읽거나 다시 보는 행동으로 저장하지 않습니다. 실제 행동·안내 중단·완료 저장 규칙은 유지합니다.
 - Android·Unity 에디터·PC의 저장은 별개일 수 있습니다. 이전 Kotlin·웹 저장은 자동 이전하지 않습니다.
 - 소스에는 Unity `Assets`·`.meta`·`Packages`·`ProjectSettings`와 콘텐츠·검증·문서를 포함합니다. 캐시·로그·개인 설정·서명 키·빌드 결과는 제외합니다.
 - 기능별 검증과 개발 노트를 마친 뒤 한국어 메시지로 커밋하고 `origin`에 일반 push합니다. 자세한 규칙은 [AGENTS.md](../AGENTS.md)를 따릅니다.

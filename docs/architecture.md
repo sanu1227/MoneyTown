@@ -33,6 +33,7 @@ v0.19.0의 가격 모델 4는 사건·성장·수급의 합과 기존 개장 최
 | 원곡 배경음악 생성·루프 검사 | [`generate-bgm.py`](../scripts/generate-bgm.py), [음악 자료](music-assets.md) |
 | 이야기 해금·확인 순서 | [`Core/Story.cs`](../unity/Assets/Scripts/Core/Story.cs), [`Core/Progress.cs`](../unity/Assets/Scripts/Core/Progress.cs) |
 | 이야기 화면·대사·일러스트 연결 | [`StoryScreen.cs`](../unity/Assets/Scripts/StoryScreen.cs), [`StoryChapters.cs`](../unity/Assets/Scripts/StoryChapters.cs), [일러스트 자료](story-art.md) |
+| 실제 투자 안내·단계별 설명창 | [`TutorialScreen.cs`](../unity/Assets/Scripts/TutorialScreen.cs), [`TutorialExplanationScreen.cs`](../unity/Assets/Scripts/TutorialExplanationScreen.cs), [`Core/TutorialGuide.cs`](../unity/Assets/Scripts/Core/TutorialGuide.cs) |
 | 차트·아이콘·종이 표현 | [`PriceChart.cs`](../unity/Assets/Scripts/PriceChart.cs), [`MarketIcon.cs`](../unity/Assets/Scripts/MarketIcon.cs), [`PaperSheet.cs`](../unity/Assets/Scripts/PaperSheet.cs) |
 | 거래·가격·날짜 규칙 | [`Core/Market.cs`](../unity/Assets/Scripts/Core/Market.cs), [`Core/TradingDay.cs`](../unity/Assets/Scripts/Core/TradingDay.cs) |
 | 주문 가능 여부와 최대 매수 | [`Core/OrderGuidance.cs`](../unity/Assets/Scripts/Core/OrderGuidance.cs) |
@@ -58,11 +59,15 @@ v0.24.0의 `GameMusic`은 `Resources/Audio`의 원곡 4곡을 PCM 스트리밍�
 
 0.30.0은 도입부를 끝내거나 건너뛰면 실제 거래소에서 첫 투자 안내를 시작합니다. `FinishStory`가 이야기 확인 진도와 안내 시작을 같은 저장에 반영하며 실패하면 이야기 화면을 유지합니다. 재감상과 성장 장면은 안내를 새로 시작하지 않습니다.
 
-`TutorialGuide`는 별도 시장을 만들지 않고 `GameState`의 활성 여부·단계·선택 기업·정보 번호·정보 날짜만 관리합니다. `TutorialScreen`은 기존 거래소·정보 가판대·자산 화면을 그대로 표시하고 짧은 안내 카드와 실제 버튼의 금빛 테두리를 추가합니다. 현재 단계의 버튼·스크롤·안내 중단만 허용하며 자동 시세와 성장 이야기는 기다립니다. 다음 날과 결산은 실제 시장 규칙대로 진행합니다. 예금 가입은 선택할 수 있습니다.
+`TutorialGuide`는 별도 시장을 만들지 않고 `GameState`의 활성 여부·단계·선택 기업·정보 번호·정보 날짜만 관리합니다. `TutorialScreen`은 기존 거래소·정보 가판대·자산 화면을 그대로 표시하고 짧은 안내 카드와 실제 버튼의 금빛 테두리를 추가합니다. 현재 단계의 버튼·스크롤·설명 다시 보기·안내 중단을 허용하며 자동 시세와 성장 이야기는 기다립니다. 다음 날과 결산은 실제 시장 규칙대로 진행합니다. 예금 가입은 선택할 수 있습니다.
+
+v0.31.0의 `TutorialExplanationScreen`은 각 단계에 들어갈 때 개념·현재 상황과 금액·다음 행동을 먼저 설명합니다. ‘직접 해보기’를 누르면 설명창을 닫고 실제 버튼을 사용할 수 있습니다. 수수료 포함 견적, 정보 구매비와 이미 보유한 자료 여부, 날짜·개장 변동, 최근 매도 손익·예금 만기는 현재 게임 상태에서 읽습니다. 아직 받지 않은 예금 반환금을 지급 완료로 표현하지 않습니다.
+
+설명창은 `CanvasGroup`으로 일반 화면과 결산의 포인터·키보드 입력을 막고, 행동 처리 함수도 설명 중 실행을 거부합니다. ‘직접 해보기’와 ‘설명 다시 보기’는 자산·날짜·안내 진도를 바꾸거나 저장하지 않습니다. 설명 확인 여부는 실행 중 메모리에서만 유지하므로 앱 재실행·안내 이어하기·처음부터 시작 시 현재 단계의 설명을 다시 표시합니다. 실제 행동의 저장 실패는 같은 단계에 남고 이미 확인한 설명을 자동으로 반복하지 않습니다. 설명창에서 ‘나중에’의 저장이 실패하면 창 안에 재시도 안내를 표시합니다.
 
 금액 행동은 `Act`에서 실제 변경본에 `TutorialGuide.Record`로 진도를 기록한 뒤 한 번 저장합니다. 결산 확인도 같은 순서를 사용합니다. 탭 이동·기업 선택 같은 안내 행동도 저장 성공 후 화면을 바꿉니다. 복원은 이미 저장된 상태만 표시하며 거래를 재실행하지 않습니다. 안내를 중단해도 자산과 거래는 유지되고, 중단 중 구매·매도·결산 확인·예금 가입을 마쳤다면 이어하기에서 이를 반영합니다. 판매가 끝난 미구매 정보는 현재 자료를 다시 고르게 합니다.
 
-저장 형식 13은 형식 12 본문 뒤에 안내 필드 21바이트를 추가합니다. 기존 형식 1~12는 안내 비활성으로 읽습니다. `GameStore.LoadedVersion`이 구형 파일이고 이전 v2 연습이 진행 중이었다면 새 안내 첫 단계로 전환합니다. 완료·건너뜀 기록은 강제로 다시 시작하지 않습니다. `RestoreTutorial`을 이야기 해금 저장보다 먼저 호출해 원본 버전을 확인합니다.
+저장 형식 13은 형식 12 본문 뒤에 안내 필드 21바이트를 추가합니다. v0.31.0의 설명창은 저장 필드를 추가하지 않으며 형식 13을 유지합니다. 기존 형식 1~12는 안내 비활성으로 읽습니다. `GameStore.LoadedVersion`이 구형 파일이고 이전 v2 연습이 진행 중이었다면 새 안내 첫 단계로 전환합니다. 완료·건너뜀 기록은 강제로 다시 시작하지 않습니다. `RestoreTutorial`을 이야기 해금 저장보다 먼저 호출해 원본 버전을 확인합니다.
 
 v0.28.0은 프롤로그 첫 페이지의 v0.27.1 중앙 자막 화면을 유지합니다. `StoryArt/00-beginning` 배경과 `BuildStoryOpening`·`UpdateStoryOpening`의 연출을 사용합니다. “이건 내가 / 세계 최고의 부자가 / 되는 이야기이다”를 세 줄로 나누고 가운데 줄을 48 크기의 금빛, 나머지를 30 크기로 표시합니다. 각 줄은 0.2·1.0·1.8초부터 0.8초 동안 나타나며, 2.4~3.8초에 암전을 걷어 기존 일러스트를 보여 줍니다. 연출 중 버튼은 현재 화면을 완성하고, 완성 후 버튼은 두 번째 페이지로 이동합니다.
 

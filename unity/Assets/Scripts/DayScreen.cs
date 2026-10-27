@@ -89,7 +89,7 @@ namespace MoneyTown
         }
         void CloseSettlement()
         {
-            if(warehouseWorking)return;
+            if(warehouseWorking||GuideExplanationOpen)return;
             if(state.SettlementPending) {
                 try {var changed=Market.AcknowledgeSettlement(state);TutorialGuide.Record(changed,TutorialAction.CloseSettlement);NormalizeTutorial(changed);store.Save(changed);state=changed;}
                 catch(Exception){

@@ -72,6 +72,7 @@ namespace MoneyTown
         string UiText() => string.Join("\n", GetComponentsInChildren<Text>().Select(label => label.text));
         void UiFixture(GameState fixture, int screen = 0, bool stories = false, bool guide = false)
         {
+            ResetGuideExplanation();
             CloseStoryScreen();
             Story.Record(fixture);
             if (!stories) fixture.StorySeen = fixture.StoryUnlocked;

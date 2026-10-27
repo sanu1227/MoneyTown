@@ -20,8 +20,8 @@ namespace MoneyTown
         static readonly string[] GuideBodies={
             "실제 게임에서 시작합니다. 금빛 ‘종목 선택’을 눌러 보세요. 거래한 돈과 주식은 그대로 남습니다.",
             "금빛 기업 중 하나를 골라 보세요. 첫 거래는 현재 현금으로 살 수 있는 종목 1주로 시작합니다.",
-            "차트와 가격을 보고 ‘매수’를 누르세요. 표시된 금액과 수수료가 실제 현금에서 빠져나갑니다.",
-            "주식 1주를 보유했습니다. 아래 ‘정보 가판대’를 눌러 투자 판단에 쓸 자료를 살펴보세요.",
+            "차트와 가격을 보고 ‘매수’를 누르세요. 수수료가 포함된 표시 금액이 실제 현금에서 빠져나갑니다.",
+            "보유 주식을 확인했습니다. 아래 ‘정보 가판대’를 눌러 투자 판단에 쓸 자료를 살펴보세요.",
             "오늘 가장 저렴한 자료를 강조했습니다. 카드를 눌러 가격과 신뢰도부터 확인하세요.",
             "아래 ‘봉인 해제’를 누르면 표시된 비용을 내고 내용을 읽습니다. 신뢰도는 수익 확률이 아닙니다.",
             "기사를 읽고 어떤 기업과 연결되는지 생각해 보세요. 다 읽었다면 아래 ‘거래소’를 누르세요.",
@@ -33,6 +33,7 @@ namespace MoneyTown
             "이제 직접 기업과 정보를 골라 보세요. 거래 내역은 내 자산에 남으며 도움말에서 안내를 다시 켤 수 있습니다."};
         void RestoreTutorial()
         {
+            ResetGuideExplanation();
             if(blocked||store==null)return;
             var changed=state.Copy();
             if(store.LoadedVersion<13&&GameRuntime.GetInt(TutorialModeKey,2)==1)changed=TutorialGuide.Start(changed,true);
@@ -55,32 +56,35 @@ namespace MoneyTown
         }
         void StartTutorial(bool restart)
         {
-            if(blocked||StoryActive||state.SettlementPending)return;
+            if(blocked||StoryActive||state.SettlementPending||GuideExplanationOpen)return;
             var changed=TutorialGuide.Start(state,restart);NormalizeTutorial(changed);
             if(!SaveGuideState(changed))return;
+            ResetGuideExplanation();
             resetPending=false;RenderTab();
         }
         bool SaveGuideState(GameState changed)
         {
             try{store.Save(changed);state=changed;return true;}
-            catch(Exception){Feedback("안내 진행을 저장하지 못했습니다. 다시 눌러 주세요.",true);return false;}
+            catch(Exception){Feedback("안내 진행을 저장하지 못했습니다. 다시 눌러 주세요.",true);ShowGuideExplanationSaveError();return false;}
         }
         void LeaveTutorial(bool help)
         {
             if(TutorialActive&&!SaveGuideState(TutorialGuide.Pause(state)))return;
+            ResetGuideExplanation();
             tab=help?3:0;RenderTab();scroll.verticalNormalizedPosition=1;
         }
         void FinishTutorial()
         {
-            if(!TutorialActive||state.TutorialStep<11)return;
+            if(!TutorialActive||state.TutorialStep<11||GuideExplanationOpen)return;
             var changed=state.Copy();changed.TutorialStep=TutorialGuide.Count;changed.TutorialActive=false;
             if(!SaveGuideState(changed))return;
+            ResetGuideExplanation();
             message="첫 투자 안내 완료! 이제 직접 판단하며 투자해 보세요.";flashUntil=Time.unscaledTime+5;
             RenderTab();scroll.verticalNormalizedPosition=1;
         }
         void OpenHelp()
         {
-            if(StoryActive||state.SettlementPending)return;
+            if(StoryActive||state.SettlementPending||GuideExplanationOpen)return;
             if(TutorialActive){LeaveTutorial(true);return;}
             tab=3;resetPending=false;RenderTab();scroll.verticalNormalizedPosition=1;
         }
@@ -88,6 +92,7 @@ namespace MoneyTown
         bool TutorialAllows(TutorialAction action,int value=-1)
         {
             if(!TutorialActive)return true;
+            if(GuideExplanationOpen)return false;
             if(state.SettlementPending)return action==TutorialAction.CloseSettlement;
             if(GuideActions[state.TutorialStep]!=action)return false;
             if(action==TutorialAction.SelectCompany)return value>=0&&value<state.Stocks.Length&&OrderGuidance.MaximumBuy(state,value)>0;
@@ -128,6 +133,7 @@ namespace MoneyTown
             var heading=Column(row,0,1);Flexible(heading);
             Label(heading,"첫 투자 안내  "+(state.TutorialStep+1)+" / "+TutorialGuide.Count,17,Mint,24);
             Label(heading,GuideTitles[step],25,Gold,42).name="GuideTitle";
+            var review=Button(row,"설명\n다시 보기",OpenGuideExplanation,Raised,74);review.name="GuideExplainReview";Width((RectTransform)review.transform,100);
             var pause=Button(row,step>=11?"안내 마치기":"나중에",step>=11?(Action)FinishTutorial:()=>LeaveTutorial(false),Raised,74);
             pause.name=step>=11?"GuideFinish":"GuidePause";Width((RectTransform)pause.transform,144);
             string body=GuideBodies[step];
@@ -141,7 +147,7 @@ namespace MoneyTown
             if(state.SettlementPending)return control.name=="SettlementClose"||control.name=="SettlementConfirm";
             switch(state.TutorialStep) {
                 case 0:return control.name=="CompanyPicker";
-                case 1:return control.name.StartsWith("Company-",StringComparison.Ordinal)&&int.TryParse(control.name.Substring(8),out int company)&&TutorialAllows(TutorialAction.SelectCompany,company);
+                case 1:return control.name.StartsWith("Company-",StringComparison.Ordinal)&&int.TryParse(control.name.Substring(8),out int company)&&company>=0&&company<state.Stocks.Length&&OrderGuidance.MaximumBuy(state,company)>0;
                 case 2:return control==buy;
                 case 3:return control==navigation[1];
                 case 4:return control.name=="Offer-"+GuideOfferIndex;
@@ -163,7 +169,7 @@ namespace MoneyTown
             foreach(var control in controls) {
                 if(!control.gameObject.activeInHierarchy)continue;
                 bool target=GuideTarget(control);
-                control.interactable=control.interactable&&(target||control==help||control.name=="GuidePause"||control.name=="GuideFinish");
+                control.interactable=control.interactable&&(target||control==help||control.name=="GuidePause"||control.name=="GuideFinish"||control.name=="GuideExplainReview");
                 if(!target||!control.interactable)continue;
                 var outline=control.gameObject.AddComponent<Outline>();outline.effectColor=Gold;outline.effectDistance=new Vector2(3,-3);guideOutlines.Add(outline);
                 if(focus==null&&control.transform.IsChildOf(content))focus=(RectTransform)control.transform;

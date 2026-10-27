@@ -243,7 +243,7 @@ namespace MoneyTown
                 catch(Exception){storyOpeningNotice.text=storyNotice.text="이야기 진행을 저장하지 못했습니다.\n저장 공간을 확인한 뒤 다시 눌러 주세요.";effects.Play(GameCue.Error);return;}
             }
             CloseStoryScreen();
-            if(startGuide){tab=0;resetPending=false;}
+            if(startGuide){tab=0;resetPending=false;ResetGuideExplanation();}
             RenderTab();
         }
         void CloseStoryScreen()

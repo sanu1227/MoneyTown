@@ -3,6 +3,21 @@
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
 <details open>
+<summary><strong>v0.31.0 설명을 읽고 직접 해보는 첫 투자 안내</strong></summary>
+
+매수·정보·결산·매도의 뜻을 설명하고, 현재 게임의 금액과 다음 행동을 함께 보여 줍니다. ‘직접 해보기’로 설명을 닫고 실제 버튼을 누르며, ‘설명 다시 보기’로 현재 내용을 다시 읽을 수 있습니다.
+
+<img src="../assets/screenshots/v0.31.0/tutorial-start.png" width="360" alt="거래소의 뜻과 첫 행동을 설명하는 투자 도우미" />
+<img src="../assets/screenshots/v0.31.0/buy-explanation.png" width="360" alt="매수 개념과 현재 1주의 수수료 포함 결제액" />
+<img src="../assets/screenshots/v0.31.0/information-explanation.png" width="360" alt="정보 신뢰도의 의미와 구매 후 남을 현금을 설명하는 카드" />
+<img src="../assets/screenshots/v0.31.0/sale-result.png" width="360" alt="실제 매도 손익과 총자산을 알려 주는 설명" />
+<img src="../assets/screenshots/v0.31.0/guided-exchange.png" width="360" alt="설명 다시 보기와 종목 선택 강조가 있는 실제 거래소" />
+
+2026-10-27, 격리 Windows 검증용 Unity Player의 480×960 화면입니다. 원본은 `build/ui-verification-66d80dd1c954422fb076b04bb2593037/`의 60·64~67번 PNG이며 공개 이미지와 각각 SHA-256이 같습니다. 480×960·360×800에서 각각 UI 528개를 통과했습니다. 첫 선언의 32번 캡처는 0.30.0 원본과 바이트가 같습니다. 캡처 보정·UI 합성은 하지 않았으며 Android 실기기 캡처는 아닙니다.
+
+</details>
+
+<details>
 <summary><strong>v0.30.0 관심에서 첫 투자로 — 실제 화면의 단계별 안내</strong></summary>
 
 모은 돈을 키우고 싶어 주식에 관심을 가진 주인공이 첫 투자를 결심합니다. 도입부 다음에는 실제 거래소·정보 가판대·결산·자산 화면에서 금빛으로 강조한 버튼을 직접 누릅니다. 거래와 구매는 실제 게임 자산에 반영됩니다.

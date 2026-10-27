@@ -59,7 +59,7 @@ namespace MoneyTown
         void Update()
         {
             UpdateFeedbackActivity();
-            TryShowStory();UpdateStoryAnimation();
+            TryShowStory();UpdateStoryAnimation();UpdateGuideExplanationVisibility();
             if(safeArea!=null&&(lastSafe!=Screen.safeArea||lastSize!=new Vector2Int(Screen.width,Screen.height)))ApplySafeArea();
             if(status!=null)UpdateStatus();
             UpdateMarket();
@@ -73,6 +73,7 @@ namespace MoneyTown
             safeArea.offsetMin=safeArea.offsetMax=Vector2.zero;
             PositionSettlementWindow();
             PositionStoryWindow();
+            PositionGuideExplanation();
         }
         static Sprite MakeRoundedSprite()
         {
@@ -182,6 +183,7 @@ namespace MoneyTown
                 navIcons[i]=Icon(body,kinds[i],Muted,30);Label(body,titles[i],19,Muted,30,TextAnchor.MiddleCenter);
             }
             BuildSettlementWindow(root.transform);
+            BuildGuideExplanation(root.transform);
             BuildStoryWindow(root.transform);
             if(FindFirstObjectByType<EventSystem>()==null)new GameObject("EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));
         }
@@ -253,6 +255,7 @@ namespace MoneyTown
             if(tab==4)LayoutRebuilder.ForceRebuildLayoutImmediate(settlementWindow);
             ApplyTutorialGuide();
             TryShowStory();
+            RefreshGuideExplanation();
         }
         void CompanyStrip()
         {
