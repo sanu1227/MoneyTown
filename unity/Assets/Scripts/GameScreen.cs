@@ -64,6 +64,7 @@ namespace MoneyTown
             if(status!=null)UpdateStatus();
             UpdateMarket();
         }
+        void LateUpdate(){UpdateGuideBubble();}
         void OnDestroy(){if(rounded!=null){Destroy(rounded.texture);Destroy(rounded);}}
         void ApplySafeArea()
         {
@@ -166,7 +167,7 @@ namespace MoneyTown
             var cashColumn=Column(walletRow,0,0);Flexible(cashColumn);cashCaption=Label(cashColumn,"사용 가능",17,Muted,22);cash=Label(cashColumn,"",28,Gold,34);
             var totalColumn=Column(walletRow,0,0);Flexible(totalColumn);totalCaption=Label(totalColumn,"총자산",17,Muted,22);total=Label(totalColumn,"",25,null,34);
             status=Label(safeArea,message,18,Muted,34);
-            guideBanner=Card(safeArea,12,4);guideBanner.name="GuideBanner";Height(guideBanner,174);guideBanner.gameObject.SetActive(false);
+            guideBanner=Card(safeArea,12,4);guideBanner.name="GuideBanner";Height(guideBanner,98);guideBanner.gameObject.SetActive(false);
             var viewport=Rect("Viewport",safeArea);Surface(viewport,Background,false);viewport.gameObject.AddComponent<RectMask2D>();
             var flexible=Layout(viewport);flexible.flexibleHeight=1;flexible.minHeight=140;
             scroll=viewport.gameObject.AddComponent<ScrollRect>();scroll.horizontal=false;scroll.viewport=viewport;scroll.scrollSensitivity=100;
@@ -182,6 +183,7 @@ namespace MoneyTown
                 navIcons[i]=Icon(body,kinds[i],Muted,30);Label(body,titles[i],19,Muted,30,TextAnchor.MiddleCenter);
             }
             BuildSettlementWindow(root.transform);
+            BuildGuideBubble(root.transform);
             BuildStoryWindow(root.transform);
             if(FindFirstObjectByType<EventSystem>()==null)new GameObject("EventSystem",typeof(EventSystem),typeof(StandaloneInputModule));
         }
@@ -254,6 +256,7 @@ namespace MoneyTown
             if(tab==4)LayoutRebuilder.ForceRebuildLayoutImmediate(settlementWindow);
             ApplyTutorialGuide();
             TryShowStory();
+            UpdateGuideBubble();
         }
         void CompanyStrip()
         {

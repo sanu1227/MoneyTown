@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace MoneyTown
@@ -295,7 +296,8 @@ namespace MoneyTown
         }
         IEnumerator VerifyStoryTutorialUi()
         {
-            uiExplainedGuideSteps.Clear();
+            uiBubbleGuideSteps.Clear();
+            uiPointerGuideSteps.Clear();
             effects.Configure(effects.SoundEnabled, effects.VolumePercent, true);
             string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
             GameRuntime.SetInt(TutorialModeKey, 0); GameRuntime.DeleteKey(TutorialStepKey);
@@ -308,15 +310,15 @@ namespace MoneyTown
                 expectedGame.SequenceEqual(UiGuideEconomy(state)) && store.Load().TutorialActive &&
                 SaveCodec.Encode(state).SequenceEqual(File.ReadAllBytes(savePath)),
                 "skipping the first introduction atomically saves its acknowledgement and guide without changing capital");
-            UiCheck(guideExplanationExpanded && UiButton("CompanyPicker").IsInteractable(),
-                "skipping the opening displays inline help alongside the enabled first real control");
+            UiCheck(guideBubble.gameObject.activeInHierarchy && UiButton("CompanyPicker").IsInteractable(),
+                "skipping the opening shows a small hint beside the enabled first real control");
             UiGuideFailSave(() => UiGuideClick("GuidePause"), "explanation-pause");
-            UiCheck(guideExplanationExpanded && guideBanner.GetComponentsInChildren<Text>().Any(label =>
-                label.text.Contains("저장") && (label.text.Contains("다시") || label.text.Contains("재시도"))),
-                "a failed guide pause displays a visible retry instruction inside the inline banner");
+            UiCheck(guideBubble.gameObject.activeInHierarchy && guideBubbleText.text.Contains("저장") &&
+                (guideBubbleText.text.Contains("다시") || guideBubbleText.text.Contains("재시도")),
+                "a failed guide pause displays a visible retry instruction in the small hint");
             UiGuideClick("GuidePause");
             UiCheck(!TutorialActive && !guideBanner.gameObject.activeInHierarchy && expectedGame.SequenceEqual(UiGuideEconomy(state)),
-                "pausing the inline guide restores the ordinary screen and keeps real capital intact");
+                "pausing the guide restores the ordinary screen and keeps real capital intact");
 
             GameRuntime.SetInt(TutorialModeKey, 2); GameRuntime.SetInt(TutorialStepKey, 10);
             UiFixture(UiStoryState(2000000, 2), 2, stories: true); showManagement = true; RenderTab();
@@ -337,8 +339,9 @@ namespace MoneyTown
                 GetComponentsInChildren<PriceChart>().Any(chart => chart.name == "PriceChart") && !tradeDock.gameObject.activeInHierarchy,
                 "the introduction opens the real exchange and balances while hiding unused order controls during company discovery");
             UiGuideState(0, "first guide checkpoint is saved with the introduction");
-            UiCheck(guideExplanationExpanded && UiButton("CompanyPicker").IsInteractable(),
-                "the first inline explanation and real exchange action are available together without confirmation");
+            UiGuidePointerCheck();
+            UiCheck(guideBubble.gameObject.activeInHierarchy && UiButton("CompanyPicker").IsInteractable(),
+                "the first small hint and real exchange action are available together without confirmation");
             UiCapture("64-guide-explanation-start");
             UiGuideFits("CompanyPicker");
             yield return new WaitForEndOfFrame();
@@ -350,24 +353,21 @@ namespace MoneyTown
                 (!buy.gameObject.activeInHierarchy || !buy.IsInteractable()),
                 "the guide blocks unrelated actions and navigation without advancing or touching the saved economy");
             UiGuideClick("CompanyPicker"); UiGuideState(1, "opening the actual company picker records its successful guide step");
-            yield return new WaitForEndOfFrame(); UiGuideFits("Company-1");
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck(); UiGuideFits("Company-1");
             UiGuideClick("Company-1"); UiGuideState(2, "selecting the actual company advances to its real buy order");
-            yield return new WaitForEndOfFrame(); UiCapture("65-guide-explanation-buy"); UiGuideFits("TradeBuy");
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck(); UiCapture("65-guide-explanation-buy"); UiGuideFits("TradeBuy");
             UiCheck(tradeDock.gameObject.activeInHierarchy && UiOnScreen(tradeDock) && buy.IsInteractable(),
                 "selecting a company restores the visible actual order dock and enables the guided buy action");
-            UiCheckGuideExplanationToggle();
-            UiGuideClick("GuideExplainToggle");
-            UiCheck(!guideExplanationExpanded, "the explanation can be left collapsed before closing the app");
-            yield return new WaitForEndOfFrame(); UiCapture("68-guide-collapsed");
-            UiGuideReload(); UiGuideState(2, "reloading a collapsed lesson expands its help without repeating any financial action");
+            var resizeChecks = UiGuideBubbleResize();
+            while (resizeChecks.MoveNext()) yield return resizeChecks.Current;
+            UiGuideReload(); UiGuideState(2, "reloading a lesson restores its button hint without repeating a financial action");
             unchanged = SaveCodec.Encode(state);
             Act(() => Market.Trade(state, 1, 0, true), "invalid guide quantity", GameCue.Buy, TutorialAction.Buy, 1);
             UiCheck(state.TutorialStep == 2 && unchanged.SequenceEqual(SaveCodec.Encode(state)) && unchanged.SequenceEqual(File.ReadAllBytes(savePath)),
                 "an invalid order reports an error without advancing the guide or charging the player");
             UiGuideFailSave(() => UiGuideClick("TradeBuy"), "buy");
-            UiGuideClick("GuideExplainToggle");
-            UiCheck(!guideExplanationExpanded && UiButton("TradeBuy").IsInteractable(),
-                "collapsing the explanation leaves the actual buy action available without an extra confirmation");
+            UiCheck(guideBubble.gameObject.activeInHierarchy && UiButton("TradeBuy").IsInteractable(),
+                "the small buy hint leaves the actual order available without an extra confirmation");
             long cashBefore = state.Cash; var quote = Market.GetQuote(state, 1, 1);
             UiGuideClick("TradeBuy"); UiGuideState(3, "buying through the real order button saves the trade and guide step together");
             UiCheck(state.Cash == cashBefore - quote.Buy && state.Stocks[1].Quantity == 1 && state.Trades.Length == 1,
@@ -376,17 +376,19 @@ namespace MoneyTown
             UiGuideReload(); UiGuideState(3, "reloading after a guided buy restores navigation without repeating the buy");
             UiCheck(state.Stocks[1].Quantity == 1 && state.Trades.Length == 1 && state.Cash == bought.Cash,
                 "guide restoration never replays financial actions");
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck();
             UiGuideClick("Navigation-1"); UiGuideState(4, "the actual information tab opens the guided offer list");
             int offerIndex = int.Parse(GetComponentsInChildren<Button>().First(button =>
                 button.interactable && button.name.StartsWith("Offer-", StringComparison.Ordinal)).name.Substring(6));
             UiCheck(offerIndex >= 0 && offerIndex < Intelligence.DailyCount,
                 "the guide selects an existing daily sealed offer rather than a separate practice article");
-            yield return new WaitForEndOfFrame(); UiGuideFits("Offer-" + offerIndex);
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck(); UiGuideFits("Offer-" + offerIndex);
+            UiGuideBubbleScrollTracking();
             yield return new WaitForEndOfFrame();
             UiCapture("61-tutorial-information");
             UiGuideClick("Offer-" + offerIndex); UiGuideState(5, "opening the real sealed offer advances only to purchase confirmation");
             UiCheck(state.TutorialOffer == offerIndex, "the chosen real offer is persisted for article restoration");
-            yield return new WaitForEndOfFrame(); UiCapture("66-guide-explanation-information"); UiGuideFits("BuyClue");
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck(); UiCapture("66-guide-explanation-information"); UiGuideFits("BuyClue");
             var offer = Intelligence.Offer(state.Day, state.Seed, offerIndex, eventEdition: state.EventEdition);
             var sealedInformation = state.Copy();
             UiGuideFailSave(() => UiGuideClick("BuyClue"), "information");
@@ -394,11 +396,12 @@ namespace MoneyTown
             UiGuideClick("BuyClue"); UiGuideState(6, "purchasing the actual information saves its charge, article and guide step together");
             UiCheck(state.Cash == cashBefore - offer.Price && state.Clues.Length == 1 && state.Clues[0].Index == offerIndex,
                 "guided information buying spends the displayed price and adds one real article to the collection");
-            yield return new WaitForEndOfFrame(); UiGuideArticleScroll();
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck(); UiGuideArticleScroll();
             UiGuideReload();
             UiCheck(state.TutorialStep == 6 && state.Clues.Length == 1 && state.Cash == cashBefore - offer.Price,
                 "reloading an opened article preserves its purchase without charging it again");
             UiGuideClick("Navigation-0"); UiGuideState(7, "the exchange return uses the normal bottom navigation");
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck(); UiCapture("68-guide-bubble-next-day");
             UiGuideFailSave(() => UiGuideClick("NextDay"), "next-day");
             long dayBefore = state.Day;
             UiGuideClick("NextDay"); UiGuideState(8, "the real next-day button saves one day and the settlement guide checkpoint");
@@ -408,22 +411,23 @@ namespace MoneyTown
             UiGuideReload();
             UiCheck(state.TutorialStep == 8 && state.Day == dayBefore + 1 && state.SettlementPending && settlementOverlay.gameObject.activeSelf,
                 "reopening during settlement restores that window without advancing another day");
-            yield return new WaitForEndOfFrame(); UiGuideFits("SettlementClose");
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck(); UiGuideFits("SettlementClose");
             yield return new WaitForEndOfFrame(); UiCapture("62-tutorial-settlement");
             UiGuideFailSave(() => UiGuideClick("SettlementClose"), "settlement");
             UiGuideClick("SettlementClose"); UiGuideState(9, "confirming real settlement saves its acknowledgement before showing the sell instruction");
             UiCheck(!state.SettlementPending && !settlementOverlay.gameObject.activeSelf && tab == 0,
                 "settlement completion returns to the exchange while the guide remains active");
             var readyToSell = state.Copy();
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck();
             UiGuideFailSave(() => UiGuideClick("TradeSell"), "sell");
             cashBefore = state.Cash; quote = Market.GetQuote(state, 1, 1);
             UiGuideClick("TradeSell"); UiGuideState(10, "the real sell order advances only after saving its proceeds");
             UiCheck(state.Cash == cashBefore + quote.Sell && state.Stocks[1].Quantity == 0 && state.Trades.Length == 2,
                 "guided selling clears the real holding and records actual proceeds after fees");
-            yield return new WaitForEndOfFrame(); UiCapture("67-guide-explanation-sale-result");
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck(); UiCapture("67-guide-explanation-sale-result");
             UiGuideClick("Navigation-2"); UiGuideState(11, "the actual assets screen offers the optional deposit lesson");
             var optionalDeposit = state.Copy();
-            yield return new WaitForEndOfFrame(); UiGuideFits("DepositMoney");
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck(); UiGuideFits("DepositMoney");
             yield return new WaitForEndOfFrame(); UiCapture("63-tutorial-assets");
             UiGuideFailSave(() => UiGuideClick("DepositMoney"), "deposit");
             cashBefore = state.Cash; long assetsBefore = Market.Total(state);
@@ -433,13 +437,16 @@ namespace MoneyTown
             UiGuideReload();
             UiCheck(state.TutorialStep == 12 && state.Cash == cashBefore - 100000 && state.DepositDue == state.Day + 3,
                 "reloading the final lesson does not deposit a second principal");
+            yield return new WaitForEndOfFrame(); UiGuidePointerCheck();
             expectedGame = UiGuideEconomy(state);
             UiGuideFailSave(() => UiGuideClick("GuideFinish"), "finish");
             UiGuideClick("GuideFinish"); UiGuideState(TutorialGuide.Count, "finishing the actual guide persists its completed state");
             UiCheck(!StoryActive && expectedGame.SequenceEqual(UiGuideEconomy(state)),
                 "guide completion preserves all real trades, information, day and deposit changes");
-            UiCheck(uiExplainedGuideSteps.Count == TutorialGuide.Count,
-                "all thirteen real-action stages show their own inline explanation beside the controls");
+            UiCheck(uiBubbleGuideSteps.Count == TutorialGuide.Count,
+                "all thirteen real-action stages show a compact hint beside the actual control");
+            UiCheck(uiPointerGuideSteps.Count == TutorialGuide.Count,
+                "all thirteen actual guide targets receive pointer raycasts after their frame is rendered");
             UiFixture(optionalDeposit.Copy(), guide: true); expectedGame = UiGuideEconomy(state);
             UiGuideClick("GuideFinish");
             UiCheck(!TutorialActive && state.TutorialStep == TutorialGuide.Count && state.DepositDue == 0 &&
@@ -453,11 +460,22 @@ namespace MoneyTown
             UiGuideClick("GuideFinish");
             UiCheck(!TutorialActive && expectedGame.SequenceEqual(UiGuideEconomy(state)),
                 "finishing with an existing deposit preserves its principal and maturity");
+            var noDepositCash = Market.Create(); noDepositCash.Cash = noDepositCash.DayStartAssets = 0;
+            noDepositCash = TutorialGuide.Start(noDepositCash, true); noDepositCash.TutorialStep = 11;
+            UiFixture(noDepositCash, guide: true); UpdateGuideBubble();
+            UiCheck(!UiButton("DepositMoney").IsInteractable() && guideBubbleTarget == (RectTransform)UiButton("GuideFinish").transform &&
+                guideBubbleText.text.Contains("가입"),
+                "an unaffordable optional deposit points the small hint at the usable finish control");
+            UiGuideClick("GuideFinish");
+            UiCheck(!TutorialActive && state.Cash == 0 && state.DepositDue == 0,
+                "finishing from the optional-deposit hint does not create funds or a deposit");
             var noCash = Market.Create(); noCash.Cash = noCash.DayStartAssets = 0;
             noCash = TutorialGuide.Start(noCash, true); noCash.TutorialStep = 2;
             UiFixture(noCash, guide: true); unchanged = SaveCodec.Encode(state);
             UiCheck(!UiButton("TradeBuy").interactable && UiButton("GuidePause").interactable,
                 "an unfunded resumed guide disables the buy and offers a safe exit");
+            UiCheck(guideBubbleTarget == (RectTransform)UiButton("GuidePause").transform && guideBubbleText.text.Contains("현금"),
+                "an unfunded trade points its recovery hint at the actual pause control");
             UiButton("TradeBuy").onClick.Invoke();
             UiCheck(unchanged.SequenceEqual(SaveCodec.Encode(state)),
                 "an unfunded guided order cannot charge cash or advance its checkpoint");
@@ -564,7 +582,7 @@ namespace MoneyTown
                 navigation[2].interactable && economy.SequenceEqual(UiGuideEconomy(state)),
                 "resuming a completed sale never sells again or duplicates its proceeds");
 
-            UiFixture(optionalDeposit.Copy(), guide: true); UiInspectGuideExplanation(); help.onClick.Invoke();
+            UiFixture(optionalDeposit.Copy(), guide: true); UiInspectGuideBubble(); help.onClick.Invoke();
             UiCheck(!TutorialActive && tab == 3, "opening help pauses the optional deposit lesson");
             UiGuideClick("Navigation-2"); UiGuideClick("DepositMoney"); economy = UiGuideEconomy(state);
             long maturity = state.DepositDue;
@@ -573,142 +591,164 @@ namespace MoneyTown
                 !UiButton("DepositMoney").interactable && economy.SequenceEqual(UiGuideEconomy(state)),
                 "an existing deposit is preserved without taking another principal when the guide resumes");
         }
-        readonly HashSet<int> uiExplainedGuideSteps = new HashSet<int>();
-        void UiInspectGuideExplanation()
+        readonly HashSet<int> uiBubbleGuideSteps = new HashSet<int>();
+        readonly HashSet<int> uiPointerGuideSteps = new HashSet<int>();
+        static UnityEngine.Rect UiScreenRect(RectTransform target)
+        {
+            var corners = new Vector3[4]; target.GetWorldCorners(corners);
+            return UnityEngine.Rect.MinMaxRect(corners.Min(point => point.x), corners.Min(point => point.y),
+                corners.Max(point => point.x), corners.Max(point => point.y));
+        }
+        static UnityEngine.Rect UiVisibleIntersection(UnityEngine.Rect first, UnityEngine.Rect second)
+        {
+            float left = Mathf.Max(first.xMin, second.xMin), right = Mathf.Min(first.xMax, second.xMax);
+            float bottom = Mathf.Max(first.yMin, second.yMin), top = Mathf.Min(first.yMax, second.yMax);
+            return right > left && top > bottom ? UnityEngine.Rect.MinMaxRect(left, bottom, right, top) : new UnityEngine.Rect();
+        }
+        bool UiGuideTargetReceivesRaycast(RectTransform target)
+        {
+            var pointer = new PointerEventData(EventSystem.current) { position = UiScreenRect(target).center };
+            var hits = new List<RaycastResult>(); EventSystem.current.RaycastAll(pointer, hits);
+            bool received = hits.Count > 0 && (hits[0].gameObject.transform == target || hits[0].gameObject.transform.IsChildOf(target));
+            if (!received) {
+                var graphic = target.GetComponent<Graphic>();
+                Debug.Log("Guide raycast mismatch step=" + state.TutorialStep + " target=" + target.name + " center=" + pointer.position +
+                    " depth=" + (graphic == null ? -1 : graphic.depth) + " active=" + target.gameObject.activeInHierarchy +
+                    " hits=" + string.Join(", ", hits.Take(6).Select(hit => hit.gameObject.name + "/depth=" + hit.depth)));
+            }
+            return received;
+        }
+        void UiGuidePointerCheck()
+        {
+            bool received = guideBubbleTarget != null && UiGuideTargetReceivesRaycast(guideBubbleTarget);
+            if (!received) UiCapture("guide-pointer-failure-" + state.TutorialStep);
+            UiCheck(received, "the rendered actual guide target receives the center pointer raycast at step " + state.TutorialStep);
+            uiPointerGuideSteps.Add(state.TutorialStep);
+        }
+        void UiInspectGuideBubble()
         {
             if (!TutorialActive) return;
+            Canvas.ForceUpdateCanvases(); UpdateGuideBubble();
             int step = state.SettlementPending ? 8 : state.TutorialStep;
-            Canvas.ForceUpdateCanvases();
             UiCheck(!GetComponentsInChildren<RectTransform>(true).Any(rect => rect.name == "GuideExplanationOverlay" || rect.name == "GuideExplanationWindow") &&
-                !GetComponentsInChildren<Button>(true).Any(button => button.name == "GuideExplainContinue" || button.name == "GuideExplainPause"),
-                "the inline guide has no modal overlay or explanation confirmation control at step " + step);
+                !GetComponentsInChildren<Button>(true).Any(button => button.name == "GuideExplainContinue" || button.name == "GuideExplainToggle") &&
+                !GetComponentsInChildren<Text>().Any(label => label.name == "GuideExplanationBody" || label.name == "GuideExplanationResult"),
+                "the guide uses a short button hint without a large explanation card, modal or confirmation at step " + step);
             var controls = safeArea.GetComponentsInChildren<Selectable>().Concat(settlementWindow.GetComponentsInChildren<Selectable>())
                 .Where(control => control.gameObject.activeInHierarchy).ToArray();
-            var available = controls.Where(control => GuideTarget(control) && control.interactable).ToArray();
-            UiCheck(available.All(control => control.IsInteractable()) && UiButton("GuideExplainToggle").IsInteractable() &&
-                controls.Where(control => !GuideTarget(control) && control != help && control.name != "GuidePause" &&
-                    control.name != "GuideFinish" && control.name != "GuideExplainToggle").All(control => !control.IsInteractable()) && !MarketRunning,
-                "inline explanations leave eligible actual actions usable while unrelated actions and automatic prices remain blocked at step " + step);
-            if (!guideExplanationExpanded) {
-                UiCheck(!GetComponentsInChildren<Text>().Any(label => label.name == "GuideExplanationBody" || label.name == "GuideExplanationResult") &&
-                    UiButton("GuideExplainToggle").GetComponentInChildren<Text>().text.Contains("펼치기"),
-                    "the collapsed inline guide keeps its task and expansion control without a hidden modal");
-                return;
+            UiCheck(controls.Where(control => GuideTarget(control) && control.interactable).All(control => control.IsInteractable()) &&
+                controls.Where(control => !GuideTarget(control) && control != help && control.name != "GuidePause" && control.name != "GuideFinish")
+                    .All(control => !control.IsInteractable()) && !MarketRunning,
+                "the hint leaves the current real controls usable while unrelated actions and automatic prices stay blocked at step " + step);
+            bool fits = guideBubbleTarget != null && guideBubble.gameObject.activeInHierarchy && guideBubbleTail.gameObject.activeInHierarchy &&
+                UiStoryInside(guideBanner) && guideBanner.rect.height <= 100.5f && UiStoryInside(guideBubble) &&
+                UiStoryInside(guideBubbleText.rectTransform) && guideBubble.rect.width <= 360.5f && guideBubble.rect.height <= 124.5f &&
+                guideBubbleText.text.Length >= 5 && guideBubbleText.cachedTextGenerator.characterCountVisible >= guideBubbleText.text.Length &&
+                guideBubbleText.cachedTextGenerator.lineCount <= 2 &&
+                !UiScreenRect(guideBubble).Overlaps(UiScreenRect(guideBubbleTarget));
+            if (!fits) UiCapture("guide-bubble-layout-failure-" + step);
+            UiCheck(fits, "the compact hint fits the safe area and keeps its target unobscured at step " + step);
+            var bubbleRect = UiScreenRect(guideBubble); var targetRect = UiScreenRect(guideBubbleTarget);
+            var coveredControls = controls.Where(control => control.transform != guideBubbleTarget && control.IsInteractable())
+                .Where(control => {
+                    var visible = UiVisibleIntersection(UiScreenRect((RectTransform)control.transform), Screen.safeArea);
+                    if (control.transform.IsChildOf(scroll.viewport)) visible = UiVisibleIntersection(visible, UiScreenRect(scroll.viewport));
+                    return visible.width > 1 && visible.height > 1 && bubbleRect.Overlaps(visible);
+                }).Select(control => control.name).Distinct().ToArray();
+            if (coveredControls.Length > 0) {
+                Debug.Log("Guide hint covers enabled controls step=" + step + " controls=" + string.Join(", ", coveredControls));
+                UiCapture("guide-bubble-control-overlap-" + step);
             }
-            string[] names = { "GuideTitle", "GuideExplanationBody", "GuideExplanationResult", "GuideBody" };
-            var labels = names.Select(UiLabel).ToArray();
-            string copy = string.Join("\n", labels.Select(label => label.text));
-            bool fits = UiStoryInside(guideBanner) && labels.All(label => UiStoryInside(label.rectTransform) &&
-                label.cachedTextGenerator.characterCountVisible >= label.text.Length) &&
-                new[] { "GuideExplainToggle", step >= 11 ? "GuideFinish" : "GuidePause" }.All(name => {
-                    var button = UiButton(name); var rect = (RectTransform)button.transform;
-                    var corners = new Vector3[4]; rect.GetWorldCorners(corners);
-                    return button.IsInteractable() && UiStoryInside(rect) && corners[1].y - corners[0].y >= 43.5f;
-                });
-            if (!fits) UiCapture("guide-explanation-layout-failure-" + step);
-            UiCheck(fits && !StoryActive && labels[0].text.Contains(GuideTitles[step]) &&
-                labels[1].text.Length >= 10 && labels[2].text.Length >= 5 && labels[3].text.Length >= 5,
-                "the inline banner shows its concept, real result and next action without clipping at step " + step);
-            if (step == 2 || step == 9) {
-                var quote = Market.GetQuote(state, state.TutorialCompany, 1);
-                UiCheck(copy.Contains(Money(step == 2 ? quote.Buy : quote.Sell)) && copy.Contains(Money(quote.Fee)),
-                    "the explanation uses the real one-share quote and fee at step " + step);
-            }
-            if (step == 5) {
-                var offer = Intelligence.Offer(state.Day, state.Seed, state.TutorialOffer, eventEdition: state.EventEdition);
-                UiCheck(copy.Contains(Money(offer.Price)), "the sealed-information explanation shows its actual purchase price");
-            }
-            if (step == 11) UiCheck(copy.Contains(Money(100000)) && copy.Contains(Money(100500)),
-                "the optional-deposit explanation distinguishes its actual principal and future return");
-            if (step == 0 || step == 1 || step == 3 || step == 12)
-                UiCheck(copy.Contains(Money(state.Cash)), "the explanation uses the current real cash balance at step " + step);
-            if (step == 3) UiCheck(copy.Contains(Market.Companies[state.TutorialCompany].Name) &&
-                copy.Contains(state.Stocks[state.TutorialCompany].Quantity.ToString("N0") + "주"),
-                "the post-buy explanation identifies the actual company and holding");
-            if (step == 4) {
-                var offer = Intelligence.Offer(state.Day, state.Seed, GuideOfferIndex, eventEdition: state.EventEdition);
-                UiCheck(copy.Contains(offer.Grade + "등급") && copy.Contains(offer.Tier.Confidence + "%") &&
-                    (Intelligence.Owned(state, state.Day, offer.Index) != null || copy.Contains(Money(offer.Price))),
-                    "the pre-purchase explanation shows the recommended offer's actual grade, confidence and cost");
-            }
-            if (step == 6) {
-                var owned = Intelligence.Owned(state, state.TutorialDay, state.TutorialOffer);
-                UiCheck(owned != null && copy.Contains(Money(owned.PaidPrice)),
-                    "the article explanation cites the amount actually paid, including when resuming a previous-day article");
-            }
-            if (step == 7) UiCheck(copy.Contains(state.Day + "일차") && copy.Contains((state.Day + 1) + "일차"),
-                "the next-day explanation names the real current and following game dates");
-            if (step == 8) {
-                var news = state.LastReport.News.First(item => item.Company == state.TutorialCompany);
-                UiCheck(copy.Contains(Money(news.PreviousPrice)) && copy.Contains(Money(news.OpeningPrice)) &&
-                    copy.Contains(Percent((news.OpeningPrice / (double)news.PreviousPrice - 1) * 100)),
-                    "the settlement explanation uses the selected company's actual opening prices and signed change");
-            }
-            if (step == 10) {
-                var sale = state.Trades.LastOrDefault(item => !item.Buy && item.Company == state.TutorialCompany);
-                UiCheck(copy.Contains(Money(Market.Total(state))) && (sale == null || copy.Contains(Signed(sale.RealizedProfit))),
-                    "the post-sale explanation uses the latest actual realized profit and total assets");
-            }
-            if (step == 12 && state.DepositDue > 0) UiCheck(copy.Contains(state.DepositDue + "일차"),
-                "the final explanation describes the saved deposit maturity rather than claiming interest was already earned");
-
+            UiCheck(coveredControls.Length == 0,
+                "the hint also leaves every other visible enabled control uncovered at step " + step);
+            var tailRect = UiScreenRect(guideBubbleTail);
+            UiCheck(Vector2.Dot(tailRect.center - bubbleRect.center, targetRect.center - bubbleRect.center) > 0 &&
+                Vector2.Distance(tailRect.center, targetRect.center) < Vector2.Distance(bubbleRect.center, targetRect.center),
+                "the hint tail points toward its actual target at step " + step);
+            UiCheck(guideBubbleLayer.GetComponentsInChildren<Graphic>(true).All(graphic => !graphic.raycastTarget) &&
+                !guideBubbleLayer.GetComponentsInChildren<Selectable>(true).Any(),
+                "hint graphics have no pointer-blocking surfaces or selectable controls at step " + step);
             byte[] unchanged = SaveCodec.Encode(state);
             string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
             byte[] saved = File.ReadAllBytes(savePath);
             int oldTab = tab, oldCompany = selected;
             bool called = false;
-            Act(() => { called = true; return state.Copy(); }, "unrelated inline-guide action");
+            Act(() => { called = true; return state.Copy(); }, "unrelated guide action");
             MoveTutorial(TutorialAction.None); SwitchTab(6);
-            UiCheck(!called && tab == oldTab && selected == oldCompany &&
-                unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
-                "unrelated direct actions cannot skip the inline guide while merely reading it changes no saved state at step " + step);
-            uiExplainedGuideSteps.Add(state.TutorialStep);
+            UiCheck(!called && tab == oldTab && selected == oldCompany && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
+                saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "unrelated direct actions cannot skip the guide and observing its hint changes no saved state at step " + step);
+            uiBubbleGuideSteps.Add(state.TutorialStep);
+        }
+        IEnumerator UiGuideBubbleResize()
+        {
+            var scaler = GetComponentInChildren<CanvasScaler>(); var original = scaler.referenceResolution;
+            byte[] unchanged = SaveCodec.Encode(state);
+            string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
+            byte[] saved = File.ReadAllBytes(savePath); string targetName = guideBubbleTarget.name;
+            int company = selected;
+            try {
+                scaler.referenceResolution = original * .9f;
+                yield return new WaitForEndOfFrame();
+                ApplySafeArea(); Canvas.ForceUpdateCanvases(); UpdateGuideBubble(); UiInspectGuideBubble();
+                UiCheck(guideBubbleTarget.name == targetName && selected == company && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
+                    saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                    "canvas layout resizing and safe-area positioning preserve the hint target, selection and save");
+            } finally {
+                scaler.referenceResolution = original; ApplySafeArea(); Canvas.ForceUpdateCanvases(); UpdateGuideBubble();
+            }
+            yield return new WaitForEndOfFrame();
+            ApplySafeArea(); Canvas.ForceUpdateCanvases(); UpdateGuideBubble(); UiInspectGuideBubble();
+            UiCheck(scaler.referenceResolution == original && guideBubbleTarget.name == targetName,
+                "restoring the canvas scale returns the hint to the actual target without changing the player window resolution");
+        }
+        void UiGuideBubbleScrollTracking()
+        {
+            Canvas.ForceUpdateCanvases(); scroll.StopMovement();
+            float original = scroll.verticalNormalizedPosition; var target = guideBubbleTarget;
+            byte[] unchanged = SaveCodec.Encode(state);
+            string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
+            byte[] saved = File.ReadAllBytes(savePath);
+            try {
+                scroll.verticalNormalizedPosition = 0; Canvas.ForceUpdateCanvases(); UpdateGuideBubble();
+                UiCheck(guideBubbleTarget == target && !guideBubble.gameObject.activeInHierarchy,
+                    "scrolling the recommended information card outside the viewport hides its hint without changing the target");
+            } finally {
+                scroll.verticalNormalizedPosition = original; Canvas.ForceUpdateCanvases(); UpdateGuideBubble();
+            }
+            UiInspectGuideBubble();
+            UiCheck(guideBubble.gameObject.activeInHierarchy && guideBubbleTarget == target && unchanged.SequenceEqual(SaveCodec.Encode(state)) &&
+                saved.SequenceEqual(File.ReadAllBytes(savePath)),
+                "scrolling back restores the hint at the same card without purchasing it or advancing the guide");
         }
         void UiGuideArticleScroll()
         {
             Canvas.ForceUpdateCanvases(); scroll.StopMovement();
             float originalRange = Mathf.Max(0, content.rect.height - scroll.viewport.rect.height);
             scroll.verticalNormalizedPosition = .5f; Canvas.ForceUpdateCanvases();
+            float offset = content.anchoredPosition.y; int company = selected;
+            int? article = openedClue; long articleDay = openedClueDay;
             byte[] unchanged = SaveCodec.Encode(state);
             string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
             byte[] saved = File.ReadAllBytes(savePath);
-            foreach (bool expanded in new[] { false, true }) {
-                float offset = content.anchoredPosition.y;
-                UiButton("GuideExplainToggle").onClick.Invoke(); Canvas.ForceUpdateCanvases();
-                float maximum = Mathf.Max(0, content.rect.height - scroll.viewport.rect.height);
-                UiCheck(originalRange > 40 && guideExplanationExpanded == expanded &&
-                    Mathf.Abs(content.anchoredPosition.y - Mathf.Clamp(offset, 0, maximum)) < 1 &&
-                    unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
-                    "article reading keeps its pixel offset within the resized viewport and leaves save bytes unchanged when help is " +
-                    (expanded ? "expanded" : "collapsed"));
-            }
-        }
-        void UiCheckGuideExplanationToggle()
-        {
-            UiCheck(guideExplanationExpanded, "each new guide step starts with its inline explanation expanded");
-            byte[] unchanged = SaveCodec.Encode(state);
-            string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
-            byte[] saved = File.ReadAllBytes(savePath);
-            UiButton("GuideExplainToggle").onClick.Invoke();
-            UiInspectGuideExplanation();
-            UiCheck(!guideExplanationExpanded && UiButton("TradeBuy").IsInteractable() && UiOnScreen(UiLabel("GuideBody").rectTransform) &&
+            UpdateGuideBubble(); ApplySafeArea(); Canvas.ForceUpdateCanvases(); UpdateGuideBubble();
+            UiInspectGuideBubble();
+            UiCheck(originalRange > 40 && Mathf.Abs(content.anchoredPosition.y - offset) < 1 && selected == company &&
+                openedClue == article && openedClueDay == articleDay &&
+                !UiScreenRect(guideBubble).Contains(UiScreenRect(scroll.viewport).center) &&
                 unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
-                "collapsing inline help preserves the next action, actual buy control and exact save bytes");
-            UiButton("GuideExplainToggle").onClick.Invoke();
-            UiInspectGuideExplanation();
-            UiCheck(guideExplanationExpanded && UiButton("GuideExplainToggle").GetComponentInChildren<Text>().text.Contains("접기") &&
-                unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)),
-                "expanding inline help restores its explanation without progressing or saving the game");
+                "the footer hint leaves the article reading center clear and preserves its pixel offset, selection and save while updating");
         }
         void UiGuideState(int step, string description)
         {
+            Canvas.ForceUpdateCanvases(); UpdateGuideBubble();
             UiCheck(state.TutorialStep == step && TutorialActive == (step < TutorialGuide.Count) &&
-                (step >= TutorialGuide.Count || guideExplanationExpanded) &&
+                (step >= TutorialGuide.Count ? !guideBubble.gameObject.activeInHierarchy : guideBubble.gameObject.activeInHierarchy) &&
                 SaveCodec.Encode(state).SequenceEqual(File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin"))), description);
         }
         void UiGuideClick(string name)
         {
-            UiInspectGuideExplanation();
+            UiInspectGuideBubble();
             var button = UiButton(name);
             UiCheck(button.IsInteractable(), "guided real control is enabled: " + name);
             button.onClick.Invoke();
@@ -717,12 +757,11 @@ namespace MoneyTown
         {
             byte[] saved = File.ReadAllBytes(Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin"));
             UiFixture(store.Load(), guide: true);
-            UiCheck(saved.SequenceEqual(SaveCodec.Encode(state)) && guideExplanationExpanded,
-                "guide restoration expands inline help without replaying saved actions at step " + state.TutorialStep);
+            UiCheck(saved.SequenceEqual(SaveCodec.Encode(state)) && guideBubble.gameObject.activeInHierarchy,
+                "guide restoration restores the actual button hint without replaying saved actions at step " + state.TutorialStep);
         }
         void UiGuideFailSave(Action action, string stage)
         {
-            bool wasExpanded = guideExplanationExpanded;
             byte[] unchanged = SaveCodec.Encode(state);
             string savePath = Path.Combine(GameRuntime.DataDirectory, "game-unity-v1.bin");
             byte[] saved = File.ReadAllBytes(savePath);
@@ -732,12 +771,12 @@ namespace MoneyTown
             try { store = new GameStore(failureDirectory); action(); }
             finally { store = realStore; }
             UiCheck(unchanged.SequenceEqual(SaveCodec.Encode(state)) && saved.SequenceEqual(File.ReadAllBytes(savePath)) &&
-                guideExplanationExpanded == wasExpanded,
-                "failed " + stage + " save preserves economy, guide progress and inline explanation state before retry");
+                guideBubble.gameObject.activeInHierarchy,
+                "failed " + stage + " save preserves economy and guide progress while leaving a visible retry hint");
         }
         void UiGuideFits(string targetName)
         {
-            UiInspectGuideExplanation();
+            UiInspectGuideBubble();
             Canvas.ForceUpdateCanvases();
             var target = (RectTransform)UiButton(targetName).transform;
             var banner = GetComponentsInChildren<RectTransform>().First(rect => rect.name == "GuideBanner");
@@ -749,7 +788,7 @@ namespace MoneyTown
             });
             bool fits=UiStoryInside(banner) && UiStoryInside(target) && insideViewport && UiButton(targetName).IsInteractable() &&
                 target.GetComponents<Outline>().Any(outline => outline.enabled) &&
-                new[] { "GuideTitle", "GuideBody" }.All(name => {
+                new[] { "GuideTitle" }.All(name => {
                     var label = UiLabel(name);
                     return UiOnScreen(label.rectTransform) && label.cachedTextGenerator.characterCountVisible >= label.text.Length;
                 });

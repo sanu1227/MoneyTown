@@ -3,6 +3,21 @@
 [첫 화면](../README.md) · [플레이 가이드](player-guide.md) · [자료실](README.md)
 
 <details open>
+<summary><strong>v0.33.0 버튼 옆에 붙는 짧은 말풍선</strong></summary>
+
+밝은 말풍선의 두 줄 설명과 꼬리, 대상 버튼 하나의 금빛 테두리로 지금 할 일을 알려 줍니다. 상단에는 작은 진도줄만 남겼습니다. 말풍선은 화면 안에서 대상과 주변 활성 버튼을 피하고, 터치·스크롤을 가로채지 않습니다.
+
+<img src="../assets/screenshots/v0.33.0/tutorial-start.png" width="360" alt="종목 선택 버튼 옆에 나타나는 첫 안내 말풍선" />
+<img src="../assets/screenshots/v0.33.0/buy-bubble.png" width="360" alt="매수 버튼 바로 위에서 의미와 행동을 알려 주는 말풍선" />
+<img src="../assets/screenshots/v0.33.0/information-bubble.png" width="360" alt="정보 구매 버튼을 가리키는 짧은 설명" />
+<img src="../assets/screenshots/v0.33.0/next-day-bubble.png" width="360" alt="도움말과 다음 날 버튼을 가리지 않는 상단 말풍선" />
+<img src="../assets/screenshots/v0.33.0/assets-bubble.png" width="360" alt="내 자산 탭 옆에서 전체 결과 확인을 안내하는 말풍선" />
+
+2026-10-27, 격리 Windows 검증용 Unity Player의 480×960 화면입니다. 원본은 `build/ui-verification-4666400aaea84c6691fe8503b9c99dbe/`의 64~68번 PNG이며 공개 이미지와 각각 SHA-256이 같습니다. 480×960·360×800에서 각각 UI 744개를 통과했습니다. 첫 선언의 32번 캡처는 0.32.0 원본과 바이트가 같습니다. 캡처 보정·UI 합성은 하지 않았으며 Android 실기기 캡처는 아닙니다.
+
+</details>
+
+<details>
 <summary><strong>v0.32.0 실제 화면에서 함께 읽는 상단 안내</strong></summary>
 
 화면 상단에서 기능 설명·현재 금액·다음 행동을 보며 실제 버튼을 바로 누릅니다. ‘설명 접기’로 게임 영역을 넓히고 ‘설명 펼치기’로 다시 읽을 수 있습니다. 종목을 고르는 동안에는 주문 영역을 숨겨 기업 목록을 넓게 보여 줍니다.

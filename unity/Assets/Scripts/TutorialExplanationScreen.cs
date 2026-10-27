@@ -1,4 +1,4 @@
-using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,103 +6,144 @@ namespace MoneyTown
 {
     public sealed partial class GameScreen
     {
-        Text guideActionText;
-        int guideExplanationStep=-1;
-        bool guideExplanationExpanded=true;
-        string guideExplanationError="";
+        RectTransform guideBubbleLayer,guideBubble,guideBubbleTail,guideBubbleTarget;
+        Text guideBubbleText;
+        readonly Vector3[] guideBubbleCorners=new Vector3[4];
+        readonly List<RectTransform> guideBubbleControls=new List<RectTransform>();
+        int guideBubbleStep=-1;
+        string guideBubbleError="";
         int GuideExplanationStage => state.SettlementPending?8:state.TutorialStep;
-        static readonly string[] GuideLessons={
-            "거래소는 기업의 주식을 사고파는 곳이에요. 먼저 회사를 살펴볼게요. 안내 중 거래한 돈과 주식도 실제 게임에 남아요.",
-            "종목은 거래할 회사의 주식을 뜻해요. 선택만으로 돈이 나가지는 않아요. 살 수 있는 기업을 골라 1주부터 시작해 볼게요.",
-            "매수는 현금을 내고 주식을 사는 거예요. 결제액에는 0.1% 수수료가 포함돼요. 현금이 줄고 보유 주식이 늘어요.",
-            "주가가 오르면 보유 주식의 가치가 늘고, 내리면 줄어요. 기업에 영향을 줄 사건을 찾아볼게요. 정보를 살 때도 비용이 들어요.",
-            "봉인 정보는 기업과 내용이 숨겨져 있어요. 등급은 정보의 깊이, 신뢰도는 내용이 맞을 가능성이에요. 가장 싼 자료부터 살펴볼게요.",
-            "신뢰도는 정보가 맞을 가능성이지, 수익 확률은 아니에요. 봉인을 풀면 비용을 내고 내용을 읽어요. 정보비는 지출로 남아요.",
-            "이 사건이 어느 업종에 기회나 부담이 될지 생각해 보세요. 보유 회사와 무관할 수도 있어요. 정보를 산다고 주가가 오르지는 않아요.",
-            "자동 갱신은 같은 날의 시세 변화예요. ‘다음 날’은 날짜·정보를 바꾸고 새 주가와 결산을 보여줘요. 안내 중 자동 갱신은 멈춰요.",
-            "결산은 비용과 자산 변화를, 개장 뉴스는 주가 변동 원인을 보여줘요. 아직 팔지 않은 주식의 평가손익은 현금으로 확정된 수익이 아니에요.",
-            "매도는 주식을 팔아 현금으로 바꾸는 거예요. 수수료를 뺀 금액을 받고 매매손익이 확정돼요. 보유 수량과 받을 금액을 확인하세요.",
-            "현금은 지금 쓸 돈이고, 총자산은 현금·주식 가치·예금 원금의 합이에요. 매매손익과 정보비는 별개예요. 전체 결과를 살펴볼게요.",
-            "예금은 10만원을 맡겨 3일 뒤 100,500원을 받아요. 만기 전에는 꺼낼 수 없지만 총자산에 포함돼요. 가입 없이 마쳐도 괜찮아요.",
-            "안내에서 한 거래와 정보 구매는 그대로 남아요. 이제 직접 기업과 정보를 골라보세요. 필요하면 도움말에서 안내를 다시 켤 수 있어요."};
-        static readonly string[] GuideTasks={
-            "‘종목 선택’을 눌러 기업 목록을 열어보세요.","금빛으로 표시한 기업 중 하나를 골라보세요.",
-            "수수료를 포함한 금액을 확인하고 ‘매수’를 누르세요.","아래 ‘정보 가판대’를 눌러보세요.",
-            "강조된 정보 카드를 눌러 구매 전 설명을 보세요.","비용을 확인하고 ‘봉인 해제’를 누르세요.",
-            "본문을 읽은 뒤 아래 ‘거래소’를 눌러보세요.","상단 ‘다음 날’을 눌러 하루를 진행해 보세요.",
-            "뉴스와 금액을 살펴본 뒤 ‘결산 확인’을 누르세요.","보유 주식 1주를 ‘매도’해 보세요.",
-            "아래 ‘내 자산’에서 전체 결과를 확인해 보세요.","예금에 가입하거나 ‘안내 마치기’를 누르세요.",
-            "‘안내 마치기’를 눌러 자유롭게 투자해 보세요."};
+        static readonly string[] GuideBubbleMessages={
+            "회사마다 주가가 달라요.\n종목 선택으로 살펴보세요.",
+            "선택만 해선 돈이 안 나가요.\n금빛 기업을 골라보세요.",
+            "매수는 주식을 사는 거예요.\n표시된 금액으로 1주 사세요.",
+            "정보는 투자의 단서예요.\n정보 가판대를 열어보세요.",
+            "가격과 신뢰도를 비교해요.\n강조된 자료를 열어보세요.",
+            "신뢰도와 수익 확률은 달라요.\n비용 확인 후 봉인을 푸세요.",
+            "내 주식과 무관할 수 있어요.\n읽고 거래소로 돌아가세요.",
+            "날짜·주가·정보가 바뀌어요.\n다음 날로 결과를 확인하세요.",
+            "평가손익은 확정 전이에요.\n뉴스를 읽고 결산을 닫아요.",
+            "팔면 매매손익이 확정돼요.\n금액을 보고 1주 팔아보세요.",
+            "현금과 총자산은 달라요.\n내 자산에서 결과를 보세요.",
+            "예금은 3일 뒤 돌려받아요.\n원하면 10만원을 맡겨보세요.",
+            "거래 기록은 그대로 남아요.\n이제 직접 투자해 보세요."};
+
+        void BuildGuideBubble(Transform canvasRoot)
+        {
+            guideBubbleLayer=Rect("GuideBubbleLayer",canvasRoot);Stretch(guideBubbleLayer);
+            guideBubble=Rect("GuideBubble",guideBubbleLayer);
+            guideBubble.anchorMin=guideBubble.anchorMax=guideBubble.pivot=new Vector2(.5f,.5f);
+            var color=Hex("FFE8A3");Surface(guideBubble,color).raycastTarget=false;
+            guideBubbleTail=Rect("GuideBubbleTail",guideBubble);
+            guideBubbleTail.anchorMin=guideBubbleTail.anchorMax=guideBubbleTail.pivot=new Vector2(.5f,.5f);
+            guideBubbleTail.sizeDelta=new Vector2(12,12);guideBubbleTail.localRotation=Quaternion.Euler(0,0,45);
+            Surface(guideBubbleTail,color,false).raycastTarget=false;
+            guideBubbleText=Label(guideBubble,"",24,Hex("243040"),0,TextAnchor.MiddleCenter);
+            guideBubbleText.name="GuideBubbleText";guideBubbleText.resizeTextMinSize=23;
+            Stretch(guideBubbleText.rectTransform);
+            guideBubbleText.rectTransform.offsetMin=new Vector2(16,12);
+            guideBubbleText.rectTransform.offsetMax=new Vector2(-16,-12);
+            guideBubbleLayer.gameObject.SetActive(false);
+        }
         void ResetGuideExplanation()
         {
-            guideExplanationStep=-1;guideExplanationExpanded=true;guideExplanationError="";
+            guideBubbleTarget=null;guideBubbleControls.Clear();guideBubbleStep=-1;guideBubbleError="";
+            if(guideBubbleLayer!=null)guideBubbleLayer.gameObject.SetActive(false);
         }
-        void ToggleGuideExplanation()
+        void SetGuideBubbleTarget(RectTransform target)
         {
-            if(!TutorialActive||StoryActive)return;
-            float readingOffset=content.anchoredPosition.y;
-            guideExplanationExpanded=!guideExplanationExpanded;RenderTab();
-            if(GuideExplanationStage==6) {
-                float distance=content.rect.height-scroll.viewport.rect.height;
-                scroll.verticalNormalizedPosition=distance<=0?1:1-Mathf.Clamp01(readingOffset/distance);
+            guideBubbleTarget=target;guideBubbleControls.Clear();
+            if(target==null)return;
+            CacheGuideBubbleControls(safeArea);CacheGuideBubbleControls(settlementWindow);
+        }
+        void CacheGuideBubbleControls(RectTransform root)
+        {
+            if(root==null)return;
+            foreach(var control in root.GetComponentsInChildren<Selectable>()) {
+                var rect=control.transform as RectTransform;
+                if(rect!=null&&rect!=guideBubbleTarget&&control.gameObject.activeInHierarchy&&control.IsInteractable())
+                    guideBubbleControls.Add(rect);
             }
-        }
-        void PrepareGuideExplanation()
-        {
-            int step=GuideExplanationStage;
-            if(guideExplanationStep==step)return;
-            guideExplanationStep=step;guideExplanationExpanded=true;guideExplanationError="";
-        }
-        void DrawGuideExplanation(int step)
-        {
-            if(guideExplanationExpanded) {
-                Label(guideBanner,GuideLessons[step],22,null,92).name="GuideExplanationBody";
-                Label(guideBanner,GuideCurrentResult(step),22,Mint,66).name="GuideExplanationResult";
-            }
-            string task=GuideTasks[step];
-            if(step==2&&OrderGuidance.MaximumBuy(state,selected)==0)task="현금이 부족해요. ‘나중에’로 닫고 내 자산에서 알바한 뒤 이어 하세요.";
-            if(step==5&&state.Cash<Intelligence.Offer(state.Day,state.Seed,state.TutorialOffer,eventEdition:state.EventEdition).Price)
-                task="정보 비용이 부족해요. ‘나중에’로 닫고 알바한 뒤 이어 하세요. 아직 구매하지 않았어요.";
-            guideActionText=Label(guideBanner,guideExplanationError.Length>0?guideExplanationError:task,21,Gold,54);guideActionText.name="GuideBody";
         }
         void ShowGuideExplanationSaveError()
         {
-            if(!TutorialActive||guideActionText==null)return;
-            guideExplanationError="안내 진행을 저장하지 못했어요.\n같은 버튼을 다시 눌러 주세요.";
-            guideActionText.text=guideExplanationError;
+            if(!TutorialActive)return;
+            guideBubbleStep=GuideExplanationStage;
+            guideBubbleError="저장하지 못했어요.\n다시 눌러 주세요.";
+            UpdateGuideBubble();
         }
-        string GuideCurrentResult(int step)
+        UnityEngine.Rect GuideBubbleBounds(RectTransform target)
         {
-            int company=state.TutorialCompany;var stock=state.Stocks[company];string name=Market.Companies[company].Name;
-            switch(step) {
-                case 0:return "시작할 수 있는 현금  "+Money(state.Cash)+"\n기업을 고르는 것부터 함께 해볼게요.";
-                case 1:return "현재 현금  "+Money(state.Cash)+"\n금빛 기업은 지금 1주를 살 수 있는 종목이에요.";
-                case 2:
-                    var buyQuote=Market.GetQuote(state,company,1);
-                    return name+" 1주  "+Money(stock.Price)+"\n수수료 "+Money(buyQuote.Fee)+" 포함 · 결제액 "+Money(buyQuote.Buy);
-                case 3:return name+" 보유  "+stock.Quantity.ToString("N0")+"주\n현재 현금  "+Money(state.Cash);
-                case 4:
-                    var offer=Intelligence.Offer(state.Day,state.Seed,GuideOfferIndex,eventEdition:state.EventEdition);
-                    return offer.Grade+"등급 · 신뢰도 "+offer.Tier.Confidence+"%\n"+(Intelligence.Owned(state,state.Day,offer.Index)==null?"열람 비용  "+Money(offer.Price)+" · 아직 구매하지 않았어요.":"이미 보유한 자료 · 추가 비용 없이 읽을 수 있어요.");
-                case 5:
-                    var sealedOffer=Intelligence.Offer(state.Day,state.Seed,state.TutorialOffer,eventEdition:state.EventEdition);
-                    return "정보 비용  "+Money(sealedOffer.Price)+"\n"+(state.Cash>=sealedOffer.Price?"구매 후 남을 현금  "+Money(state.Cash-sealedOffer.Price):"현금 부족 · ‘나중에’로 닫고 알바할 수 있어요.");
-                case 6:
-                    var owned=Intelligence.Owned(state,state.TutorialDay,state.TutorialOffer);
-                    return owned==null?"구매한 자료는 정보 가판대의 내 보관함에 남아요.":"구매한 정보 비용  "+Money(owned.PaidPrice)+"\n다시 읽을 때는 비용을 내지 않아요.";
-                case 7:return "현재 "+state.Day+"일차 · 다음은 "+(state.Day+1)+"일차\n날짜를 넘기면 되돌릴 수는 없어요.";
-                case 8:
-                    var news=state.LastReport?.News.FirstOrDefault(item=>item.Company==company);
-                    return news==null?"현재 총자산  "+Money(Market.Total(state)):name+"  "+Money(news.PreviousPrice)+" → "+Money(news.OpeningPrice)+"\n개장 변동  "+Percent((news.OpeningPrice/(double)news.PreviousPrice-1)*100);
-                case 9:
-                    var sellQuote=Market.GetQuote(state,company,1);
-                    return "보유 "+stock.Quantity.ToString("N0")+"주 중 1주 매도\n수수료 "+Money(sellQuote.Fee)+" 제외 · 받을 금액 "+Money(sellQuote.Sell);
-                case 10:
-                    var sale=state.Trades.LastOrDefault(item=>!item.Buy&&item.Company==company);
-                    return (sale==null?"현재 현금  "+Money(state.Cash):sale.Day+"일차 최근 매도 손익  "+Signed(sale.RealizedProfit))+"\n현재 총자산  "+Money(Market.Total(state));
-                case 11:return "예치금 100,000원 · 만기 "+(state.Day+3)+"일차\n"+(state.Cash>=100000?"만기에 100,500원 반환 · 가입은 선택이에요.":"현금 부족 · 가입 없이 안내를 마칠 수 있어요.");
-                default:return "현재 현금  "+Money(state.Cash)+"\n"+(state.DepositDue>0?"예금은 "+state.DepositDue+"일차에 자동으로 돌아와요.":"현재 총자산  "+Money(Market.Total(state)));
+            target.GetWorldCorners(guideBubbleCorners);
+            Vector2 min=guideBubbleLayer.InverseTransformPoint(guideBubbleCorners[0]),max=min;
+            for(int i=1;i<4;i++){
+                Vector2 point=guideBubbleLayer.InverseTransformPoint(guideBubbleCorners[i]);
+                min=Vector2.Min(min,point);max=Vector2.Max(max,point);
             }
+            return UnityEngine.Rect.MinMaxRect(min.x,min.y,max.x,max.y);
+        }
+        static UnityEngine.Rect GuideIntersection(UnityEngine.Rect a,UnityEngine.Rect b)
+            => UnityEngine.Rect.MinMaxRect(Mathf.Max(a.xMin,b.xMin),Mathf.Max(a.yMin,b.yMin),Mathf.Min(a.xMax,b.xMax),Mathf.Min(a.yMax,b.yMax));
+        void UpdateGuideBubble()
+        {
+            if(guideBubbleLayer==null)return;
+            if(!TutorialActive||StoryActive||guideBubbleTarget==null||!guideBubbleTarget.gameObject.activeInHierarchy){
+                guideBubbleLayer.gameObject.SetActive(false);return;
+            }
+            int step=GuideExplanationStage;
+            if(guideBubbleStep!=step){guideBubbleStep=step;guideBubbleError="";}
+            // The overlay canvas uses screen pixels only at this boundary; placement is canvas local.
+            var screenSafe=Screen.safeArea;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(guideBubbleLayer,screenSafe.min,null,out var safeMin);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(guideBubbleLayer,screenSafe.max,null,out var safeMax);
+            var safe=UnityEngine.Rect.MinMaxRect(safeMin.x+10,safeMin.y+10,safeMax.x-10,safeMax.y-10);
+            var target=GuideBubbleBounds(guideBubbleTarget);
+            if(scroll!=null&&scroll.viewport!=null&&guideBubbleTarget.IsChildOf(scroll.viewport))
+                target=GuideIntersection(target,GuideBubbleBounds(scroll.viewport));
+            target=GuideIntersection(target,safe);
+            if(target.width<=1||target.height<=1||safe.width<180||safe.height<92){
+                guideBubbleLayer.gameObject.SetActive(false);return;
+            }
+            string message=GuideBubbleMessages[step];
+            if(guideBubbleTarget.name=="GuidePause")message="현금이 부족해요.\n안내를 닫고 알바해 보세요.";
+            if(step==11&&guideBubbleTarget.name=="GuideFinish")message="예금은 선택이에요.\n가입 없이 마쳐도 돼요.";
+            guideBubbleText.text=guideBubbleError.Length>0?guideBubbleError:message;
+            const float height=92,gap=14;
+            float width=Mathf.Min(360,safe.width),bestScore=float.PositiveInfinity;
+            var best=new UnityEngine.Rect();
+            var banner=guideBanner!=null&&guideBanner.gameObject.activeInHierarchy?GuideBubbleBounds(guideBanner):new UnityEngine.Rect();
+            for(int side=0;side<4;side++){
+                float x=target.center.x-width*.5f,y=target.center.y-height*.5f;
+                if(side==0)y=target.yMax+gap;
+                else if(side==1)y=target.yMin-gap-height;
+                else if(side==2)x=target.xMin-gap-width;
+                else x=target.xMax+gap;
+                var candidate=new UnityEngine.Rect(Mathf.Clamp(x,safe.xMin,safe.xMax-width),Mathf.Clamp(y,safe.yMin,safe.yMax-height),width,height);
+                var clearance=UnityEngine.Rect.MinMaxRect(target.xMin-8,target.yMin-8,target.xMax+8,target.yMax+8);
+                if(candidate.Overlaps(clearance))continue;
+                var overlap=GuideIntersection(candidate,banner);
+                float score=Vector2.SqrMagnitude(candidate.center-target.center)+side;
+                if(overlap.width>0&&overlap.height>0)score+=1000000+overlap.width*overlap.height;
+                foreach(var control in guideBubbleControls) {
+                    if(control==null||!control.gameObject.activeInHierarchy)continue;
+                    var bounds=GuideBubbleBounds(control);
+                    if(scroll!=null&&scroll.viewport!=null&&control.IsChildOf(scroll.viewport))
+                        bounds=GuideIntersection(bounds,GuideBubbleBounds(scroll.viewport));
+                    overlap=GuideIntersection(candidate,bounds);
+                    if(overlap.width>0&&overlap.height>0)score+=10000000+overlap.width*overlap.height;
+                }
+                if(score>=bestScore)continue;
+                best=candidate;bestScore=score;
+            }
+            if(float.IsPositiveInfinity(bestScore)){guideBubbleLayer.gameObject.SetActive(false);return;}
+            guideBubbleLayer.gameObject.SetActive(true);
+            guideBubble.sizeDelta=best.size;guideBubble.anchoredPosition=best.center;
+            Vector2 tail;
+            if(target.yMax<=best.yMin)tail=new Vector2(Mathf.Clamp(target.center.x-best.center.x,-width*.5f+18,width*.5f-18),-height*.5f+2);
+            else if(target.yMin>=best.yMax)tail=new Vector2(Mathf.Clamp(target.center.x-best.center.x,-width*.5f+18,width*.5f-18),height*.5f-2);
+            else if(target.xMax<=best.xMin)tail=new Vector2(-width*.5f+2,Mathf.Clamp(target.center.y-best.center.y,-height*.5f+18,height*.5f-18));
+            else tail=new Vector2(width*.5f-2,Mathf.Clamp(target.center.y-best.center.y,-height*.5f+18,height*.5f-18));
+            guideBubbleTail.anchoredPosition=tail;
         }
     }
 }

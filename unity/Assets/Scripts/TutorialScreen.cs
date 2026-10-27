@@ -113,17 +113,14 @@ namespace MoneyTown
             guideOutlines.Clear();Clear(guideBanner);
             guideBanner.gameObject.SetActive(TutorialActive);
             if(!TutorialActive)return;
-            PrepareGuideExplanation();
-            Height(guideBanner,guideExplanationExpanded?322:156);
+            Height(guideBanner,98);
             int step=GuideExplanationStage;
             var row=Row(guideBanner,74,10);
             var heading=Column(row,0,1);Flexible(heading);
             Label(heading,"첫 투자 안내  "+(state.TutorialStep+1)+" / "+TutorialGuide.Count,17,Mint,24);
             Label(heading,GuideTitles[step],25,Gold,42).name="GuideTitle";
-            var toggle=Button(row,guideExplanationExpanded?"설명\n접기":"설명\n펼치기",ToggleGuideExplanation,Raised,74);toggle.name="GuideExplainToggle";Width((RectTransform)toggle.transform,100);
             var pause=Button(row,step>=11?"안내 마치기":"나중에",step>=11?(Action)FinishTutorial:()=>LeaveTutorial(false),Raised,74);
             pause.name=step>=11?"GuideFinish":"GuidePause";Width((RectTransform)pause.transform,144);
-            DrawGuideExplanation(step);
         }
         bool GuideTarget(Selectable control)
         {
@@ -146,24 +143,29 @@ namespace MoneyTown
         }
         void ApplyTutorialGuide()
         {
-            if(!TutorialActive)return;
-            RectTransform focus=null;
-            var controls=safeArea.GetComponentsInChildren<Selectable>().Concat(settlementWindow.GetComponentsInChildren<Selectable>());
+            if(!TutorialActive){SetGuideBubbleTarget(null);return;}
+            var controls=safeArea.GetComponentsInChildren<Selectable>().Concat(settlementWindow.GetComponentsInChildren<Selectable>()).ToArray();
             foreach(var control in controls) {
                 if(!control.gameObject.activeInHierarchy)continue;
                 bool target=GuideTarget(control);
-                control.interactable=control.interactable&&(target||control==help||control.name=="GuidePause"||control.name=="GuideFinish"||control.name=="GuideExplainToggle");
-                if(!target||!control.interactable)continue;
-                var outline=control.gameObject.AddComponent<Outline>();outline.effectColor=Gold;outline.effectDistance=new Vector2(3,-3);guideOutlines.Add(outline);
-                if(focus==null&&control.transform.IsChildOf(content))focus=(RectTransform)control.transform;
+                control.interactable=control.interactable&&(target||control==help||control.name=="GuidePause"||control.name=="GuideFinish");
             }
-            if(focus!=null) {
+            var targets=controls.Where(control=>control.gameObject.activeInHierarchy&&control.IsInteractable()&&GuideTarget(control)).ToArray();
+            string preferred=state.SettlementPending?"SettlementClose":state.TutorialStep==1?"Company-"+state.TutorialCompany:"";
+            var primary=targets.FirstOrDefault(control=>control.name==preferred)??targets.FirstOrDefault()??
+                controls.FirstOrDefault(control=>control.gameObject.activeInHierarchy&&control.IsInteractable()&&(control.name=="GuidePause"||control.name=="GuideFinish"));
+            var focus=primary==null?null:(RectTransform)primary.transform;
+            if(primary!=null) {
+                var outline=primary.gameObject.AddComponent<Outline>();outline.effectColor=Gold;outline.effectDistance=new Vector2(3,-3);guideOutlines.Add(outline);
+            }
+            if(focus!=null&&focus.IsChildOf(content)) {
                 Canvas.ForceUpdateCanvases();
                 float distance=content.rect.height-scroll.viewport.rect.height;
                 var bounds=RectTransformUtility.CalculateRelativeRectTransformBounds(content,focus);
                 scroll.StopMovement();
                 scroll.verticalNormalizedPosition=distance<=0?1:1-Mathf.Clamp01((-bounds.center.y-scroll.viewport.rect.height*.5f)/distance);
             } else scroll.verticalNormalizedPosition=1;
+            SetGuideBubbleTarget(focus);
         }
         void GuideText(Transform parent,string value,Color? tint=null)
         {var text=Label(parent,value,23,tint??Muted,0,TextAnchor.UpperLeft);text.resizeTextForBestFit=false;}

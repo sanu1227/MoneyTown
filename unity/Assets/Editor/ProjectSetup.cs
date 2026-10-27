@@ -35,9 +35,9 @@ namespace MoneyTown.Editor
             }
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             PlayerSettings.companyName = "MoneyTown"; PlayerSettings.productName = "MoneyTown";
-            PlayerSettings.bundleVersion = "0.32.0";
+            PlayerSettings.bundleVersion = "0.33.0";
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.moneytown.unity");
-            PlayerSettings.Android.bundleVersionCode = 44;
+            PlayerSettings.Android.bundleVersionCode = 45;
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
             PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
